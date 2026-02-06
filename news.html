@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Actualités — BOTH EQUIPMNT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{ box-sizing:border-box; margin:0; padding:0; }
+:root{
+  --black:#0a0a0a;
+  --white:#fafaf8;
+  --grey-200:#1a1a1a;
+  --grey-400:#6a6a6a;
+  --grey-600:#9a9a9a;
+  --red:#ffd700;
+  --red-dark:#ffcc00;
+  --display:'Oswald',sans-serif;
+  --body:'Work Sans',sans-serif;
+  --ease:.42s cubic-bezier(.4,0,.2,1);
+}
+
+/* Thème clair */
+body.light-theme {
+  --black:#fafaf8;
+  --white:#0a0a0a;
+  --grey-200:#f0f0f0;
+  --grey-400:#6a6a6a;
+  --grey-600:#4a4a4a;
+}
+
+html{ scroll-behavior:smooth; -webkit-font-smoothing:antialiased; }
+body{ 
+  font-family:var(--body); 
+  background:var(--black); 
+  color:var(--white); 
+  font-weight:400; 
+  line-height:1.65; 
+  overflow-x:hidden;
+  transition:background .5s ease, color .5s ease;
+}
+a{ text-decoration:none; color:inherit; cursor:pointer; }
+img{ max-width:100%; display:block; }
+
+/* NAV */
+nav{
+  position:fixed; top:0; left:0; right:0; z-index:100;
+  padding:1.2rem 5rem;
+  display:flex; align-items:center; justify-content:space-between;
+  background:rgba(10,10,10,.95); backdrop-filter:blur(16px);
+  border-bottom:1px solid #333;
+}
+.nav-logo img{ height:55px; }
+.nav-back{
+  padding:.6rem 1.5rem;
+  border:2px solid var(--white);
+  background:transparent;
+  font-size:.7rem;
+  letter-spacing:.2em;
+  text-transform:uppercase;
+  font-weight:600;
+  color:var(--white);
+  transition:all var(--ease);
+}
+.nav-back:hover{
+  background:var(--white);
+  color:var(--black);
+}
+
+/* PAGE */
+.page-header{
+  padding:8rem 5rem 4rem;
+  text-align:center;
+  border-bottom:1px solid #333;
+}
+.page-label{
+  font-size:.7rem;
+  letter-spacing:.4em;
+  text-transform:uppercase;
+  color:var(--grey-400);
+  margin-bottom:1rem;
+  font-weight:600;
+}
+.page-title{
+  font-family:var(--display);
+  font-size:clamp(3rem,6vw,5rem);
+  font-weight:700;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+  color:var(--white);
+  margin-bottom:1rem;
+}
+.page-desc{
+  font-size:1rem;
+  color:var(--grey-400);
+  max-width:600px;
+  margin:0 auto;
+  line-height:1.8;
+}
+
+/* NEWS GRID */
+.news-section{
+  padding:4rem 5rem;
+  max-width:1600px;
+  margin:0 auto;
+}
+.news-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(350px, 1fr));
+  gap:3rem;
+}
+.news-card{
+  cursor:pointer;
+  transition:transform var(--ease);
+  background:var(--black);
+}
+.news-card:hover{
+  transform:translateY(-8px);
+}
+.news-card-img{
+  aspect-ratio:16/10;
+  background:var(--grey-200);
+  overflow:hidden;
+  margin-bottom:1.5rem;
+}
+.news-card-img img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  transition:transform .7s ease;
+}
+.news-card:hover .news-card-img img{
+  transform:scale(1.08);
+}
+.news-date{
+  font-size:.7rem;
+  letter-spacing:.22em;
+  text-transform:uppercase;
+  color:var(--grey-400);
+  margin-bottom:.8rem;
+  font-weight:600;
+}
+.news-title{
+  font-family:var(--display);
+  font-size:1.6rem;
+  font-weight:700;
+  letter-spacing:.02em;
+  margin-bottom:.8rem;
+  line-height:1.2;
+  color:var(--red);
+  text-transform:uppercase;
+}
+.news-excerpt{
+  font-size:.9rem;
+  color:var(--grey-400);
+  line-height:1.75;
+}
+
+/* FOOTER */
+footer{
+  background:var(--black);
+  color:var(--white);
+  padding:3rem 5rem 2rem;
+  margin-top:4rem;
+  border-top:1px solid #333;
+}
+.footer-inner{
+  max-width:1400px;
+  margin:0 auto;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+.footer-logo img{
+  height:32px;
+  filter:brightness(0) invert(1);
+}
+.footer-text{
+  font-size:.75rem;
+  color:var(--grey-600);
+}
+
+/* LOADER */
+.spinner{
+  width:40px;
+  height:40px;
+  border:3px solid var(--grey-200);
+  border-top-color:var(--red);
+  border-radius:50%;
+  animation:spin 1s linear infinite;
+  margin:4rem auto;
+}
+@keyframes spin{
+  to{transform:rotate(360deg)}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">
+    <a href="/">
+      <img src="https://bothequipmnt.com/cdn/shop/files/Plan_de_travail_14.png?v=1762357332&width=400" alt="BOTH">
+    </a>
+  </div>
+  <a href="/" class="nav-back">← Retour</a>
+</nav>
+
+<div class="page-header">
+  <div class="page-label">Latest</div>
+  <h1 class="page-title">Actualités</h1>
+  <p class="page-desc">Toutes nos actualités, collections et nouveautés.</p>
+</div>
+
+<section class="news-section">
+  <div class="news-grid" id="news-grid">
+    <div class="spinner"></div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-logo">
+      <img src="https://bothequipmnt.com/cdn/shop/files/Plan_de_travail_14.png?v=1762357332&width=400" alt="BOTH">
+    </div>
+    <div class="footer-text">© 2025 Both Equipmnt. Tous droits réservés.</div>
+  </div>
+</footer>
+
+<script>
+const API = "/.netlify/functions/notion-api";
+
+// Charger le thème sauvegardé
+function loadSavedTheme() {
+  const savedTheme = localStorage.getItem('theme');
+  if(savedTheme === 'light') {
+    document.body.classList.add('light-theme');
+  }
+}
+loadSavedTheme();
+
+async function loadAllNews(){
+  const grid = document.getElementById('news-grid');
+  try {
+    const res = await fetch(API + '?action=getNews');
+    const data = await res.json();
+    const news = data.news || [];
+    
+    if(!news.length){
+      grid.innerHTML = '<p style="color:var(--grey-400);text-align:center;padding:3rem;grid-column:1/-1;">Aucune actualité pour le moment.</p>';
+      return;
+    }
+    
+    grid.innerHTML = news.map(n => `
+      <div class="news-card" onclick="window.location='${n.lien_externe || '/actualite-detail.html?id=' + n.id}'">
+        <div class="news-card-img">
+          ${n.image ? `<img src="${n.image}" alt="${n.titre}" loading="lazy">` : ''}
+        </div>
+        <div class="news-date">${n.date}</div>
+        <div class="news-title">${n.titre}</div>
+        <p class="news-excerpt">${n.texte_court || ''}</p>
+      </div>
+    `).join('');
+    
+  } catch(e){
+    console.error(e);
+    grid.innerHTML = '<p style="color:var(--grey-400);text-align:center;grid-column:1/-1;">Erreur de chargement.</p>';
+  }
+}
+
+loadAllNews();
+</script>
+
+</body>
+</html>

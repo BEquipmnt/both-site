@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Projet — BOTH EQUIPMNT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{ box-sizing:border-box; margin:0; padding:0; }
+:root{
+  --black:#0a0a0a;
+  --white:#fafaf8;
+  --yellow:#ffd700;
+  --yellow-dark:#ffcc00;
+  --display:'Oswald',sans-serif;
+  --body:'Work Sans',sans-serif;
+}
+html{ scroll-behavior:smooth; -webkit-font-smoothing:antialiased; }
+body{ font-family:var(--body); background:var(--black); color:var(--white); line-height:1.65; }
+a{ text-decoration:none; color:inherit; }
+
+nav{
+  position:fixed; top:0; left:0; right:0; z-index:100;
+  padding:1.2rem 3.5rem; background:rgba(10,10,10,.95);
+  backdrop-filter:blur(16px); border-bottom:1px solid rgba(255,255,255,.1);
+}
+.nav-logo img{ height:55px; }
+
+.project-header{
+  min-height:60vh; display:flex; flex-direction:column;
+  justify-content:flex-end; position:relative; overflow:hidden;
+  padding:8rem 3.5rem 4rem;
+}
+.project-header::before{
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(to bottom, rgba(10,10,10,0.3) 0%, rgba(10,10,10,0.92) 100%);
+  z-index:1;
+}
+.header-bg{
+  position:absolute; inset:0; width:100%; height:100%;
+  object-fit:cover; z-index:0;
+}
+.project-title{
+  position:relative; z-index:2; max-width:1200px; margin:0 auto;
+  width:100%;
+}
+.project-club{
+  font-size:.85rem; color:var(--yellow); letter-spacing:.25em;
+  text-transform:uppercase; font-weight:600; margin-bottom:.8rem;
+}
+.project-title h1{
+  font-family:var(--display); font-size:clamp(3rem,7vw,6rem);
+  font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+  margin-bottom:1rem; line-height:1.05;
+}
+.project-year{
+  font-size:1.1rem; opacity:.7; letter-spacing:.1em;
+}
+
+.project-content{
+  max-width:1200px; margin:0 auto; padding:4rem 2rem 6rem;
+}
+.project-description{
+  max-width:800px; margin:0 auto 4rem;
+  font-size:1.15rem; line-height:1.9; color:rgba(250,250,248,.9);
+  text-align:center; padding:0 2rem;
+}
+.project-gallery{
+  display:grid; grid-template-columns:repeat(auto-fit, minmax(400px, 1fr));
+  gap:2.5rem; margin:3rem 0;
+}
+.project-gallery img{
+  width:100%; aspect-ratio:4/5; object-fit:cover;
+  border-radius:4px; transition:transform .4s ease;
+}
+.project-gallery img:hover{
+  transform:scale(1.02);
+}
+
+.back-btn{
+  display:inline-block; margin-bottom:3rem;
+  padding:.95rem 2.5rem; background:transparent;
+  border:2px solid var(--yellow); color:var(--yellow);
+  font-size:.75rem; letter-spacing:.22em; text-transform:uppercase;
+  font-weight:600; transition:all .3s ease;
+}
+.back-btn:hover{
+  background:var(--yellow); color:var(--black);
+}
+
+.loading{
+  text-align:center; padding:8rem 2rem;
+  font-size:1.2rem; color:rgba(255,255,255,.5);
+}
+.spinner{
+  width:40px; height:40px; margin:0 auto 1rem;
+  border:3px solid rgba(255,255,255,.1);
+  border-top-color:var(--yellow);
+  border-radius:50%; animation:spin 1s linear infinite;
+}
+@keyframes spin{ to{transform:rotate(360deg)} }
+
+footer{
+  background:#1a1a1a; color:var(--white); padding:3rem 3.5rem;
+  border-top:1px solid #333; text-align:center;
+}
+
+@media (max-width:768px){
+  .project-header{ padding:6rem 2rem 3rem; }
+  .project-content{ padding:3rem 1.5rem 4rem; }
+  .project-gallery{
+    grid-template-columns:1fr;
+    gap:2rem;
+  }
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-logo">
+    <img src="https://bothequipmnt.com/cdn/shop/files/Plan_de_travail_14.png?v=1762357332&width=400" alt="BOTH EQUIPMNT">
+  </a>
+</nav>
+
+<div id="project-container">
+  <div class="loading">
+    <div class="spinner"></div>
+    <p>Chargement du projet...</p>
+  </div>
+</div>
+
+<footer>
+  <p>© 2025 Both Equipmnt. Tous droits réservés.</p>
+</footer>
+
+<script>
+const API = "/.netlify/functions/notion-api";
+
+async function loadProject() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('id');
+    
+    if (!id) {
+      document.getElementById('project-container').innerHTML = `
+        <div class="project-content">
+          <a href="/portfolio.html" class="back-btn">← Retour au portfolio</a>
+          <p style="color:#ff4444;">Projet non trouvé.</p>
+        </div>
+      `;
+      return;
+    }
+    
+    const res = await fetch(API + '?action=getPortfolio&id=' + encodeURIComponent(id) + '&all=true');
+    const data = await res.json();
+    
+    if (!data.projects) {
+      document.getElementById('project-container').innerHTML = `
+        <div class="project-content">
+          <a href="/portfolio.html" class="back-btn">← Retour au portfolio</a>
+          <p style="color:#ff4444;">Projet non trouvé.</p>
+        </div>
+      `;
+      return;
+    }
+    
+    const project = data.projects;
+    
+    let html = `
+      <section class="project-header">
+        ${project.image ? `<img src="${project.image}" alt="${project.nom}" class="header-bg">` : ''}
+        <div class="project-title">
+          <div class="project-club">${project.club}</div>
+          <h1>${project.nom}</h1>
+          <div class="project-year">${project.annee}</div>
+        </div>
+      </section>
+      
+      <div class="project-content">
+        <a href="/portfolio.html" class="back-btn">← Retour au portfolio</a>
+        
+        ${project.description ? `<p class="project-description">${project.description}</p>` : ''}
+        
+        ${project.galerie && project.galerie.length > 0 ? `
+          <div class="project-gallery">
+            ${project.galerie.map(img => `<img src="${img}" alt="${project.nom}">`).join('')}
+          </div>
+        ` : ''}
+      </div>
+    `;
+    
+    document.getElementById('project-container').innerHTML = html;
+    
+    // Mettre à jour le titre de la page
+    document.title = `${project.nom} — BOTH EQUIPMNT`;
+    
+  } catch (e) {
+    console.error(e);
+    document.getElementById('project-container').innerHTML = `
+      <div class="project-content">
+        <a href="/portfolio.html" class="back-btn">← Retour au portfolio</a>
+        <p style="color:#ff4444;">Erreur lors du chargement du projet.</p>
+      </div>
+    `;
+  }
+}
+
+window.addEventListener('load', loadProject);
+</script>
+
+</body>
+</html>

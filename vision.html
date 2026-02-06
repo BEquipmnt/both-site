@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Notre Vision — BOTH EQUIPMNT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700;800&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{ box-sizing:border-box; margin:0; padding:0; }
+:root{
+  --black:#0a0a0a;
+  --white:#fafaf8;
+  --yellow:#ffd700;
+  --yellow-dark:#ffcc00;
+  --grey-400:#6a6a6a;
+  --grey-600:#9a9a9a;
+  --display:'Oswald',sans-serif;
+  --body:'Work Sans',sans-serif;
+}
+html{ scroll-behavior:smooth; -webkit-font-smoothing:antialiased; }
+body{ font-family:var(--body); background:var(--black); color:var(--white); line-height:1.65; }
+a{ text-decoration:none; color:inherit; }
+img{ max-width:100%; display:block; }
+
+/* NAV */
+nav{
+  position:fixed; top:0; left:0; right:0; z-index:100;
+  padding:1.2rem 3.5rem; background:rgba(10,10,10,.95);
+  backdrop-filter:blur(16px); border-bottom:1px solid rgba(255,255,255,.1);
+  display:flex; align-items:center; justify-content:space-between;
+}
+.nav-logo img{ height:55px; }
+.nav-center{
+  position:absolute; left:50%; transform:translateX(-50%);
+  display:flex; gap:2.8rem;
+}
+.nav-link{
+  font-size:.72rem; letter-spacing:.22em; text-transform:uppercase; font-weight:600;
+  color:var(--white); position:relative; padding:.3rem 0;
+  transition:color .42s ease;
+}
+.nav-link::after{
+  content:''; position:absolute; bottom:0; left:0; width:0; height:2px;
+  background:var(--yellow); transition:width .42s ease;
+}
+.nav-link:hover{ color:var(--yellow); }
+.nav-link:hover::after{ width:100%; }
+
+/* HERO INTRO */
+.hero-intro{
+  min-height:50vh; display:flex; align-items:center; justify-content:center;
+  padding:10rem 3.5rem 6rem; background:var(--black);
+  text-align:center;
+}
+.hero-intro h1{
+  font-family:var(--display); font-size:clamp(3rem,8vw,6rem);
+  font-weight:800; letter-spacing:.08em; text-transform:uppercase;
+  margin-bottom:2rem; line-height:1.1;
+}
+.hero-intro p{
+  font-size:1.1rem; max-width:800px; margin:0 auto;
+  color:var(--grey-600); line-height:1.9;
+}
+
+/* CONTENT SECTIONS */
+.content-section{
+  padding:6rem 3.5rem; background:var(--black);
+}
+.content-section:nth-child(even){ background:#0f0f0f; }
+.content-inner{
+  max-width:1400px; margin:0 auto;
+  display:grid; grid-template-columns:1fr 1fr; gap:5rem;
+  align-items:center;
+}
+.content-section:nth-child(even) .content-inner{
+  direction:rtl;
+}
+.content-section:nth-child(even) .content-text{
+  direction:ltr;
+}
+.content-image{
+  aspect-ratio:4/3; background:#1a1a1a; border-radius:4px;
+  overflow:hidden;
+}
+.content-image img{
+  width:100%; height:100%; object-fit:cover;
+}
+.content-text h2{
+  font-family:var(--display); font-size:clamp(1.8rem,4vw,3rem);
+  font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+  margin-bottom:1.5rem; line-height:1.15;
+}
+.content-text p{
+  font-size:1.05rem; color:var(--grey-600); line-height:1.9;
+  margin-bottom:1.2rem;
+}
+
+/* CONTACT SECTION */
+.contact-section{
+  padding:6rem 3.5rem; background:var(--black); text-align:center;
+}
+.contact-section h2{
+  font-family:var(--display); font-size:clamp(2.5rem,6vw,4.5rem);
+  font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+  margin-bottom:1.5rem;
+}
+.contact-section p{
+  font-size:1.05rem; color:var(--grey-600); max-width:700px;
+  margin:0 auto 3rem; line-height:1.9;
+}
+.contact-buttons{
+  display:flex; gap:2rem; justify-content:center; flex-wrap:wrap;
+}
+.btn-contact{
+  padding:1rem 3rem; border:2px solid var(--yellow); background:transparent;
+  font-size:.75rem; letter-spacing:.22em; text-transform:uppercase;
+  font-weight:600; color:var(--yellow); transition:all .42s ease;
+  cursor:pointer;
+}
+.btn-contact:hover{
+  background:var(--yellow); color:var(--black);
+}
+
+/* MODAL FORMULAIRE */
+.modal-backdrop{
+  display:none; position:fixed; inset:0; background:rgba(10,10,10,.7);
+  z-index:200; align-items:center; justify-content:center; padding:2rem;
+}
+.modal-backdrop.active{ display:flex; }
+.modal-box{
+  background:var(--white); max-width:600px; width:100%;
+  padding:3rem; border-radius:8px; position:relative;
+}
+.modal-close{
+  position:absolute; top:1rem; right:1rem;
+  width:36px; height:36px; border-radius:50%; border:none;
+  background:#f0f0f0; font-size:1.2rem; color:var(--black);
+  cursor:pointer; transition:background .3s ease;
+}
+.modal-close:hover{ background:#e0e0e0; }
+.modal-box h3{
+  font-family:var(--display); font-size:1.8rem; font-weight:700;
+  color:var(--black); text-transform:uppercase; margin-bottom:1.5rem;
+  letter-spacing:.04em;
+}
+.form-field{
+  margin-bottom:1.2rem;
+}
+.form-field label{
+  display:block; font-size:.7rem; letter-spacing:.2em;
+  text-transform:uppercase; color:#666; margin-bottom:.5rem;
+  font-weight:600;
+}
+.form-field input,
+.form-field textarea{
+  width:100%; padding:.9rem 1rem; border:2px solid #ddd;
+  background:#fafafa; font-size:.9rem; color:var(--black);
+  font-family:var(--body); outline:none;
+  transition:border-color .3s ease;
+}
+.form-field input:focus,
+.form-field textarea:focus{
+  border-color:var(--yellow);
+}
+.form-field textarea{
+  resize:vertical; min-height:180px;
+}
+.btn-submit{
+  width:100%; padding:1rem; border:2px solid var(--black);
+  background:var(--black); color:var(--white);
+  font-size:.75rem; letter-spacing:.22em; text-transform:uppercase;
+  font-weight:600; cursor:pointer; transition:all .3s ease;
+}
+.btn-submit:hover{
+  background:var(--yellow); border-color:var(--yellow);
+  color:var(--black);
+}
+
+/* FOOTER */
+footer{
+  background:#1a1a1a; color:var(--white); padding:5rem 3.5rem 2.5rem;
+  border-top:1px solid #333;
+}
+.footer-inner{
+  max-width:1200px; margin:0 auto;
+  display:flex; justify-content:space-between; align-items:flex-start;
+  flex-wrap:wrap; gap:3rem;
+}
+.footer-logo img{ height:32px; filter:brightness(0) invert(1); }
+.footer-links{ display:flex; gap:3rem; }
+.footer-links a{
+  font-size:.72rem; letter-spacing:.18em; text-transform:uppercase;
+  color:var(--grey-400); font-weight:600; transition:color .3s ease;
+}
+.footer-links a:hover{ color:var(--white); }
+.footer-bottom{
+  max-width:1200px; margin:3rem auto 0;
+  padding-top:1.8rem; border-top:1px solid #2a2a2a;
+  font-size:.7rem; color:var(--grey-600);
+  display:flex; justify-content:space-between;
+}
+
+/* RESPONSIVE */
+@media (max-width:768px){
+  .content-inner{
+    grid-template-columns:1fr; gap:3rem;
+  }
+  .content-section:nth-child(even) .content-inner{
+    direction:ltr;
+  }
+  nav{ padding:1rem 2rem; }
+  .nav-center{ display:none; }
+  .contact-buttons{ flex-direction:column; align-items:center; }
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-logo">
+    <img src="https://bothequipmnt.com/cdn/shop/files/Plan_de_travail_14.png?v=1762357332&width=400" alt="BOTH EQUIPMNT">
+  </a>
+  <div class="nav-center">
+    <a href="/#vision" class="nav-link">À Propos</a>
+    <a href="/#actualites" class="nav-link">Actualités</a>
+    <a href="/#portfolio" class="nav-link">Portfolio</a>
+    <a href="/#contact" class="nav-link">Contact</a>
+  </div>
+</nav>
+
+<!-- HERO INTRO -->
+<section class="hero-intro">
+  <div>
+    <h1>LOOK GOOD, PLAY GOOD</h1>
+    <p>Un club bien équipé, c'est un club qui enclenche un véritable cercle vertueux : une image forte renforce sa crédibilité, attire des talents, inspire ses supporters et consolide ses partenariats.</p>
+    <br>
+    <p>Être bien équipé n'est pas un détail, c'est un levier de croissance et de performance durable.</p>
+  </div>
+</section>
+
+<!-- SECTION 1 : Collections complètes -->
+<section class="content-section">
+  <div class="content-inner">
+    <div class="content-image">
+      <!-- Image placeholder - remplacer par votre image -->
+      <img src="https://via.placeholder.com/800x600/1a1a1a/666?text=Image+1" alt="Collections">
+    </div>
+    <div class="content-text">
+      <h2>Des collections complètes</h2>
+      <p>Des maillots match aux tenues d'entraînement en passant par des pièces lifestyle, chaque collection est pensée comme un ensemble.</p>
+      <p>Laissez-vous accompagner sur la création d'une gamme complète, fidèle à votre identité.</p>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 2 : Accompagnement -->
+<section class="content-section">
+  <div class="content-inner">
+    <div class="content-image">
+      <!-- Image placeholder - remplacer par votre image -->
+      <img src="https://via.placeholder.com/800x600/1a1a1a/666?text=Image+2" alt="Accompagnement">
+    </div>
+    <div class="content-text">
+      <h2>Un accompagnement sur-mesure</h2>
+      <p>Chaque club est accompagné avec la même exigence. Nous commençons par comprendre vos besoins, votre culture et vos ambitions, puis nous créons une collection qui vous ressemble vraiment.</p>
+      <p>Un process simple, clair, efficace, pensé pour les clubs qui veulent aller plus loin.</p>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION CONTACT -->
+<section class="contact-section">
+  <h2>Parlez-nous de votre club</h2>
+  <p>Nous travaillons avec des clubs qui veulent créer plus qu'un maillot : une signature.<br>Si vous souhaitez développer votre image et construire votre prochaine collection, rencontrons-nous.</p>
+  <div class="contact-buttons">
+    <a href="https://calendly.com/bothequipmnt/30min" target="_blank" class="btn-contact">Réserver une visio</a>
+    <button onclick="openContactModal()" class="btn-contact">Envoyer un mail</button>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-logo">
+      <img src="https://bothequipmnt.com/cdn/shop/files/Plan_de_travail_14.png?v=1762357332&width=400" alt="BOTH">
+    </div>
+    <div class="footer-links">
+      <a href="/#vision">À Propos</a>
+      <a href="/#actualites">Actualités</a>
+      <a href="/#portfolio">Portfolio</a>
+      <a href="/#contact">Contact</a>
+      <a href="https://www.instagram.com/bothequipmnt" target="_blank">Instagram</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2025 Both Equipmnt. Tous droits réservés.</span>
+    <span>Paris, France</span>
+  </div>
+</footer>
+
+<!-- MODAL FORMULAIRE -->
+<div class="modal-backdrop" id="contact-modal" onclick="closeModalIfBackdrop(event)">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeContactModal()">✕</button>
+    <h3>Prêt à donner une nouvelle image à votre club ?</h3>
+    <form onsubmit="submitContact(event)">
+      <div class="form-field">
+        <label>Nom</label>
+        <input type="text" id="contact-name" required>
+      </div>
+      <div class="form-field">
+        <label>Email</label>
+        <input type="email" id="contact-email" required>
+      </div>
+      <div class="form-field">
+        <label>Nom du club</label>
+        <input type="text" id="contact-club" required>
+      </div>
+      <div class="form-field">
+        <label>Message</label>
+        <textarea id="contact-message" required></textarea>
+      </div>
+      <button type="submit" class="btn-submit">Envoyer</button>
+    </form>
+  </div>
+</div>
+
+<script>
+function openContactModal(){
+  document.getElementById('contact-modal').classList.add('active');
+}
+function closeContactModal(){
+  document.getElementById('contact-modal').classList.remove('active');
+}
+function closeModalIfBackdrop(e){
+  if(e.target === document.getElementById('contact-modal')){
+    closeContactModal();
+  }
+}
+function submitContact(e){
+  e.preventDefault();
+  const name = document.getElementById('contact-name').value;
+  const email = document.getElementById('contact-email').value;
+  const club = document.getElementById('contact-club').value;
+  const message = document.getElementById('contact-message').value;
+  
+  const subject = encodeURIComponent(`Contact depuis ${club}`);
+  const body = encodeURIComponent(`Nom : ${name}\nEmail : ${email}\nClub : ${club}\n\nMessage :\n${message}`);
+  
+  window.location.href = `mailto:contact@bothequipmnt.com?subject=${subject}&body=${body}`;
+  closeContactModal();
+}
+</script>
+
+</body>
+</html>

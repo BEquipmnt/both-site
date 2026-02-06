@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portfolio — BOTH EQUIPMNT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{ box-sizing:border-box; margin:0; padding:0; }
+:root{
+  --black:#0a0a0a;
+  --white:#fafaf8;
+  --yellow:#ffd700;
+  --yellow-dark:#ffcc00;
+  --display:'Oswald',sans-serif;
+  --body:'Work Sans',sans-serif;
+}
+html{ scroll-behavior:smooth; -webkit-font-smoothing:antialiased; }
+body{ font-family:var(--body); background:var(--black); color:var(--white); line-height:1.65; }
+a{ text-decoration:none; color:inherit; }
+
+nav{
+  position:fixed; top:0; left:0; right:0; z-index:100;
+  padding:1.2rem 3.5rem; background:rgba(10,10,10,.95);
+  backdrop-filter:blur(16px); border-bottom:1px solid rgba(255,255,255,.1);
+}
+.nav-logo img{ height:38px; }
+
+.hero{
+  min-height:40vh; display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
+  padding:8rem 2rem 4rem;
+}
+.hero h1{
+  font-family:var(--display); font-size:clamp(3rem,8vw,6rem);
+  font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+  text-align:center;
+}
+
+.portfolio-grid{
+  max-width:1400px; margin:0 auto; padding:4rem 2rem 6rem;
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(400px, 1fr));
+  gap:3rem;
+}
+.project-card{
+  position:relative; aspect-ratio:4/5; overflow:hidden;
+  cursor:pointer; background:#1a1a1a;
+}
+.project-img{
+  width:100%; height:100%; object-fit:cover;
+  transition:transform .6s ease;
+}
+.project-card:hover .project-img{
+  transform:scale(1.08);
+}
+.project-overlay{
+  position:absolute; inset:0;
+  background:linear-gradient(to top, rgba(0,0,0,.85) 0%, transparent 60%);
+  display:flex; flex-direction:column; justify-content:flex-end;
+  padding:2rem; color:var(--white);
+  transition:background .3s ease;
+}
+.project-card:hover .project-overlay{
+  background:linear-gradient(to top, rgba(255,215,0,.25) 0%, transparent 60%);
+}
+.project-club{
+  font-size:.7rem; letter-spacing:.3em; text-transform:uppercase;
+  margin-bottom:.5rem; font-weight:600; color:var(--yellow);
+}
+.project-name{
+  font-family:var(--display); font-size:1.8rem; font-weight:700;
+  letter-spacing:.04em; text-transform:uppercase;
+}
+.project-year{
+  font-size:.85rem; margin-top:.5rem; opacity:.7;
+}
+
+.loading{
+  text-align:center; padding:6rem 2rem;
+  font-size:1.2rem; color:rgba(255,255,255,.5);
+}
+.spinner{
+  width:40px; height:40px; margin:0 auto 1rem;
+  border:3px solid rgba(255,255,255,.1);
+  border-top-color:var(--yellow);
+  border-radius:50%; animation:spin 1s linear infinite;
+}
+@keyframes spin{ to{transform:rotate(360deg)} }
+
+.back-btn{
+  display:block; max-width:300px; margin:0 auto 4rem;
+  padding:.95rem 2.5rem; background:transparent;
+  border:2px solid var(--yellow); color:var(--yellow);
+  font-size:.75rem; letter-spacing:.22em; text-transform:uppercase;
+  font-weight:600; transition:all .3s ease; text-align:center;
+}
+.back-btn:hover{
+  background:var(--yellow); color:var(--black);
+}
+
+footer{
+  background:#1a1a1a; color:var(--white); padding:3rem 3.5rem;
+  border-top:1px solid #333; text-align:center;
+}
+
+@media (max-width:768px){
+  .portfolio-grid{
+    grid-template-columns:1fr;
+    gap:2rem;
+  }
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-logo">
+    <img src="https://bothequipmnt.com/cdn/shop/files/Plan_de_travail_14.png?v=1762357332&width=400" alt="BOTH EQUIPMNT">
+  </a>
+</nav>
+
+<section class="hero">
+  <h1>PORTFOLIO</h1>
+</section>
+
+<a href="/" class="back-btn">← Retour à l'accueil</a>
+
+<div id="portfolio-container">
+  <div class="loading">
+    <div class="spinner"></div>
+    <p>Chargement des projets...</p>
+  </div>
+</div>
+
+<footer>
+  <p>© 2025 Both Equipmnt. Tous droits réservés.</p>
+</footer>
+
+<script>
+const API = "/.netlify/functions/notion-api";
+
+async function loadPortfolio() {
+  try {
+    const res = await fetch(API + '?action=getPortfolio&all=true');
+    const data = await res.json();
+    
+    if (!data.projects || data.projects.length === 0) {
+      document.getElementById('portfolio-container').innerHTML = `
+        <div class="loading">
+          <p>Aucun projet disponible pour le moment.</p>
+        </div>
+      `;
+      return;
+    }
+    
+    const grid = document.createElement('div');
+    grid.className = 'portfolio-grid';
+    
+    data.projects.forEach(project => {
+      const card = document.createElement('div');
+      card.className = 'project-card';
+      card.style.cursor = 'pointer';
+      card.onclick = () => window.location = `/projet-detail.html?id=${project.id}`;
+      
+      card.innerHTML = `
+        <img src="${project.image || ''}" alt="${project.nom}" class="project-img">
+        <div class="project-overlay">
+          <div class="project-club">${project.club || ''}</div>
+          <div class="project-name">${project.nom}</div>
+          <div class="project-year">${project.annee || ''}</div>
+        </div>
+      `;
+      
+      grid.appendChild(card);
+    });
+    
+    document.getElementById('portfolio-container').innerHTML = '';
+    document.getElementById('portfolio-container').appendChild(grid);
+    
+  } catch (e) {
+    console.error(e);
+    document.getElementById('portfolio-container').innerHTML = `
+      <div class="loading">
+        <p style="color:#ff4444;">Erreur lors du chargement des projets.</p>
+      </div>
+    `;
+  }
+}
+
+window.addEventListener('load', loadPortfolio);
+</script>
+
+</body>
+</html>

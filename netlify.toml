@@ -1,0 +1,10 @@
+[build]
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+
+# Variables d'environnement (à configurer dans Netlify Dashboard > Site settings > Environment variables)
+# NOTION_KEY = ntn_...
+# NOTION_DB_ACTUALITES = 2ff8e783876080b1aafee8dd76bf6bbc
+# NOTION_DB_PORTFOLIO = 2ff8e78387608067ad89e768ea0259e8
