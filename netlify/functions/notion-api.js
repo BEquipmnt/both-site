@@ -1,9 +1,11 @@
 // netlify/functions/notion-api.js
 // Proxy entre le site BOTH EQUIPMNT et l'API Notion
+// Gère : Actualités + Portfolio + Partenaires
 
 const NOTION_KEY = process.env.NOTION_KEY;
 const DB_ACTUALITES = process.env.NOTION_DB_ACTUALITES;
 const DB_PORTFOLIO = process.env.NOTION_DB_PORTFOLIO;
+const DB_PARTNERS = process.env.NOTION_DB_PARTNERS;
 
 const NOTION_API = 'https://api.notion.com/v1';
 const NOTION_VERSION = '2022-06-28';
@@ -125,6 +127,15 @@ async function getPortfolio(id, all) {
   return { projects };
 }
 
+async function getPartners() {
+  const data = await notionFetch(`/databases/${DB_PARTNERS}/query`, {});
+  const partners = (data.results || []).map(page => ({
+    nom: getProp(page, 'Nom', 'title'),
+    logo: getProp(page, 'Logo', 'url'),
+  }));
+  return { partners };
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
@@ -139,6 +150,9 @@ exports.handler = async (event) => {
         break;
       case 'getPortfolio':
         result = await getPortfolio(params.id, params.all);
+        break;
+      case 'getPartners':
+        result = await getPartners();
         break;
       default:
         return { statusCode: 400, headers, body: JSON.stringify({ error: 'Action inconnue: ' + action }) };
