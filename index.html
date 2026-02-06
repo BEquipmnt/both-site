@@ -1409,8 +1409,9 @@ async function loadPortfolio(){
 async function loadPartners(){
   const grid = document.getElementById('partners-grid');
   try {
-    const res = await apiGet('getPartners');
-    S.partners = res.partners || [];
+    const res = await fetch(NOTION_API + '?action=getPartners');
+    const data = await res.json();
+    S.partners = data.partners || [];
     
     if(!S.partners.length){
       grid.innerHTML = '<p style="color:var(--grey-400);">Logos en cours d\'ajout.</p>';
