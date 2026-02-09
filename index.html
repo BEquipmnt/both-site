@@ -667,7 +667,7 @@ footer{ background:#1a1a1a; color:var(--white); padding:3rem 3.5rem 2rem; border
 }
 .cart-head h3{
   font-family:var(--display); font-size:1.45rem; font-weight:700;
-  letter-spacing:.08em; text-transform:uppercase;
+  letter-spacing:.08em; text-transform:uppercase; color:var(--black);
 }
 .cart-close-btn{ background:none; border:none; font-size:1.3rem; color:var(--grey-600); }
 
@@ -684,10 +684,10 @@ footer{ background:#1a1a1a; color:var(--white); padding:3rem 3.5rem 2rem; border
 }
 .cart-item-img img{ width:100%; height:100%; object-fit:cover; }
 .cart-item-info{ flex:1; min-width:0; }
-.cart-item-name{ font-size:.84rem; font-weight:600; margin-bottom:.18rem; }
+.cart-item-name{ font-size:.84rem; font-weight:600; margin-bottom:.18rem; color:var(--black); }
 .cart-item-meta{ font-size:.73rem; color:var(--grey-400); line-height:1.6; }
 .cart-item-right{ display:flex; flex-direction:column; align-items:flex-end; gap:.35rem; }
-.cart-item-price{ font-size:.84rem; font-weight:600; }
+.cart-item-price{ font-size:.84rem; font-weight:600; color:var(--black); }
 .btn-remove{
   font-size:.64rem; letter-spacing:.16em; text-transform:uppercase;
   color:var(--grey-400); background:none; border:none;
@@ -697,7 +697,7 @@ footer{ background:#1a1a1a; color:var(--white); padding:3rem 3.5rem 2rem; border
 
 .cart-foot{ padding:1.8rem 2rem; border-top:1px solid var(--grey-200); }
 .cart-total-row{
-  display:flex; justify-content:space-between; font-weight:600; margin-bottom:1.1rem;
+  display:flex; justify-content:space-between; font-weight:600; margin-bottom:1.1rem; color:var(--black);
 }
 .cart-min-warn{
   display:none; font-size:.75rem; color:var(--red); padding:.6rem .8rem;
@@ -812,9 +812,9 @@ footer{ background:#1a1a1a; color:var(--white); padding:3rem 3.5rem 2rem; border
 .confirmation-modal{
   position:relative;
   background:var(--white);
-  width:90%;
-  max-width:600px;
-  max-height:90vh;
+  width:95%;
+  max-width:900px;
+  max-height:95vh;
   overflow-y:auto;
   border-radius:8px;
   box-shadow:0 20px 60px rgba(0,0,0,0.3);
@@ -872,6 +872,9 @@ footer{ background:#1a1a1a; color:var(--white); padding:3rem 3.5rem 2rem; border
 }
 .confirmation-body{
   padding:2rem;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:2rem;
 }
 .confirmation-section{
   margin-bottom:2rem;
@@ -894,7 +897,10 @@ footer{ background:#1a1a1a; color:var(--white); padding:3rem 3.5rem 2rem; border
   border-radius:4px;
   font-size:0.9rem;
   line-height:1.8;
-  color:var(--grey-600);
+  color:var(--black);
+}
+#confirmation-recap strong{
+  color:var(--black);
 }
 .rib-section{
   background:var(--off);
