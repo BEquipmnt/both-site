@@ -598,6 +598,72 @@ footer{ background:#1a1a1a; color:var(--white); padding:3rem 3.5rem 2rem; border
 .modal-close:hover{ background:var(--off); }
 .modal-img{ background:#f5f5f5; min-height:400px; display:flex; align-items:center; justify-content:center; }
 .modal-img img{ width:100%; height:100%; object-fit:contain; }
+/* Carrousel produit */
+.product-carousel{
+  position:relative;
+  width:100%;
+  height:100%;
+  overflow:hidden;
+}
+.carousel-images{
+  display:flex;
+  width:100%;
+  height:100%;
+  transition:transform 0.4s ease;
+}
+.carousel-images img{
+  flex-shrink:0;
+  width:100%;
+  height:100%;
+  object-fit:contain;
+}
+.carousel-arrow{
+  position:absolute;
+  top:50%;
+  transform:translateY(-50%);
+  width:40px;
+  height:40px;
+  background:rgba(255,255,255,0.9);
+  border:none;
+  border-radius:50%;
+  font-size:1.2rem;
+  cursor:pointer;
+  z-index:2;
+  transition:all 0.3s ease;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:var(--black);
+}
+.carousel-arrow:hover{
+  background:var(--red);
+  color:var(--white);
+  transform:translateY(-50%) scale(1.1);
+}
+.carousel-arrow-left{ left:1rem; }
+.carousel-arrow-right{ right:1rem; }
+.carousel-dots{
+  position:absolute;
+  bottom:1rem;
+  left:50%;
+  transform:translateX(-50%);
+  display:flex;
+  gap:0.5rem;
+  z-index:2;
+}
+.carousel-dot{
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:rgba(255,255,255,0.5);
+  cursor:pointer;
+  transition:all 0.3s ease;
+}
+.carousel-dot.active{
+  background:var(--red);
+  width:24px;
+  border-radius:4px;
+}
 .modal-body{
   padding:2.6rem; display:flex; flex-direction:column; justify-content:center;
 }
@@ -1646,9 +1712,35 @@ function openModal(id){
   const minQty = p.minQuantite || 1;
   S.qty = minQty;
 
-  document.getElementById('modal-img').innerHTML = p.image
-    ? `<img src="${p.image}" alt="${p.nom}">`
-    : '<div style="width:100%;height:100%;background:var(--off);"></div>';
+  // Gérer les images (simple ou carrousel)
+  const modalImg = document.getElementById('modal-img');
+  if (p.image) {
+    const images = p.image.split(',').map(url => url.trim()).filter(url => url);
+    
+    if (images.length === 1) {
+      // Une seule image
+      modalImg.innerHTML = `<img src="${images[0]}" alt="${p.nom}">`;
+    } else {
+      // Plusieurs images → carrousel
+      modalImg.innerHTML = `
+        <div class="product-carousel">
+          <div class="carousel-images" id="carousel-images">
+            ${images.map(url => `<img src="${url}" alt="${p.nom}">`).join('')}
+          </div>
+          <button class="carousel-arrow carousel-arrow-left" onclick="changeCarouselImage(-1)">‹</button>
+          <button class="carousel-arrow carousel-arrow-right" onclick="changeCarouselImage(1)">›</button>
+          <div class="carousel-dots" id="carousel-dots">
+            ${images.map((_, i) => `<div class="carousel-dot ${i === 0 ? 'active' : ''}" onclick="goToCarouselImage(${i})"></div>`).join('')}
+          </div>
+        </div>`;
+      
+      // Initialiser l'index du carrousel
+      S.carouselIndex = 0;
+      S.carouselTotal = images.length;
+    }
+  } else {
+    modalImg.innerHTML = '<div style="width:100%;height:100%;background:var(--off);"></div>';
+  }
 
   document.getElementById('modal-name').textContent = p.nom;
   document.getElementById('modal-price').textContent = fmt(p.prix);
@@ -1725,6 +1817,36 @@ function addToCart(){
 function removeFromCart(i){
   S.cart.splice(i, 1);
   updateCartUI();
+}
+
+   // ============================================================
+// CARROUSEL PRODUIT
+// ============================================================
+function changeCarouselImage(direction) {
+  if (!S.carouselTotal || S.carouselTotal <= 1) return;
+  
+  S.carouselIndex = (S.carouselIndex + direction + S.carouselTotal) % S.carouselTotal;
+  updateCarousel();
+}
+
+function goToCarouselImage(index) {
+  if (!S.carouselTotal || S.carouselTotal <= 1) return;
+  
+  S.carouselIndex = index;
+  updateCarousel();
+}
+
+function updateCarousel() {
+  const carouselImages = document.getElementById('carousel-images');
+  const dots = document.querySelectorAll('.carousel-dot');
+  
+  if (!carouselImages) return;
+  
+  carouselImages.style.transform = `translateX(-${S.carouselIndex * 100}%)`;
+  
+  dots.forEach((dot, i) => {
+    dot.classList.toggle('active', i === S.carouselIndex);
+  });
 }
 
 function updateCartUI(){
