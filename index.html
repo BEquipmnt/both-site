@@ -1684,7 +1684,7 @@ function renderProducts(list){
       html += `
         <div class="product-card" onclick="openModal('${p.id}')">
           <div class="product-card-img">
-            ${p.image ? `<img src="${p.image}" alt="${p.nom}" loading="lazy">` : ''}
+            ${p.image ? `<img src="${Array.isArray(p.image) ? p.image[0] : p.image.split(',')[0].trim()}" alt="${p.nom}" loading="lazy">` : ''}
             ${minTag}
           </div>
           <div class="product-card-name">${p.nom}</div>
@@ -1715,7 +1715,7 @@ function openModal(id){
   // Gérer les images (simple ou carrousel)
   const modalImg = document.getElementById('modal-img');
   if (p.image) {
-    const images = p.image.split(',').map(url => url.trim()).filter(url => url);
+    const images = Array.isArray(p.image) ? p.image : p.image.split(',').map(url => url.trim()).filter(url => url);
     
     if (images.length === 1) {
       // Une seule image
@@ -1751,7 +1751,7 @@ function openModal(id){
     <div class="field">
       <label>Taille</label>
       <select id="modal-taille">
-        ${(p.tailles || ['S','M','L','XL']).map(t => `<option value="${t}">${t}</option>`).join('')}
+        ${(Array.isArray(p.tailles) ? p.tailles : (p.tailles ? p.tailles.split(',').map(t=>t.trim()) : ['S','M','L','XL'])).map(t => `<option value="${t}">${t}</option>`).join('')}
       </select>
     </div>`;
 
