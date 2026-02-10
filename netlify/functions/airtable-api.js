@@ -41,7 +41,7 @@ async function airtableRequest(table, options = {}) {
 // ============================================================
 async function getClub(email) {
   try {
-    const url = `${AIRTABLE_API}/${BASE_ID}/${TABLE_CLUBS}?filterByFormula=LOWER({Email Login})="${email.toLowerCase()}"`;
+    const url = `${AIRTABLE_API}/${BASE_ID}/${TABLE_CLUBS}`;
     
     const response = await fetch(url, {
       method: 'GET',
@@ -60,11 +60,15 @@ async function getClub(email) {
     const data = await response.json();
     const records = data.records || [];
 
-    if (records.length === 0) {
+    // Filtrer manuellement (case insensitive)
+    const club = records.find(r => 
+      r.fields['Email Login'] && 
+      r.fields['Email Login'].toLowerCase() === email.toLowerCase()
+    );
+
+    if (!club) {
       return { club: null };
     }
-
-    const club = records[0];
 
     return {
       club: {
