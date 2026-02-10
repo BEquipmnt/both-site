@@ -96,7 +96,7 @@ async function getClub(email) {
 // ============================================================
 // GET CATALOGUE
 // ============================================================
-async function getCatalogue(clubId) {
+async function getCatalogue(clubId, clubNom) {
   try {
     const data = await airtableRequest(TABLE_PRODUITS, {
       method: 'GET'
@@ -104,6 +104,10 @@ async function getCatalogue(clubId) {
 
     const products = (data.records || [])
       .filter(r => r.fields['Visible Vestiaire'] && !r.fields['Expiré'])
+      .filter(r => {
+        const club = r.fields['Club'];
+        return club && club === clubNom;
+      })
       .map(r => ({
         id: r.id,
         nom: r.fields['Nom'] || '',
@@ -239,7 +243,7 @@ exports.handler = async (event) => {
           result = await getClub(params.email);
           break;
         case 'getCatalogue':
-          result = await getCatalogue(params.clubId);
+          result = await getCatalogue(params.clubId, params.clubNom);
           break;
         case 'getOrders':
           result = await getOrders(params.clubId);
