@@ -1865,7 +1865,7 @@ function updateCartUI(){
     wrap.innerHTML = S.cart.map((item, i) => `
       <div class="cart-item">
         <div class="cart-item-img">
-          ${item.image ? `<img src="${item.image}" alt="${item.nom}">` : '<div style="width:100%;height:100%;background:var(--off);"></div>'}
+          ${item.image ? `<img src="${Array.isArray(item.image) ? item.image[0] : item.image.split(',')[0].trim()}" alt="${item.nom}">` : '<div style="width:100%;height:100%;background:var(--off);"></div>'}
         </div>
         <div class="cart-item-info">
           <div class="cart-item-name">${item.nom}</div>
@@ -2015,10 +2015,10 @@ async function loadOrders(){
     }
 
     const badgeClass = s => {
-      if (s === 'En attente')    return 'badge-pending';
-      if (s === 'En production') return 'badge-production';
-      if (s === 'Expédié')       return 'badge-shipped';
-      if (s === 'Livré')         return 'badge-delivered';
+      if (s.includes('ATTENTE'))    return 'badge-pending';
+      if (s.includes('PRODUCTION')) return 'badge-production';
+      if (s.includes('LIVRÉE') || s.includes('LIVREE') || s.includes('LIVRÉ')) return 'badge-delivered';
+      if (s.includes('ANNULÉE') || s.includes('ANNULEE')) return 'badge-cancelled';
       return 'badge-pending';
     };
 
