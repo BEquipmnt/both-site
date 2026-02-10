@@ -1462,12 +1462,11 @@ async function apiGet(action, params = {}) {
 }
 
 async function apiPost(action, body = {}) {
-  const params = new URLSearchParams({ 
-    action, 
-    data: JSON.stringify(body) 
+  const res = await fetch(API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, ...body })
   });
-  const url = API + '?' + params.toString();
-  const res = await fetch(url);
   if (!res.ok) throw new Error('Erreur réseau ' + res.status);
   return await res.json();
 }
