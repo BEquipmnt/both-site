@@ -1635,7 +1635,7 @@ async function loadCatalogue(){
   grid.innerHTML = '<div class="spinner"></div>';
 
   try {
-    const res = await apiGet('getCatalogue', { clubId: S.club.id });
+    const res = await apiGet('getCatalogue', { clubId: S.club.id, clubNom: S.club.nom });
     S.products = res.products || [];
 
     const cats = [...new Set(S.products.map(p => p.categorie).filter(Boolean))];
