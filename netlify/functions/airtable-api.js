@@ -41,23 +41,30 @@ async function airtableRequest(table, options = {}) {
 // ============================================================
 async function getClub(email) {
   try {
-    const formula = `{Email Login} = '${email.toLowerCase()}'`;
-    const data = await airtableRequest(TABLE_CLUBS, {
+    const url = `${AIRTABLE_API}/${BASE_ID}/${TABLE_CLUBS}?filterByFormula=LOWER({Email Login})="${email.toLowerCase()}"`;
+    
+    const response = await fetch(url, {
       method: 'GET',
       headers: {
+        'Authorization': `Bearer ${AIRTABLE_TOKEN}`,
         'Content-Type': 'application/json'
       }
     });
 
-    const records = data.records || [];
-    const club = records.find(r => 
-      r.fields['Email Login'] && 
-      r.fields['Email Login'].toLowerCase() === email.toLowerCase()
-    );
+    if (!response.ok) {
+      const error = await response.text();
+      console.error('Airtable error:', error);
+      return { error: error };
+    }
 
-    if (!club) {
+    const data = await response.json();
+    const records = data.records || [];
+
+    if (records.length === 0) {
       return { club: null };
     }
+
+    const club = records[0];
 
     return {
       club: {
