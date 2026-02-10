@@ -1,0 +1,264 @@
+// ============================================================
+// BOTH EQUIPMNT — Netlify Function Airtable
+// Remplace Google Apps Script pour le Vestiaire
+// ============================================================
+
+const AIRTABLE_TOKEN = process.env.AIRTABLE_TOKEN;
+const BASE_ID = process.env.AIRTABLE_BASE_ID;
+const AIRTABLE_API = 'https://api.airtable.com/v0';
+
+// IDs des tables
+const TABLE_CLUBS = 'tblsBiicwKqdFe7h5';
+const TABLE_PRODUITS = 'tbl8ri4tUfg1TH659';
+const TABLE_COMMANDES = 'tbloz7JkktaBoHWie';
+const TABLE_LIGNES = 'tblWuqefKcUPd4I22';
+
+// ============================================================
+// HELPER: Requête Airtable
+// ============================================================
+async function airtableRequest(table, options = {}) {
+  const url = `${AIRTABLE_API}/${BASE_ID}/${table}`;
+  
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      'Authorization': `Bearer ${AIRTABLE_TOKEN}`,
+      'Content-Type': 'application/json',
+      ...options.headers
+    }
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Airtable error: ${error}`);
+  }
+
+  return response.json();
+}
+
+// ============================================================
+// GET CLUB (login)
+// ============================================================
+async function getClub(email) {
+  try {
+    const formula = `{Email Login} = '${email.toLowerCase()}'`;
+    const data = await airtableRequest(TABLE_CLUBS, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    const records = data.records || [];
+    const club = records.find(r => 
+      r.fields['Email Login'] && 
+      r.fields['Email Login'].toLowerCase() === email.toLowerCase()
+    );
+
+    if (!club) {
+      return { club: null };
+    }
+
+    return {
+      club: {
+        id: club.id,
+        nom: club.fields['Nom'] || '',
+        email: club.fields['Email Login'] || '',
+        logoClub: club.fields['Logo Club URL'] || '',
+        minCommande: parseFloat(club.fields['Minimum Commande']) || 0,
+        activeMin: club.fields['Active Minimum'] || false
+      }
+    };
+  } catch (error) {
+    console.error('getClub error:', error);
+    return { error: error.message };
+  }
+}
+
+// ============================================================
+// GET CATALOGUE
+// ============================================================
+async function getCatalogue(clubId) {
+  try {
+    const data = await airtableRequest(TABLE_PRODUITS, {
+      method: 'GET'
+    });
+
+    const products = (data.records || [])
+      .filter(r => r.fields['Visible Vestiaire'] && !r.fields['Expiré'])
+      .map(r => ({
+        id: r.id,
+        nom: r.fields['Nom'] || '',
+        image: r.fields['Image URL'] || '',
+        prix: parseFloat(r.fields['Prix Vente Club']) || 0,
+        tailles: r.fields['Tailles disponibles'] || [],
+        personnalisable: r.fields['Personnalisable'] || false,
+        categorie: r.fields['Type'] || '',
+        description: r.fields['Description'] || '',
+        minQuantite: parseInt(r.fields['Min Quantité']) || 0
+      }));
+
+    return { products };
+  } catch (error) {
+    console.error('getCatalogue error:', error);
+    return { error: error.message };
+  }
+}
+
+// ============================================================
+// GET ORDERS
+// ============================================================
+async function getOrders(clubId) {
+  try {
+    const data = await airtableRequest(TABLE_COMMANDES, {
+      method: 'GET'
+    });
+
+    const orders = (data.records || [])
+      .filter(r => {
+        const clubLink = r.fields['Club'];
+        return clubLink && clubLink[0] === clubId;
+      })
+      .map(r => ({
+        ref: r.fields['Référence'] || '',
+        date: r.fields['Date'] ? new Date(r.fields['Date']).toLocaleDateString('fr-FR') : '',
+        nbArticles: r.fields['Nb Articles'] || 0,
+        total: r.fields['Total'] || 0,
+        statut: r.fields['Statut'] || '🟡 EN ATTENTE DE PAIEMENT'
+      }));
+
+    return { orders };
+  } catch (error) {
+    console.error('getOrders error:', error);
+    return { error: error.message };
+  }
+}
+
+// ============================================================
+// CREATE ORDER
+// ============================================================
+async function createOrder(payload) {
+  try {
+    const ref = 'CMD-' + Date.now();
+    const now = new Date().toISOString();
+    const totalArticles = payload.lignes.reduce((sum, l) => sum + l.quantite, 0);
+
+    // Créer la commande
+    const commandeData = await airtableRequest(TABLE_COMMANDES, {
+      method: 'POST',
+      body: JSON.stringify({
+        fields: {
+          'Référence': ref,
+          'Club': [payload.clubId], // Link to Clubs table
+          'Date': now,
+          'Statut': '🟡 EN ATTENTE DE PAIEMENT',
+          'Vu': '❌',
+          'Total': payload.total,
+          'Nb Articles': totalArticles
+        }
+      })
+    });
+
+    const commandeId = commandeData.id;
+
+    // Créer les lignes de commande
+    const lignesPromises = payload.lignes.map(ligne => {
+      return airtableRequest(TABLE_LIGNES, {
+        method: 'POST',
+        body: JSON.stringify({
+          fields: {
+            'Commande': [commandeId],
+            'Produit': [ligne.productId],
+            'Taille': ligne.taille,
+            'Quantité': ligne.quantite,
+            'Prix Unitaire': ligne.prix,
+            'Nom Personnalisation': ligne.nomPerso || '',
+            'Numéro Personnalisation': ligne.numPerso || ''
+          }
+        })
+      });
+    });
+
+    await Promise.all(lignesPromises);
+
+    return {
+      success: true,
+      orderRef: ref
+    };
+  } catch (error) {
+    console.error('createOrder error:', error);
+    return { 
+      success: false, 
+      error: error.message 
+    };
+  }
+}
+
+// ============================================================
+// HANDLER PRINCIPAL
+// ============================================================
+exports.handler = async (event) => {
+  // CORS headers
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
+  };
+
+  // Handle OPTIONS (preflight)
+  if (event.httpMethod === 'OPTIONS') {
+    return { statusCode: 200, headers, body: '' };
+  }
+
+  try {
+    let result;
+
+    // GET requests
+    if (event.httpMethod === 'GET') {
+      const params = event.queryStringParameters || {};
+      const action = params.action;
+
+      switch (action) {
+        case 'getClub':
+          result = await getClub(params.email);
+          break;
+        case 'getCatalogue':
+          result = await getCatalogue(params.clubId);
+          break;
+        case 'getOrders':
+          result = await getOrders(params.clubId);
+          break;
+        default:
+          result = { error: 'Action inconnue' };
+      }
+    }
+
+    // POST requests
+    if (event.httpMethod === 'POST') {
+      const payload = JSON.parse(event.body);
+      const action = payload.action;
+
+      switch (action) {
+        case 'createOrder':
+          result = await createOrder(payload);
+          break;
+        default:
+          result = { error: 'Action POST inconnue' };
+      }
+    }
+
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify(result)
+    };
+
+  } catch (error) {
+    console.error('Handler error:', error);
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ error: error.message })
+    };
+  }
+};
