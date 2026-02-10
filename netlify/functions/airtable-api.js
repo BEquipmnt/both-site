@@ -188,7 +188,6 @@ async function createOrder(payload) {
             'Produit': [ligne.productId],
             'Taille': ligne.taille,
             'Quantité': ligne.quantite,
-            'Prix Unitaire': ligne.prix,
             'Nom Personnalisation': ligne.nomPerso || '',
             'Numéro Personnalisation': ligne.numPerso || ''
           }
