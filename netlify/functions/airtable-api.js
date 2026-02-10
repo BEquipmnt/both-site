@@ -66,7 +66,7 @@ async function getClub(email) {
 
     // Filtrer manuellement (case insensitive)
     const club = records.find(r => {
-      const recordEmail = r.fields['Email Login'];
+      const recordEmail = r.fields['email'];
       console.log('Checking record email:', recordEmail, 'against:', email);
       return recordEmail && recordEmail.toLowerCase() === email.toLowerCase();
     });
@@ -81,7 +81,7 @@ async function getClub(email) {
       club: {
         id: club.id,
         nom: club.fields['Nom'] || '',
-        email: club.fields['Email Login'] || '',
+        email: club.fields['email'] || '',
         logoClub: club.fields['Logo Club URL'] || '',
         minCommande: parseFloat(club.fields['Minimum Commande']) || 0,
         activeMin: club.fields['Active Minimum'] || false
