@@ -167,8 +167,7 @@ async function createOrder(payload) {
       body: JSON.stringify({
         fields: {
           'Référence': ref,
-          'Club': [payload.clubId], // Link to Clubs table
-          'Date': now,
+          'Club': [payload.clubId],
           'Statut': '🟡 EN ATTENTE DE PAIEMENT',
           'Vu': '❌',
           'Total': payload.total,
