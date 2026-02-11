@@ -1830,7 +1830,7 @@ function openModal(id){
   tableHTML += '</tbody></table>';
 
   if (minQty > 1) {
-    tableHTML += `<div class="modal-min-warn show">⚠️ Commande minimum : ${minQty} pièces par article</div>`;
+    tableHTML += `<div class="modal-min-warn show">⚠️ Commande minimum : ${minQty} pièces au total (toutes tailles confondues)</div>`;
   }
 
   document.getElementById('modal-table-wrap').innerHTML = tableHTML;
@@ -1889,6 +1889,7 @@ function openPerso(taille){
 
   let html = `<div class="perso-overlay active" id="perso-overlay" onclick="if(event.target===this)closePerso()">
     <div class="perso-box">
+      <button onclick="closePerso()" style="position:absolute;top:.8rem;right:.8rem;width:32px;height:32px;border:none;background:var(--off);border-radius:50%;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
       <h4>${p.nom} — Taille ${taille}</h4>
       <p style="font-size:.75rem;color:var(--grey-400);margin-bottom:1rem;">${qty} pièce${qty>1?'s':''} à personnaliser</p>`;
 
