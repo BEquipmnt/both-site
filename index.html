@@ -715,7 +715,81 @@ footer{ background:#1a1a1a; color:var(--white); padding:3rem 3.5rem 2rem; border
   font-size:.85rem; letter-spacing:.2em; text-transform:uppercase; font-weight:600;
   color:var(--black); transition:all var(--ease);
 }
-.btn-add-cart:hover{ background:var(--black); color:var(--white); }
+.btn-add-cart:hover:not(:disabled){ background:var(--black); color:var(--white); }
+.btn-add-cart:disabled{ opacity:.35; cursor:not-allowed; }
+
+/* Tableau tailles style Ralawise */
+.size-table{ width:100%; border-collapse:collapse; margin-bottom:.5rem; }
+.size-table thead th{
+  font-size:.6rem; letter-spacing:.18em; text-transform:uppercase; color:var(--grey-400);
+  font-weight:600; padding:.6rem .5rem; border-bottom:2px solid var(--grey-200); text-align:center;
+}
+.size-table thead th:first-child{ text-align:left; }
+.size-table tbody td{
+  padding:.5rem; border-bottom:1px solid var(--grey-100); text-align:center;
+  font-size:.85rem; color:var(--black);
+}
+.size-table tbody td:first-child{ font-weight:700; text-align:left; }
+.size-table .qty-input{
+  width:60px; padding:.4rem; border:2px solid var(--grey-200); text-align:center;
+  font-size:.85rem; font-weight:600; outline:none; font-family:var(--body);
+  transition:border-color var(--ease);
+}
+.size-table .qty-input:focus{ border-color:var(--black); }
+.size-table .qty-input::-webkit-inner-spin-button{ opacity:1; }
+
+/* Personnalisation */
+.perso-btn{
+  font-size:.65rem; letter-spacing:.1em; text-transform:uppercase; font-weight:600;
+  color:var(--red); background:none; border:1px solid var(--red); padding:.25rem .6rem;
+  cursor:pointer; transition:all var(--ease); border-radius:2px;
+}
+.perso-btn:hover{ background:var(--red); color:var(--white); }
+.perso-btn.done{ color:var(--grey-400); border-color:var(--grey-200); }
+.perso-btn.done:hover{ background:var(--grey-200); color:var(--black); }
+
+.perso-overlay{
+  display:none; position:fixed; inset:0; background:rgba(10,10,10,.52); z-index:350;
+  align-items:center; justify-content:center; padding:2rem;
+}
+.perso-overlay.active{ display:flex; }
+.perso-box{
+  background:var(--white); max-width:420px; width:100%; padding:2rem; position:relative;
+  max-height:80vh; overflow-y:auto;
+}
+.perso-box h4{
+  font-family:var(--display); font-size:1.1rem; font-weight:700; margin-bottom:1.2rem;
+  text-transform:uppercase; letter-spacing:.04em;
+}
+.perso-row{
+  display:grid; grid-template-columns:auto 1fr 80px; gap:.5rem; align-items:center;
+  margin-bottom:.6rem; font-size:.82rem;
+}
+.perso-row input{
+  padding:.45rem .6rem; border:2px solid var(--grey-200); font-size:.82rem;
+  outline:none; font-family:var(--body);
+}
+.perso-row input:focus{ border-color:var(--black); }
+.perso-row span{ font-weight:600; color:var(--grey-400); }
+.perso-save{
+  margin-top:1rem; width:100%; padding:.8rem; border:2px solid var(--black);
+  background:var(--black); color:var(--white); font-size:.75rem; letter-spacing:.2em;
+  text-transform:uppercase; font-weight:600; cursor:pointer;
+}
+
+/* Modal footer */
+.modal-footer{ margin-top:auto; padding-top:1rem; }
+.modal-footer-info{
+  display:flex; justify-content:space-between; font-size:.82rem; color:var(--grey-600);
+  margin-bottom:.3rem;
+}
+
+/* Min commande warning dans modal */
+.modal-min-warn{
+  background:#fff3cd; border:1px solid #ffc107; padding:.6rem .8rem; margin-bottom:.8rem;
+  font-size:.72rem; color:#856404; font-weight:600; display:none;
+}
+.modal-min-warn.show{ display:block; }
 
 #cart-backdrop{ display:none; position:fixed; inset:0; background:rgba(10,10,10,.35); z-index:399; }
 #cart-backdrop.active{ display:block; }
@@ -1299,25 +1373,22 @@ footer{ background:#1a1a1a; color:var(--white); padding:3rem 3.5rem 2rem; border
   </div>
 </div>
 
-<!-- ========== PRODUCT MODAL (inchangé) ========== -->
+<!-- ========== PRODUCT MODAL (style Ralawise) ========== -->
 <div class="modal-backdrop" id="modal-backdrop" onclick="modalClickOut(event)">
   <div class="modal" id="product-modal">
     <button class="modal-close" onclick="closeModal()">✕</button>
     <div class="modal-img" id="modal-img"></div>
     <div class="modal-body">
       <h3 id="modal-name"></h3>
-      <div class="modal-price-tag" id="modal-price"></div>
       <div class="modal-desc" id="modal-desc"></div>
-      <div id="modal-fields"></div>
-      <div class="field">
-        <label>Quantité</label>
-        <div class="qty-row">
-          <button class="qty-btn" onclick="changeQty(-1)">−</button>
-          <div class="qty-val" id="modal-qty">1</div>
-          <button class="qty-btn" onclick="changeQty(1)">+</button>
+      <div id="modal-table-wrap"></div>
+      <div class="modal-footer">
+        <div class="modal-footer-info">
+          <span>Articles : <strong id="modal-total-qty">0</strong></span>
+          <span>Total : <strong id="modal-total-price">0,00 €</strong></span>
         </div>
+        <button class="btn-add-cart" id="btn-add-cart" onclick="addToCart()" disabled>Ajouter au panier</button>
       </div>
-      <button class="btn-add-cart" onclick="addToCart()">Ajouter au panier</button>
     </div>
   </div>
 </div>
@@ -1706,21 +1777,15 @@ function openModal(id){
   const p = S.products.find(x => x.id === id);
   if (!p) return;
   S.currentProduct = p;
-  
-  // Initialiser la quantité au minimum requis
-  const minQty = p.minQuantite || 1;
-  S.qty = minQty;
+  S.persoData = {}; // { taille: [{nom:'', num:''}, ...] }
 
-  // Gérer les images (simple ou carrousel)
+  // Image (carrousel ou simple)
   const modalImg = document.getElementById('modal-img');
   if (p.image) {
     const images = Array.isArray(p.image) ? p.image : p.image.split(',').map(url => url.trim()).filter(url => url);
-    
     if (images.length === 1) {
-      // Une seule image
       modalImg.innerHTML = `<img src="${images[0]}" alt="${p.nom}">`;
     } else {
-      // Plusieurs images → carrousel
       modalImg.innerHTML = `
         <div class="product-carousel">
           <div class="carousel-images" id="carousel-images">
@@ -1732,8 +1797,6 @@ function openModal(id){
             ${images.map((_, i) => `<div class="carousel-dot ${i === 0 ? 'active' : ''}" onclick="goToCarouselImage(${i})"></div>`).join('')}
           </div>
         </div>`;
-      
-      // Initialiser l'index du carrousel
       S.carouselIndex = 0;
       S.carouselTotal = images.length;
     }
@@ -1742,75 +1805,170 @@ function openModal(id){
   }
 
   document.getElementById('modal-name').textContent = p.nom;
-  document.getElementById('modal-price').textContent = fmt(p.prix);
   document.getElementById('modal-desc').textContent = p.description || 'Équipement sportif — Studio Both.';
-  document.getElementById('modal-qty').textContent = minQty;
 
-  let fieldsHTML = `
-    <div class="field">
-      <label>Taille</label>
-      <select id="modal-taille">
-        ${(Array.isArray(p.tailles) ? p.tailles : (p.tailles ? p.tailles.split(',').map(t=>t.trim()) : ['S','M','L','XL'])).map(t => `<option value="${t}">${t}</option>`).join('')}
-      </select>
-    </div>`;
+  // Tailles
+  const tailles = Array.isArray(p.tailles) ? p.tailles : (p.tailles ? p.tailles.split(',').map(t=>t.trim()) : ['S','M','L','XL']);
+  const minQty = p.minQuantite || 1;
 
-  if (p.personnalisable) {
-    fieldsHTML += `
-      <div class="field">
-        <label>Nom sur l'équipement</label>
-        <input type="text" id="modal-nom-perso" placeholder="Ex : Dupont" maxlength="16">
-      </div>
-      <div class="field">
-        <label>Numéro</label>
-        <select id="modal-num-perso">
-          <option value="">Sans numéro</option>
-          ${Array.from({length:99}, (_,i) => `<option value="${i+1}">${i+1}</option>`).join('')}
-        </select>
-      </div>`;
-  }
-  
-  // Ajouter un message si minimum de commande
+  let tableHTML = `<table class="size-table"><thead><tr>
+    <th>Taille</th>
+    <th>Prix unitaire</th>
+    ${p.personnalisable ? '<th>Perso</th>' : ''}
+    <th>Qté</th>
+  </tr></thead><tbody>`;
+
+  tailles.forEach(t => {
+    tableHTML += `<tr>
+      <td>${t}</td>
+      <td>${fmt(p.prix)}</td>
+      ${p.personnalisable ? `<td><button class="perso-btn" id="perso-btn-${t}" onclick="openPerso('${t}')" style="display:none">Détailler</button></td>` : ''}
+      <td><input type="number" class="qty-input" id="qty-${t}" min="0" value="0" onchange="onQtyChange()" oninput="onQtyChange()"></td>
+    </tr>`;
+  });
+
+  tableHTML += '</tbody></table>';
+
   if (minQty > 1) {
-    fieldsHTML += `
-      <div style="background:#fff3cd;border:1px solid #ffc107;padding:.8rem;margin-top:1rem;border-radius:4px;">
-        <div style="font-size:.75rem;color:#856404;font-weight:600;">
-          ⚠️ Commande minimum : ${minQty} pièces
-        </div>
-      </div>`;
+    tableHTML += `<div class="modal-min-warn show">⚠️ Commande minimum : ${minQty} pièces par article</div>`;
   }
 
-  document.getElementById('modal-fields').innerHTML = fieldsHTML;
+  document.getElementById('modal-table-wrap').innerHTML = tableHTML;
+  document.getElementById('modal-total-qty').textContent = '0';
+  document.getElementById('modal-total-price').textContent = fmt(0);
+  document.getElementById('btn-add-cart').disabled = true;
   document.getElementById('modal-backdrop').classList.add('active');
+}
+
+function onQtyChange(){
+  const p = S.currentProduct;
+  const tailles = Array.isArray(p.tailles) ? p.tailles : (p.tailles ? p.tailles.split(',').map(t=>t.trim()) : ['S','M','L','XL']);
+  let totalQty = 0;
+
+  tailles.forEach(t => {
+    const input = document.getElementById('qty-' + t);
+    const qty = parseInt(input.value) || 0;
+    totalQty += qty;
+
+    // Afficher/cacher bouton perso
+    if (p.personnalisable) {
+      const btn = document.getElementById('perso-btn-' + t);
+      if (qty > 0) {
+        btn.style.display = 'inline-block';
+        // Vérifier si perso déjà remplie
+        if (S.persoData[t] && S.persoData[t].length === qty) {
+          btn.textContent = '✓ Modif.';
+          btn.classList.add('done');
+        } else {
+          btn.textContent = 'Détailler';
+          btn.classList.remove('done');
+          // Reset si quantité changée
+          if (S.persoData[t] && S.persoData[t].length !== qty) {
+            delete S.persoData[t];
+          }
+        }
+      } else {
+        btn.style.display = 'none';
+        delete S.persoData[t];
+      }
+    }
+  });
+
+  const minQty = p.minQuantite || 1;
+  document.getElementById('modal-total-qty').textContent = totalQty;
+  document.getElementById('modal-total-price').textContent = fmt(totalQty * p.prix);
+  document.getElementById('btn-add-cart').disabled = totalQty < minQty;
+}
+
+function openPerso(taille){
+  const p = S.currentProduct;
+  const qty = parseInt(document.getElementById('qty-' + taille).value) || 0;
+  if (qty === 0) return;
+
+  const existing = S.persoData[taille] || [];
+
+  let html = `<div class="perso-overlay active" id="perso-overlay" onclick="if(event.target===this)closePerso()">
+    <div class="perso-box">
+      <h4>${p.nom} — Taille ${taille}</h4>
+      <p style="font-size:.75rem;color:var(--grey-400);margin-bottom:1rem;">${qty} pièce${qty>1?'s':''} à personnaliser</p>`;
+
+  for (let i = 0; i < qty; i++) {
+    const nom = existing[i] ? existing[i].nom : '';
+    const num = existing[i] ? existing[i].num : '';
+    html += `<div class="perso-row">
+      <span>#${i+1}</span>
+      <input type="text" placeholder="Nom" maxlength="16" id="perso-nom-${taille}-${i}" value="${nom}">
+      <input type="text" placeholder="N°" maxlength="3" id="perso-num-${taille}-${i}" value="${num}">
+    </div>`;
+  }
+
+  html += `<button class="perso-save" onclick="savePerso('${taille}', ${qty})">Valider</button>
+    </div></div>`;
+
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function savePerso(taille, qty){
+  S.persoData[taille] = [];
+  for (let i = 0; i < qty; i++) {
+    S.persoData[taille].push({
+      nom: document.getElementById('perso-nom-' + taille + '-' + i).value.trim(),
+      num: document.getElementById('perso-num-' + taille + '-' + i).value.trim()
+    });
+  }
+  closePerso();
+  onQtyChange();
+}
+
+function closePerso(){
+  const overlay = document.getElementById('perso-overlay');
+  if (overlay) overlay.remove();
 }
 
 function closeModal(){ document.getElementById('modal-backdrop').classList.remove('active'); }
 function modalClickOut(e){ if (e.target === document.getElementById('modal-backdrop')) closeModal(); }
-function changeQty(d){ 
-  const minQty = S.currentProduct.minQuantite || 1;
-  S.qty = Math.max(minQty, S.qty + d); 
-  document.getElementById('modal-qty').textContent = S.qty; 
-}
 
 function addToCart(){
   const p = S.currentProduct;
-  const taille = document.getElementById('modal-taille').value;
-  const nomPerso  = p.personnalisable && document.getElementById('modal-nom-perso')  ? document.getElementById('modal-nom-perso').value.trim()  : '';
-  const numPerso  = p.personnalisable && document.getElementById('modal-num-perso')  ? document.getElementById('modal-num-perso').value  : '';
+  const tailles = Array.isArray(p.tailles) ? p.tailles : (p.tailles ? p.tailles.split(',').map(t=>t.trim()) : ['S','M','L','XL']);
 
-  S.cart.push({
-    productId: p.id,
-    nom: p.nom,
-    image: p.image,
-    prix: p.prix,
-    taille,
-    nomPerso,
-    numPerso,
-    quantite: S.qty
+  tailles.forEach(t => {
+    const qty = parseInt(document.getElementById('qty-' + t).value) || 0;
+    if (qty === 0) return;
+
+    if (p.personnalisable && S.persoData[t]) {
+      // Une ligne panier par pièce personnalisée
+      S.persoData[t].forEach(perso => {
+        S.cart.push({
+          productId: p.id,
+          nom: p.nom,
+          image: p.image,
+          prix: p.prix,
+          taille: t,
+          nomPerso: perso.nom,
+          numPerso: perso.num,
+          quantite: 1
+        });
+      });
+    } else {
+      // Une seule ligne pour toute la quantité
+      S.cart.push({
+        productId: p.id,
+        nom: p.nom,
+        image: p.image,
+        prix: p.prix,
+        taille: t,
+        nomPerso: '',
+        numPerso: '',
+        quantite: qty
+      });
+    }
   });
 
   updateCartUI();
   closeModal();
-  toast(`${p.nom} — ajouté au panier ✓`);
+  const totalAdded = tailles.reduce((s, t) => s + (parseInt(document.getElementById('qty-' + t).value) || 0), 0);
+  toast(`${p.nom} — ${totalAdded} article${totalAdded>1?'s':''} ajouté${totalAdded>1?'s':''} ✓`);
 }
 
 function removeFromCart(i){
