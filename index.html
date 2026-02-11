@@ -1814,7 +1814,7 @@ function openModal(id){
   let tableHTML = `<table class="size-table"><thead><tr>
     <th>Taille</th>
     <th>Prix unitaire</th>
-    ${p.personnalisable ? '<th>Perso</th>' : ''}
+    ${p.personnalisable ? '<th>Personnalisation</th>' : ''}
     <th>Qté</th>
   </tr></thead><tbody>`;
 
@@ -1822,7 +1822,7 @@ function openModal(id){
     tableHTML += `<tr>
       <td>${t}</td>
       <td>${fmt(p.prix)}</td>
-      ${p.personnalisable ? `<td><button class="perso-btn" id="perso-btn-${t}" onclick="openPerso('${t}')" style="display:none">Détailler</button></td>` : ''}
+      ${p.personnalisable ? `<td><button class="perso-btn" id="perso-btn-${t}" onclick="openPerso('${t}')" style="display:none">Personnaliser</button></td>` : ''}
       <td><input type="number" class="qty-input" id="qty-${t}" min="0" value="0" onchange="onQtyChange()" oninput="onQtyChange()"></td>
     </tr>`;
   });
@@ -1860,7 +1860,7 @@ function onQtyChange(){
           btn.textContent = '✓ Modif.';
           btn.classList.add('done');
         } else {
-          btn.textContent = 'Détailler';
+          btn.textContent = 'Personnaliser';
           btn.classList.remove('done');
           // Reset si quantité changée
           if (S.persoData[t] && S.persoData[t].length !== qty) {
