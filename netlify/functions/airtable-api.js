@@ -161,7 +161,9 @@ async function getOrders(clubId) {
 // ============================================================
 async function createOrder(payload) {
   try {
-    const ref = 'CMD-' + Date.now();
+    const clubName = (payload.clubNom || 'CLUB').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const shortId = Date.now().toString().slice(-6);
+    const ref = `CMD-${clubName}-${shortId}`;
     const now = new Date().toISOString();
     const totalArticles = payload.lignes.reduce((sum, l) => sum + l.quantite, 0);
 
