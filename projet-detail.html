@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Projet — BOTH EQUIPMNT</title>
-<meta name="description" content="Projet Both Equipmnt — Découvrez le design et la collection créés pour ce club.">
+<title>Projet – BOTH EQUIPMNT</title>
+<meta name="description" content="Projet Both Equipmnt – Découvrez le design et la collection créés pour ce club.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700;800&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{ box-sizing:border-box; margin:0; padding:0; }
 :root{
@@ -14,82 +14,214 @@
   --white:#fafaf8;
   --yellow:#ffd700;
   --yellow-dark:#ffcc00;
+  --grey:#6a6a6a;
+  --grey-light:#9a9a9a;
   --display:'Oswald',sans-serif;
   --body:'Work Sans',sans-serif;
 }
 html{ scroll-behavior:smooth; -webkit-font-smoothing:antialiased; }
 body{ font-family:var(--body); background:var(--black); color:var(--white); line-height:1.65; }
 a{ text-decoration:none; color:inherit; }
+img{ max-width:100%; display:block; }
 
+/* NAV */
 nav{
   position:fixed; top:0; left:0; right:0; z-index:100;
   padding:1.2rem 3.5rem; background:rgba(10,10,10,.95);
   backdrop-filter:blur(16px); border-bottom:1px solid rgba(255,255,255,.1);
+  display:flex; align-items:center; justify-content:space-between;
 }
 .nav-logo img{ height:55px; }
-
-.project-header{
-  min-height:60vh; display:flex; flex-direction:column;
-  justify-content:flex-end; position:relative; overflow:hidden;
-  padding:8rem 3.5rem 4rem;
+.nav-back{
+  padding:.6rem 1.5rem; border:2px solid var(--white);
+  background:transparent; font-size:.7rem; letter-spacing:.2em;
+  text-transform:uppercase; font-weight:600; color:var(--white);
+  transition:all .42s ease; cursor:pointer;
 }
-.project-header::before{
+.nav-back:hover{ background:var(--white); color:var(--black); }
+
+/* HERO */
+.project-hero{
+  min-height:85vh; display:flex; flex-direction:column;
+  justify-content:flex-end; position:relative; overflow:hidden;
+  padding:8rem 3.5rem 5rem;
+}
+.project-hero::before{
   content:''; position:absolute; inset:0;
-  background:linear-gradient(to bottom, rgba(10,10,10,0.3) 0%, rgba(10,10,10,0.92) 100%);
+  background:linear-gradient(to bottom, rgba(10,10,10,0.2) 0%, rgba(10,10,10,0.85) 70%, rgba(10,10,10,1) 100%);
   z-index:1;
 }
-.header-bg{
+.hero-bg{
   position:absolute; inset:0; width:100%; height:100%;
   object-fit:cover; z-index:0;
 }
-.project-title{
-  position:relative; z-index:2; max-width:1200px; margin:0 auto;
-  width:100%;
+.hero-content{
+  position:relative; z-index:2; max-width:1200px;
+  margin:0 auto; width:100%;
 }
-.project-club{
-  font-size:.85rem; color:var(--yellow); letter-spacing:.25em;
-  text-transform:uppercase; font-weight:600; margin-bottom:.8rem;
+.hero-club{
+  font-size:.75rem; color:var(--yellow); letter-spacing:.35em;
+  text-transform:uppercase; font-weight:600; margin-bottom:1rem;
 }
-.project-title h1{
-  font-family:var(--display); font-size:clamp(3rem,7vw,6rem);
-  font-weight:700; letter-spacing:.08em; text-transform:uppercase;
-  margin-bottom:1rem; line-height:1.05;
+.hero-title{
+  font-family:var(--display); font-size:clamp(3.5rem,8vw,7rem);
+  font-weight:800; letter-spacing:.06em; text-transform:uppercase;
+  line-height:1.02; margin-bottom:1.5rem;
 }
-.project-year{
-  font-size:1.1rem; opacity:.7; letter-spacing:.1em;
+.hero-year{
+  font-size:1rem; opacity:.6; letter-spacing:.15em;
+}
+.hero-divider{
+  width:60px; height:3px; background:var(--yellow); margin-top:2rem;
 }
 
-.project-content{
-  max-width:1200px; margin:0 auto; padding:4rem 2rem 6rem;
+/* CONTENT BLOCKS */
+.project-blocks{
+  max-width:1200px; margin:0 auto; padding:5rem 2rem 6rem;
 }
-.project-description{
+
+/* Overview / description */
+.block-overview{
   max-width:800px; margin:0 auto 4rem;
-  font-size:1.15rem; line-height:1.9; color:rgba(250,250,248,.9);
-  text-align:center; padding:0 2rem;
+  text-align:center;
 }
-.project-gallery{
-  display:grid; grid-template-columns:repeat(auto-fit, minmax(400px, 1fr));
-  gap:2.5rem; margin:3rem 0;
+.block-overview h2{
+  font-family:var(--display); font-size:1rem;
+  letter-spacing:.35em; text-transform:uppercase;
+  color:var(--yellow); font-weight:600; margin-bottom:1.5rem;
 }
-.project-gallery img{
-  width:100%; aspect-ratio:4/5; object-fit:cover;
-  border-radius:4px; transition:transform .4s ease;
-}
-.project-gallery img:hover{
-  transform:scale(1.02);
+.block-overview p{
+  font-size:1.2rem; line-height:2; color:rgba(250,250,248,.85);
 }
 
-.back-btn{
-  display:inline-block; margin-bottom:3rem;
-  padding:.95rem 2.5rem; background:transparent;
-  border:2px solid var(--yellow); color:var(--yellow);
+/* Paragraphe */
+.block-paragraph{
+  max-width:800px; margin:0 auto 2.5rem;
+}
+.block-paragraph p{
+  font-size:1.1rem; line-height:1.95; color:rgba(250,250,248,.85);
+}
+.block-paragraph a{ color:var(--yellow); text-decoration:underline; }
+
+/* Headings */
+.block-heading-1{
+  max-width:800px; margin:3rem auto 1.5rem;
+}
+.block-heading-1 h2{
+  font-family:var(--display); font-size:clamp(2rem,4vw,3.2rem);
+  font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+  line-height:1.15;
+}
+.block-heading-2{
+  max-width:800px; margin:3rem auto 1.2rem;
+}
+.block-heading-2 h3{
+  font-family:var(--display); font-size:clamp(1.4rem,3vw,2.2rem);
+  font-weight:700; letter-spacing:.04em; text-transform:uppercase;
+  line-height:1.2;
+}
+.block-heading-3{
+  max-width:800px; margin:2.5rem auto 1rem;
+}
+.block-heading-3 h4{
+  font-family:var(--display); font-size:1.4rem;
+  font-weight:600; letter-spacing:.04em; text-transform:uppercase;
+}
+
+/* Image pleine largeur */
+.block-image{
+  margin:3rem 0; overflow:hidden;
+}
+.block-image img{
+  width:100%; height:auto; display:block;
+  border-radius:2px;
+}
+.block-image figcaption{
+  font-size:.8rem; color:var(--grey-light); font-style:italic;
+  text-align:center; margin-top:1rem; letter-spacing:.02em;
+}
+
+/* Duo / trio d'images (column_list) */
+.block-columns{
+  display:grid; gap:1.5rem; margin:3rem 0;
+}
+.block-columns.cols-2{ grid-template-columns:1fr 1fr; }
+.block-columns.cols-3{ grid-template-columns:1fr 1fr 1fr; }
+.block-col img{
+  width:100%; height:100%; object-fit:cover;
+  border-radius:2px;
+}
+
+/* Quote */
+.block-quote{
+  max-width:800px; margin:3rem auto;
+  padding:2rem 0 2rem 2.5rem;
+  border-left:3px solid var(--yellow);
+}
+.block-quote p{
+  font-size:1.3rem; font-style:italic; line-height:1.8;
+  color:rgba(250,250,248,.9);
+}
+
+/* Callout */
+.block-callout{
+  max-width:800px; margin:2.5rem auto;
+  padding:1.5rem 2rem; background:rgba(255,215,0,.08);
+  border:1px solid rgba(255,215,0,.2); border-radius:4px;
+  display:flex; gap:1rem; align-items:flex-start;
+}
+.block-callout-icon{ font-size:1.5rem; flex-shrink:0; }
+.block-callout p{ font-size:1.05rem; line-height:1.8; color:rgba(250,250,248,.85); }
+
+/* Divider */
+.block-divider{
+  max-width:800px; margin:3rem auto;
+  border:none; border-top:1px solid rgba(255,255,255,.15);
+}
+
+/* Lists */
+.block-list{
+  max-width:800px; margin:0 auto 2rem;
+  padding-left:1.5rem;
+}
+.block-list li{
+  font-size:1.05rem; line-height:1.9; color:rgba(250,250,248,.85);
+  margin-bottom:.5rem;
+}
+
+/* Video embed */
+.block-video{
+  margin:3rem 0; aspect-ratio:16/9; overflow:hidden; border-radius:2px;
+}
+.block-video iframe{
+  width:100%; height:100%; border:none;
+}
+
+/* Fallback galerie */
+.fallback-galerie{
+  display:grid; gap:1.5rem; margin:3rem 0;
+}
+.fallback-galerie img{
+  width:100%; border-radius:2px;
+}
+.fallback-duo{
+  display:grid; grid-template-columns:1fr 1fr; gap:1.5rem;
+}
+.fallback-duo img{ width:100%; }
+
+/* Navigation projets */
+.project-nav{
+  max-width:1200px; margin:0 auto; padding:0 2rem 4rem;
+  display:flex; justify-content:space-between; align-items:center;
+  border-top:1px solid rgba(255,255,255,.1); padding-top:3rem;
+}
+.project-nav a{
   font-size:.75rem; letter-spacing:.22em; text-transform:uppercase;
-  font-weight:600; transition:all .3s ease;
+  font-weight:600; color:var(--yellow); transition:opacity .3s ease;
 }
-.back-btn:hover{
-  background:var(--yellow); color:var(--black);
-}
+.project-nav a:hover{ opacity:.7; }
 
+/* Loading */
 .loading{
   text-align:center; padding:8rem 2rem;
   font-size:1.2rem; color:rgba(255,255,255,.5);
@@ -102,18 +234,23 @@ nav{
 }
 @keyframes spin{ to{transform:rotate(360deg)} }
 
+/* Footer */
 footer{
-  background:#1a1a1a; color:var(--white); padding:3rem 3.5rem;
-  border-top:1px solid #333; text-align:center;
+  background:#111; color:var(--white); padding:3rem 3.5rem;
+  border-top:1px solid #222; text-align:center;
 }
+footer p{ font-size:.75rem; color:var(--grey); }
 
+/* Responsive */
 @media (max-width:768px){
-  .project-header{ padding:6rem 2rem 3rem; }
-  .project-content{ padding:3rem 1.5rem 4rem; }
-  .project-gallery{
-    grid-template-columns:1fr;
-    gap:2rem;
-  }
+  nav{ padding:1rem 1.5rem; }
+  .project-hero{ min-height:65vh; padding:6rem 1.5rem 3rem; }
+  .project-blocks{ padding:3rem 1.2rem 4rem; }
+  .block-columns.cols-2,
+  .block-columns.cols-3{ grid-template-columns:1fr; }
+  .block-overview p{ font-size:1.05rem; }
+  .project-nav{ flex-direction:column; gap:1.5rem; text-align:center; }
+  .fallback-duo{ grid-template-columns:1fr; }
 }
 </style>
 </head>
@@ -123,6 +260,7 @@ footer{
   <a href="/" class="nav-logo">
     <img src="https://bothequipmnt.com/cdn/shop/files/Plan_de_travail_14.png?v=1762357332&width=400" alt="BOTH EQUIPMNT">
   </a>
+  <a href="/portfolio.html" class="nav-back">← Tous les projets</a>
 </nav>
 
 <div id="project-container">
@@ -139,72 +277,164 @@ footer{
 <script>
 const API = "/.netlify/functions/notion-api";
 
+function youtubeEmbed(url) {
+  if (!url) return '';
+  let id = '';
+  if (url.includes('youtu.be/')) id = url.split('youtu.be/')[1].split('?')[0];
+  else if (url.includes('v=')) id = url.split('v=')[1].split('&')[0];
+  if (!id) return '';
+  return '<iframe src="https://www.youtube.com/embed/' + id + '" allowfullscreen loading="lazy"></iframe>';
+}
+
+function renderBlock(block) {
+  switch (block.type) {
+    case 'paragraph':
+      if (!block.text) return '';
+      return '<div class="block-paragraph"><p>' + block.text + '</p></div>';
+
+    case 'heading_1':
+      return '<div class="block-heading-1"><h2>' + block.text + '</h2></div>';
+
+    case 'heading_2':
+      return '<div class="block-heading-2"><h3>' + block.text + '</h3></div>';
+
+    case 'heading_3':
+      return '<div class="block-heading-3"><h4>' + block.text + '</h4></div>';
+
+    case 'image':
+      return '<figure class="block-image">' +
+        '<img src="' + block.url + '" alt="' + (block.caption || '') + '" loading="lazy">' +
+        (block.caption ? '<figcaption>' + block.caption + '</figcaption>' : '') +
+        '</figure>';
+
+    case 'column_list':
+      var numCols = block.columns.length;
+      var colClass = numCols === 3 ? 'cols-3' : 'cols-2';
+      var colsHtml = block.columns.map(function(col) {
+        var inner = col.map(function(child) { return renderBlock(child); }).join('');
+        return '<div class="block-col">' + inner + '</div>';
+      }).join('');
+      return '<div class="block-columns ' + colClass + '">' + colsHtml + '</div>';
+
+    case 'quote':
+      return '<div class="block-quote"><p>' + block.text + '</p></div>';
+
+    case 'callout':
+      return '<div class="block-callout">' +
+        '<div class="block-callout-icon">' + block.icon + '</div>' +
+        '<div><p>' + block.text + '</p></div></div>';
+
+    case 'divider':
+      return '<hr class="block-divider">';
+
+    case 'bulleted_list_item':
+      return '<ul class="block-list"><li>' + block.text + '</li></ul>';
+
+    case 'numbered_list_item':
+      return '<ol class="block-list"><li>' + block.text + '</li></ol>';
+
+    case 'video':
+      var embed = youtubeEmbed(block.url);
+      if (!embed) return '';
+      return '<div class="block-video">' + embed + '</div>';
+
+    default:
+      return '';
+  }
+}
+
+function mergeListItems(html) {
+  html = html.replace(/<\/ul>\s*<ul class="block-list">/g, '');
+  html = html.replace(/<\/ol>\s*<ol class="block-list">/g, '');
+  return html;
+}
+
+function renderFallbackGalerie(images) {
+  if (!images || !images.length) return '';
+  var html = '';
+  var i = 0;
+  while (i < images.length) {
+    if (i + 1 < images.length) {
+      // Full width first, then duo
+      html += '<img src="' + images[i] + '" loading="lazy" style="width:100%;border-radius:2px;margin-bottom:1.5rem">';
+      i++;
+      if (i + 1 < images.length) {
+        html += '<div class="fallback-duo">' +
+          '<img src="' + images[i] + '" loading="lazy">' +
+          '<img src="' + images[i+1] + '" loading="lazy">' +
+          '</div>';
+        i += 2;
+      } else {
+        html += '<img src="' + images[i] + '" loading="lazy" style="width:100%;border-radius:2px">';
+        i++;
+      }
+    } else {
+      html += '<img src="' + images[i] + '" loading="lazy" style="width:100%;border-radius:2px">';
+      i++;
+    }
+  }
+  return '<div class="fallback-galerie">' + html + '</div>';
+}
+
 async function loadProject() {
   try {
-    const params = new URLSearchParams(window.location.search);
-    const id = params.get('id');
-    
+    var params = new URLSearchParams(window.location.search);
+    var id = params.get('id');
+
     if (!id) {
-      document.getElementById('project-container').innerHTML = `
-        <div class="project-content">
-          <a href="/portfolio.html" class="back-btn">← Retour au portfolio</a>
-          <p style="color:#ff4444;">Projet non trouvé.</p>
-        </div>
-      `;
+      document.getElementById('project-container').innerHTML =
+        '<div class="project-blocks"><p style="color:#ff4444;">Projet non trouvé.</p></div>';
       return;
     }
-    
-    const res = await fetch(API + '?action=getPortfolio&id=' + encodeURIComponent(id) + '&all=true');
-    const data = await res.json();
-    
-    if (!data.projects) {
-      document.getElementById('project-container').innerHTML = `
-        <div class="project-content">
-          <a href="/portfolio.html" class="back-btn">← Retour au portfolio</a>
-          <p style="color:#ff4444;">Projet non trouvé.</p>
-        </div>
-      `;
+
+    var res = await fetch(API + '?action=getProjectBlocks&id=' + encodeURIComponent(id));
+    var data = await res.json();
+
+    if (!data.project) {
+      document.getElementById('project-container').innerHTML =
+        '<div class="project-blocks">' +
+        '<a href="/portfolio.html" style="color:var(--yellow);">← Retour aux projets</a>' +
+        '<p style="color:#ff4444;margin-top:2rem;">Projet non trouvé.</p></div>';
       return;
     }
-    
-    const project = data.projects;
-    
-    let html = `
-      <section class="project-header">
-        ${project.image ? `<img src="${project.image}" alt="${project.nom}" class="header-bg">` : ''}
-        <div class="project-title">
-          <div class="project-club">${project.club}</div>
-          <h1>${project.nom}</h1>
-          <div class="project-year">${project.annee}</div>
-        </div>
-      </section>
-      
-      <div class="project-content">
-        <a href="/portfolio.html" class="back-btn">← Retour au portfolio</a>
-        
-        ${project.description ? `<p class="project-description">${project.description}</p>` : ''}
-        
-        ${project.galerie && project.galerie.length > 0 ? `
-          <div class="project-gallery">
-            ${project.galerie.map(img => `<img src="${img}" alt="${project.nom}">`).join('')}
-          </div>
-        ` : ''}
-      </div>
-    `;
-    
+
+    var p = data.project;
+    var hasBlocks = p.blocks && p.blocks.length > 0;
+
+    var blocksHtml = '';
+    if (hasBlocks) {
+      blocksHtml = mergeListItems(p.blocks.map(function(b) { return renderBlock(b); }).join(''));
+    } else {
+      if (p.description) {
+        blocksHtml += '<div class="block-overview"><h2>Overview</h2><p>' + p.description + '</p></div>';
+      }
+      blocksHtml += renderFallbackGalerie(p.galerie);
+    }
+
+    var html =
+      '<section class="project-hero">' +
+        (p.image ? '<img src="' + p.image + '" alt="' + p.nom + '" class="hero-bg">' : '') +
+        '<div class="hero-content">' +
+          (p.club ? '<div class="hero-club">' + p.club + '</div>' : '') +
+          '<h1 class="hero-title">' + p.nom + '</h1>' +
+          (p.annee ? '<div class="hero-year">' + p.annee + '</div>' : '') +
+          '<div class="hero-divider"></div>' +
+        '</div>' +
+      '</section>' +
+      '<div class="project-blocks">' + blocksHtml + '</div>' +
+      '<div class="project-nav">' +
+        '<a href="/portfolio.html">← Tous les projets</a>' +
+      '</div>';
+
     document.getElementById('project-container').innerHTML = html;
-    
-    // Mettre à jour le titre de la page
-    document.title = `${project.nom} — BOTH EQUIPMNT`;
-    
+    document.title = p.nom + ' – BOTH EQUIPMNT';
+
   } catch (e) {
     console.error(e);
-    document.getElementById('project-container').innerHTML = `
-      <div class="project-content">
-        <a href="/portfolio.html" class="back-btn">← Retour au portfolio</a>
-        <p style="color:#ff4444;">Erreur lors du chargement du projet.</p>
-      </div>
-    `;
+    document.getElementById('project-container').innerHTML =
+      '<div class="project-blocks">' +
+      '<a href="/portfolio.html" style="color:var(--yellow);">← Retour aux projets</a>' +
+      '<p style="color:#ff4444;margin-top:2rem;">Erreur lors du chargement.</p></div>';
   }
 }
 

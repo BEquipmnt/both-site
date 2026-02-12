@@ -1147,7 +1147,7 @@ footer{ background:#1a1a1a; color:var(--white); padding:3rem 3.5rem 2rem; border
   <div class="nav-center">
     <a href="#vision" class="nav-link">À Propos</a>
     <a href="#actualites" class="nav-link">Actualités</a>
-    <a href="#portfolio" class="nav-link">Portfolio</a>
+    <a href="#portfolio" class="nav-link">Projets</a>
     <a href="#contact" class="nav-link">Contact</a>
   </div>
   <button class="nav-vestiaire" onclick="openLogin()">Mon Vestiaire</button>
@@ -1220,7 +1220,7 @@ footer{ background:#1a1a1a; color:var(--white); padding:3rem 3.5rem 2rem; border
     <div class="section-inner">
       <div class="section-header">
         <div class="section-label">Nos Créations</div>
-        <h2 class="section-title">Portfolio</h2>
+        <h2 class="section-title">Projets</h2>
         <p class="section-desc">Une sélection de nos projets — chaque design, une identité unique construite avec le club.</p>
       </div>
       <div class="portfolio-preview" id="portfolio-preview">
@@ -1300,7 +1300,7 @@ footer{ background:#1a1a1a; color:var(--white); padding:3rem 3.5rem 2rem; border
       <div class="footer-links">
         <a href="#vision">À Propos</a>
         <a href="#actualites">Actualités</a>
-        <a href="#portfolio">Portfolio</a>
+        <a href="#portfolio">Projets</a>
         <a href="#contact">Contact</a>
         <a href="https://www.instagram.com/bothequipmnt" target="_blank">Instagram</a>
       </div>
@@ -1586,7 +1586,7 @@ async function loadPortfolio(){
     const featured = S.portfolio.slice(0, 4);
     
     if(!featured.length){
-      grid.innerHTML = '<p style="color:var(--grey-400);grid-column:1/-1;text-align:center;padding:3rem;">Portfolio en construction.</p>';
+      grid.innerHTML = '<p style="color:var(--grey-400);grid-column:1/-1;text-align:center;padding:3rem;">Projets en construction.</p>';
       return;
     }
     
