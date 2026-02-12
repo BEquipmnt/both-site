@@ -50,6 +50,7 @@
 }
 html{ scroll-behavior:smooth; -webkit-font-smoothing:antialiased; }
 body{ font-family:var(--body); background:var(--black); color:var(--white); font-weight:400; line-height:1.65; overflow-x:hidden; }
+html{ overflow-x:hidden; }
 a{ text-decoration:none; color:inherit; cursor:pointer; }
 img{ max-width:100%; display:block; }
 input,select,textarea,button{ font-family:var(--body); }
@@ -937,8 +938,10 @@ footer{ background:#1a1a1a; color:var(--white); padding:3rem 3.5rem 2rem; border
   .vision-content{ grid-template-columns:1fr; gap:2rem; }
 
   /* News */
+  .news-wrapper{ padding:0 1.2rem; }
   .news-grid-horizontal{ padding:0 1.2rem; }
   .news-card-h{ min-width:280px; max-width:280px; }
+  .news-card{ min-width:280px; max-width:280px; }
 
   /* Portfolio */
   .portfolio-preview{
