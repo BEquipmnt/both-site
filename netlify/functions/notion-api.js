@@ -127,6 +127,117 @@ async function getPortfolio(id, all) {
   return { projects };
 }
 
+// ============================================================
+// GET PROJECT BLOCKS (contenu de page Notion pour case studies)
+// ============================================================
+async function getProjectBlocks(pageId) {
+  // 1. Récupérer les propriétés de la page
+  const page = await notionFetch(`/pages/${pageId}`);
+  if (page.object === 'error') return { project: null };
+
+  // 2. Récupérer les blocs enfants (contenu de la page)
+  let allBlocks = [];
+  let cursor = undefined;
+  do {
+    const endpoint = `/blocks/${pageId}/children?page_size=100${cursor ? '&start_cursor=' + cursor : ''}`;
+    const data = await notionFetch(endpoint);
+    allBlocks = allBlocks.concat(data.results || []);
+    cursor = data.has_more ? data.next_cursor : undefined;
+  } while (cursor);
+
+  // 3. Pour les column_list, récupérer les enfants (columns)
+  for (let i = 0; i < allBlocks.length; i++) {
+    if (allBlocks[i].type === 'column_list') {
+      const colListData = await notionFetch(`/blocks/${allBlocks[i].id}/children?page_size=100`);
+      const columns = colListData.results || [];
+      // Pour chaque colonne, récupérer ses enfants
+      for (let j = 0; j < columns.length; j++) {
+        const colChildren = await notionFetch(`/blocks/${columns[j].id}/children?page_size=100`);
+        columns[j].children = colChildren.results || [];
+      }
+      allBlocks[i].columns = columns;
+    }
+  }
+
+  // 4. Mapper les blocs en format simplifié
+  const blocks = allBlocks.map(block => mapBlock(block)).filter(Boolean);
+
+  const galerieStr = getProp(page, 'Images_Galerie', 'rich_text');
+  const galerie = galerieStr ? galerieStr.split(',').map(u => u.trim()).filter(Boolean) : [];
+
+  return {
+    project: {
+      id: page.id,
+      nom: getProp(page, 'Nom', 'title'),
+      club: getProp(page, 'Club', 'rich_text'),
+      annee: getProp(page, 'Année', 'rich_text'),
+      image: getProp(page, 'Image_Cover', 'url'),
+      description: getProp(page, 'Description', 'rich_text'),
+      galerie: galerie,
+      blocks: blocks
+    }
+  };
+}
+
+function mapBlock(block) {
+  const type = block.type;
+  switch (type) {
+    case 'paragraph':
+      return { type: 'paragraph', text: richTextToHtml(block.paragraph.rich_text) };
+    case 'heading_1':
+      return { type: 'heading_1', text: richTextToHtml(block.heading_1.rich_text) };
+    case 'heading_2':
+      return { type: 'heading_2', text: richTextToHtml(block.heading_2.rich_text) };
+    case 'heading_3':
+      return { type: 'heading_3', text: richTextToHtml(block.heading_3.rich_text) };
+    case 'image':
+      const url = block.image.type === 'external' ? block.image.external.url : (block.image.file ? block.image.file.url : '');
+      const caption = block.image.caption ? block.image.caption.map(t => t.plain_text).join('') : '';
+      return { type: 'image', url, caption };
+    case 'bulleted_list_item':
+      return { type: 'bulleted_list_item', text: richTextToHtml(block.bulleted_list_item.rich_text) };
+    case 'numbered_list_item':
+      return { type: 'numbered_list_item', text: richTextToHtml(block.numbered_list_item.rich_text) };
+    case 'quote':
+      return { type: 'quote', text: richTextToHtml(block.quote.rich_text) };
+    case 'divider':
+      return { type: 'divider' };
+    case 'column_list':
+      if (!block.columns) return null;
+      const cols = block.columns.map(col => {
+        const children = (col.children || []).map(child => mapBlock(child)).filter(Boolean);
+        return children;
+      });
+      return { type: 'column_list', columns: cols };
+    case 'video':
+      const videoUrl = block.video.type === 'external' ? block.video.external.url : '';
+      return { type: 'video', url: videoUrl };
+    case 'callout':
+      const icon = block.callout.icon ? (block.callout.icon.emoji || '') : '';
+      return { type: 'callout', icon, text: richTextToHtml(block.callout.rich_text) };
+    default:
+      return null;
+  }
+}
+
+function richTextToHtml(richText) {
+  if (!richText || !richText.length) return '';
+  return richText.map(t => {
+    let text = t.plain_text;
+    // Escape HTML
+    text = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    if (t.annotations) {
+      if (t.annotations.bold) text = `<strong>${text}</strong>`;
+      if (t.annotations.italic) text = `<em>${text}</em>`;
+      if (t.annotations.underline) text = `<u>${text}</u>`;
+      if (t.annotations.strikethrough) text = `<s>${text}</s>`;
+      if (t.annotations.code) text = `<code>${text}</code>`;
+    }
+    if (t.href) text = `<a href="${t.href}" target="_blank">${text}</a>`;
+    return text;
+  }).join('');
+}
+
 async function getPartners() {
   const data = await notionFetch(`/databases/${DB_PARTNERS}/query`, {});
   const partners = (data.results || []).map(page => ({
@@ -150,6 +261,9 @@ exports.handler = async (event) => {
         break;
       case 'getPortfolio':
         result = await getPortfolio(params.id, params.all);
+        break;
+      case 'getProjectBlocks':
+        result = await getProjectBlocks(params.id);
         break;
       case 'getPartners':
         result = await getPartners();
