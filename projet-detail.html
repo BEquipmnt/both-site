@@ -78,12 +78,13 @@ nav{
 /* CONTENT BLOCKS */
 .project-blocks{
   max-width:1400px; margin:0 auto; padding:5rem 3.5rem 6rem;
+  overflow:hidden;
 }
 
 /* Overview / description */
 .block-overview{
-  max-width:800px; margin:0 auto 4rem;
-  text-align:center;
+  max-width:1000px; margin:0 0 4rem;
+  text-align:left;
 }
 .block-overview h2{
   font-family:var(--display); font-size:1rem;
@@ -96,7 +97,7 @@ nav{
 
 /* Paragraphe */
 .block-paragraph{
-  max-width:800px; margin:0 auto 2.5rem;
+  max-width:1000px; margin:0 auto 2.5rem;
 }
 .block-paragraph p{
   font-size:1.1rem; line-height:1.95; color:rgba(250,250,248,.85);
@@ -105,7 +106,7 @@ nav{
 
 /* Headings */
 .block-heading-1{
-  max-width:800px; margin:3rem auto 1.5rem;
+  max-width:1000px; margin:3rem 0 1.5rem;
 }
 .block-heading-1 h2{
   font-family:var(--display); font-size:clamp(2rem,4vw,3.2rem);
@@ -113,7 +114,7 @@ nav{
   line-height:1.15;
 }
 .block-heading-2{
-  max-width:800px; margin:3rem auto 1.2rem;
+  max-width:1000px; margin:3rem 0 1.2rem;
 }
 .block-heading-2 h3{
   font-family:var(--display); font-size:clamp(1.4rem,3vw,2.2rem);
@@ -121,7 +122,7 @@ nav{
   line-height:1.2;
 }
 .block-heading-3{
-  max-width:800px; margin:2.5rem auto 1rem;
+  max-width:1000px; margin:2.5rem 0 1rem;
 }
 .block-heading-3 h4{
   font-family:var(--display); font-size:1.4rem;
@@ -137,7 +138,7 @@ nav{
 }
 .block-image figcaption{
   font-size:.8rem; color:var(--grey-light); font-style:italic;
-  text-align:center; margin-top:1rem; letter-spacing:.02em;
+  text-align:left; margin-top:1rem; letter-spacing:.02em;
 }
 
 /* Duo / trio d'images (column_list) */
@@ -153,7 +154,7 @@ nav{
 
 /* Quote */
 .block-quote{
-  max-width:800px; margin:3rem auto;
+  max-width:1000px; margin:3rem auto;
   padding:2rem 0 2rem 2.5rem;
   border-left:3px solid var(--yellow);
 }
@@ -164,7 +165,7 @@ nav{
 
 /* Callout */
 .block-callout{
-  max-width:800px; margin:2.5rem auto;
+  max-width:1000px; margin:2.5rem auto;
   padding:1.5rem 2rem; background:rgba(255,215,0,.08);
   border:1px solid rgba(255,215,0,.2); border-radius:4px;
   display:flex; gap:1rem; align-items:flex-start;
@@ -174,13 +175,13 @@ nav{
 
 /* Divider */
 .block-divider{
-  max-width:800px; margin:3rem auto;
+  max-width:1000px; margin:3rem auto;
   border:none; border-top:1px solid rgba(255,255,255,.15);
 }
 
 /* Lists */
 .block-list{
-  max-width:800px; margin:0 auto 2rem;
+  max-width:1000px; margin:0 auto 2rem;
   padding-left:1.5rem;
 }
 .block-list li{
@@ -222,7 +223,7 @@ nav{
 
 /* Loading */
 .loading{
-  text-align:center; padding:8rem 2rem;
+  text-align:left; padding:8rem 2rem;
   font-size:1.2rem; color:rgba(255,255,255,.5);
 }
 .spinner{
@@ -236,7 +237,7 @@ nav{
 /* Footer */
 footer{
   background:#111; color:var(--white); padding:3rem 3.5rem;
-  border-top:1px solid #222; text-align:center;
+  border-top:1px solid #222; text-align:left;
 }
 footer p{ font-size:.75rem; color:var(--grey); }
 
@@ -250,7 +251,7 @@ footer p{ font-size:.75rem; color:var(--grey); }
   .block-columns.cols-2,
   .block-columns.cols-3{ grid-template-columns:1fr; }
   .block-overview p{ font-size:1.05rem; }
-  .project-nav{ flex-direction:column; gap:1.5rem; text-align:center; }
+  .project-nav{ flex-direction:column; gap:1.5rem; text-align:left; }
   .fallback-duo{ grid-template-columns:1fr; }
 }
 </style>
