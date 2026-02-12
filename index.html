@@ -426,10 +426,10 @@ footer{ background:#1a1a1a; color:var(--white); padding:3rem 3.5rem 2rem; border
    ============================================= */
 #login-screen{
   display:none; position:fixed; inset:0; background:var(--white); z-index:201;
-  align-items:center; justify-content:center;
+  align-items:center; justify-content:center; overflow-y:auto;
 }
 #login-screen.active{ display:flex; }
-.login-box{ width:100%; max-width:400px; text-align:center; padding:2.5rem; }
+.login-box{ width:100%; max-width:400px; text-align:center; padding:2.5rem 1.5rem; }
 .login-box-logo img{ height:42px; margin:0 auto 3rem; }
 .login-box h2{
   font-family:var(--display); font-size:2rem; font-weight:700;
@@ -459,7 +459,9 @@ footer{ background:#1a1a1a; color:var(--white); padding:3rem 3.5rem 2rem; border
    PORTAL (inchangé mais masqué par défaut)
    ============================================= */
 #vestiaire{
-  display:none; position:fixed; inset:0; background:var(--white); z-index:200; overflow-y:auto;
+  display:none; position:fixed; inset:0; background:var(--white); z-index:200; 
+  overflow-y:auto; overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
 }
 #vestiaire.active{ display:block; }
 .v-nav{
@@ -533,6 +535,7 @@ footer{ background:#1a1a1a; color:var(--white); padding:3rem 3.5rem 2rem; border
 
 .product-grid{
   display:grid; grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); gap:2rem;
+  overflow:hidden;
 }
 
 .category-section{
@@ -984,25 +987,28 @@ footer{ background:#1a1a1a; color:var(--white); padding:3rem 3.5rem 2rem; border
   .login-box-logo img{ height:36px; }
 
   /* Vestiaire */
-  .v-nav{ padding:.6rem .8rem; flex-wrap:wrap; gap:.5rem; }
-  .v-nav-logo img{ height:38px; }
-  .v-club-logo{ height:35px; }
-  .v-nav-club-wrapper{ padding-left:.8rem; gap:.5rem; border-left:none; }
-  .v-nav-left{ gap:.6rem; }
-  .v-nav-right{ gap:.5rem; width:100%; justify-content:center; }
-  .v-tab{ font-size:.55rem; letter-spacing:.1em; padding:.3rem 0; }
-  .v-btn-cart{ font-size:.55rem; padding:.35rem .6rem; }
-  .v-btn-quit{ font-size:.55rem; padding:.3rem .5rem; }
-  .v-section{ padding:1.5rem 1rem; }
-  .cat-header{ flex-direction:column; align-items:flex-start; gap:.8rem; }
-  .cat-header h2{ font-size:1.6rem; }
-  .cat-filters{ gap:.4rem; }
-  .cat-filter-btn{ font-size:.6rem; padding:.4rem .7rem; }
-  .product-grid{ grid-template-columns:repeat(2, 1fr); gap:1rem; }
+  .v-nav{ padding:.6rem .8rem; flex-wrap:nowrap; gap:.3rem; }
+  .v-nav-logo img{ height:32px; }
+  .v-club-logo{ height:30px; max-width:60px; }
+  .v-nav-club-wrapper{ padding-left:.5rem; gap:.3rem; border-left:none; }
+  .v-nav-club{ display:none; }
+  .v-nav-left{ gap:.4rem; }
+  .v-nav-right{ gap:.3rem; }
+  .v-tab{ font-size:.5rem; letter-spacing:.08em; padding:.2rem 0; }
+  .v-btn-cart{ font-size:.5rem; padding:.3rem .5rem; letter-spacing:.1em; }
+  .v-btn-quit{ font-size:.5rem; padding:.25rem .4rem; letter-spacing:.1em; }
+  .v-section{ padding:1.2rem .8rem; }
+  .cat-header{ flex-direction:column; align-items:flex-start; gap:.6rem; }
+  .cat-header h2{ font-size:1.4rem; }
+  .cat-filters{ gap:.3rem; }
+  .cat-filter-btn{ font-size:.55rem; padding:.35rem .6rem; }
+  .product-grid{ grid-template-columns:repeat(2, 1fr) !important; gap:.8rem; }
 
   /* Modal produit */
-  .modal{ grid-template-columns:1fr; }
-  .modal-img{ min-height:260px; }
+  .modal-backdrop{ padding:.5rem; }
+  .modal{ grid-template-columns:1fr; max-height:90vh; }
+  .modal-img{ min-height:200px; }
+  .modal-box{ padding:1.5rem 1rem; max-width:95vw; }
 }
 
 /* =============================================
@@ -1708,10 +1714,12 @@ async function loadPartners(){
 // ============================================================
 function openLogin(){
   document.getElementById('login-screen').classList.add('active');
+  document.body.style.overflow = 'hidden';
   document.getElementById('login-email').focus();
 }
 function closeLogin(){
   document.getElementById('login-screen').classList.remove('active');
+  document.body.style.overflow = '';
   document.getElementById('login-error').textContent = '';
 }
 
@@ -1755,6 +1763,7 @@ async function loginClub(){
 // ============================================================
 async function openPortal(){
   document.getElementById('vestiaire').classList.add('active');
+  document.body.style.overflow = 'hidden';
   document.getElementById('v-club-name').textContent = S.club.nom;
   
   // Afficher le logo du club si disponible
@@ -1772,6 +1781,7 @@ async function openPortal(){
 
 function closePortal(){
   document.getElementById('vestiaire').classList.remove('active');
+  document.body.style.overflow = '';
   S.club = null;
   S.cart = [];
   updateCartUI();
