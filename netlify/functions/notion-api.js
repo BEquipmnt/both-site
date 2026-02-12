@@ -232,6 +232,10 @@ function richTextToHtml(richText) {
       if (t.annotations.underline) text = `<u>${text}</u>`;
       if (t.annotations.strikethrough) text = `<s>${text}</s>`;
       if (t.annotations.code) text = `<code>${text}</code>`;
+      const color = t.annotations.color;
+      if (color && color !== 'default') {
+        text = `<span class="notion-${color}">${text}</span>`;
+      }
     }
     if (t.href) text = `<a href="${t.href}" target="_blank">${text}</a>`;
     return text;
