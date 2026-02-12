@@ -425,11 +425,13 @@ footer{ background:#1a1a1a; color:var(--white); padding:3rem 3.5rem 2rem; border
    LOGIN SCREEN (inchangé)
    ============================================= */
 #login-screen{
-  display:none; position:fixed; inset:0; background:var(--white); z-index:201;
-  align-items:center; justify-content:center; overflow-y:auto;
+  display:none; position:fixed; top:0; left:0; right:0; bottom:0;
+  width:100%; height:100%; 
+  background:var(--white); z-index:201;
+  align-items:center; justify-content:center; overflow:hidden;
 }
 #login-screen.active{ display:flex; }
-.login-box{ width:100%; max-width:400px; text-align:center; padding:2.5rem 1.5rem; }
+.login-box{ width:100%; max-width:400px; text-align:center; padding:2rem 1.5rem; box-sizing:border-box; }
 .login-box-logo img{ height:42px; margin:0 auto 3rem; }
 .login-box h2{
   font-family:var(--display); font-size:2rem; font-weight:700;
@@ -439,13 +441,14 @@ footer{ background:#1a1a1a; color:var(--white); padding:3rem 3.5rem 2rem; border
 .login-input{
   width:100%; padding:.9rem 1.1rem; border:2px solid var(--grey-200); background:transparent;
   font-size:.88rem; outline:none; transition:border-color var(--ease); margin-bottom:.9rem;
+  box-sizing:border-box;
 }
 .login-input:focus{ border-color:var(--black); }
 .login-error{ font-size:.75rem; color:var(--red); min-height:1rem; margin-bottom:.7rem; }
 .btn-login{
   width:100%; padding:.9rem; background:var(--black); color:var(--white); border:none;
   font-size:.72rem; letter-spacing:.24em; text-transform:uppercase; font-weight:600;
-  transition:background var(--ease);
+  transition:background var(--ease); box-sizing:border-box;
 }
 .btn-login:hover{ background:#2a2a2a; }
 .btn-login:disabled{ background:var(--grey-200); color:var(--grey-400); }
@@ -459,7 +462,9 @@ footer{ background:#1a1a1a; color:var(--white); padding:3rem 3.5rem 2rem; border
    PORTAL (inchangé mais masqué par défaut)
    ============================================= */
 #vestiaire{
-  display:none; position:fixed; inset:0; background:var(--white); z-index:200; 
+  display:none; position:fixed; top:0; left:0; right:0; bottom:0;
+  width:100%; height:100%;
+  background:var(--white); z-index:200; 
   overflow-y:auto; overflow-x:hidden;
   -webkit-overflow-scrolling:touch;
 }
@@ -983,7 +988,10 @@ footer{ background:#1a1a1a; color:var(--white); padding:3rem 3.5rem 2rem; border
   .footer-bottom{ flex-direction:column; gap:.5rem; font-size:.65rem; }
 
   /* Login */
-  .login-box{ padding:2rem 1.2rem; }
+  /* Login mobile */
+  #login-screen{ padding:0 1rem; }
+  .login-box{ padding:1.5rem .8rem; max-width:100%; box-sizing:border-box; }
+  .login-box p{ font-size:.78rem; padding:0; }
   .login-box-logo img{ height:36px; }
 
   /* Vestiaire */
