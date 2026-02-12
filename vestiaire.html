@@ -392,14 +392,15 @@ img{ max-width:100%; display:block; }
 
 /* ===== TOAST ===== */
 #toast{
-  position:fixed; bottom:1.5rem; left:50%; transform:translateX(-50%) translateY(150%);
+  position:fixed; bottom:1.5rem; left:50%; transform:translateX(-50%) translateY(200%);
   background:var(--black); color:var(--white);
-  padding:.8rem 1.5rem; font-size:.75rem; letter-spacing:.05em;
-  z-index:500; transition:transform .45s cubic-bezier(.4,0,.2,1);
+  padding:0; font-size:.75rem; letter-spacing:.05em;
+  z-index:500; transition:transform .45s cubic-bezier(.4,0,.2,1), padding .1s, opacity .3s;
   pointer-events:none; max-width:90vw; text-align:center;
   box-shadow:0 8px 32px rgba(0,0,0,.22);
+  visibility:hidden; opacity:0;
 }
-#toast.show{ transform:translateX(-50%) translateY(0); }
+#toast.show{ transform:translateX(-50%) translateY(0); visibility:visible; opacity:1; padding:.8rem 1.5rem; }
 
 .spinner{
   width:32px; height:32px; border:2px solid #ddd; border-top-color:var(--black);

@@ -906,11 +906,12 @@ footer{ background:#1a1a1a; color:var(--white); padding:3rem 3.5rem 2rem; border
 #toast{
   position:fixed; bottom:2.2rem; right:2.2rem;
   background:var(--black); color:var(--white);
-  padding:1rem 1.9rem; font-size:.8rem; letter-spacing:.05em;
-  z-index:500; transform:translateY(150%); transition:transform .45s cubic-bezier(.4,0,.2,1);
+  padding:0; font-size:.8rem; letter-spacing:.05em;
+  z-index:500; transform:translateY(200%); transition:transform .45s cubic-bezier(.4,0,.2,1), padding .1s, opacity .3s;
   pointer-events:none; max-width:340px; box-shadow:0 8px 32px rgba(0,0,0,.22);
+  visibility:hidden; opacity:0;
 }
-#toast.show{ transform:translateY(0); }
+#toast.show{ transform:translateY(0); visibility:visible; opacity:1; padding:1rem 1.9rem; }
 
 .spinner{
   width:32px; height:32px; border:2px solid var(--grey-200); border-top-color:var(--black);
