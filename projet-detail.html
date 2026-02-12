@@ -97,7 +97,7 @@ nav{
 
 /* Paragraphe */
 .block-paragraph{
-  max-width:1000px; margin:0 auto 2.5rem;
+  max-width:850px; margin:0 auto 2.5rem;
 }
 .block-paragraph p{
   font-size:1.1rem; line-height:1.95; color:rgba(250,250,248,.85);
@@ -131,7 +131,7 @@ nav{
 
 /* Image pleine largeur */
 .block-image{
-  margin:2rem calc(-4vw) 2rem; overflow:hidden;
+  margin:2rem 0; overflow:hidden;
 }
 .block-image img{
   width:100%; height:auto; display:block;
@@ -143,7 +143,7 @@ nav{
 
 /* Duo / trio d'images (column_list) */
 .block-columns{
-  display:grid; gap:1.5rem; margin:2rem calc(-4vw) 2rem;
+  display:grid; gap:1.5rem; margin:2rem 0;
 }
 .block-columns.cols-2{ grid-template-columns:1fr 1fr; }
 .block-columns.cols-3{ grid-template-columns:1fr 1fr 1fr; }
@@ -246,8 +246,8 @@ footer p{ font-size:.75rem; color:var(--grey); }
   nav{ padding:1rem 1.5rem; }
   .project-hero{ min-height:65vh; padding:6rem 1.5rem 3rem; }
   .project-blocks{ padding:3rem 1.5rem 4rem; }
-  .block-image{ margin:2rem calc(-4vw); }
-  .block-columns{ margin:2rem calc(-4vw); }
+  .block-image{ margin:2rem 0; }
+  .block-columns{ margin:2rem 0; }
   .block-columns.cols-2,
   .block-columns.cols-3{ grid-template-columns:1fr; }
   .block-overview p{ font-size:1.05rem; }
