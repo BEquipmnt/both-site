@@ -136,7 +136,6 @@ nav.scrolled{
   font-weight:800; letter-spacing:.04em; line-height:1;
   color:var(--white); text-transform:uppercase;
   opacity:0; animation:heroFadeUp 1s .5s forwards;
-  white-space:nowrap;
 }
 .hero-buttons{
   margin-top:3rem; display:flex; gap:1.5rem; flex-wrap:wrap;
@@ -917,26 +916,49 @@ footer{ background:#1a1a1a; color:var(--white); padding:3rem 3.5rem 2rem; border
 }
 
 @media(max-width:768px){
-  nav{ padding:1rem 1.6rem; }
+  /* Nav */
+  nav{ padding:.8rem 1rem; }
   .nav-center{ display:none; }
-  .section{ padding:5rem 1.6rem; }
-  .hero-tagline{ font-size:3.2rem; }
-  .modal{ grid-template-columns:1fr; }
-  .modal-img{ min-height:260px; }
-  .v-section{ padding:2.2rem 1.2rem; }
-  .cat-header{ flex-direction:column; align-items:flex-start; }
-  .v-nav{ padding:.8rem 1rem; }
-  .v-nav-club{ display:none; }
-  .v-nav-logo img{ height:45px; }
-  .v-club-logo{ height:40px; }
-  .v-nav-club-wrapper{ padding-left:1rem; gap:.8rem; }
-  .v-nav-left{ gap:1rem; }
-  .v-nav-right{ gap:.8rem; }
-  .v-tab{ font-size:.6rem; letter-spacing:.12em; }
-  .v-btn-cart{ font-size:.6rem; padding:.4rem .8rem; }
-  .v-btn-quit{ font-size:.58rem; padding:.35rem .7rem; }
+  .nav-vestiaire{ font-size:.58rem; padding:.45rem .7rem; letter-spacing:.1em; }
 
-  /* Partners mobile - grille comme rare.design */
+  /* Hero */
+  .hero-content{ padding:0 1.2rem 8vh; }
+  .hero-tagline{ font-size:2.2rem; line-height:1.1; }
+  .hero-buttons{ flex-direction:column; gap:.8rem; margin-top:1.5rem; }
+  .btn-hero{ width:100%; text-align:center; padding:.8rem 1.2rem; font-size:.68rem; }
+  .hero-scroll{ display:none; }
+  .carousel-nav{ bottom:auto; top:1rem; right:1rem; }
+
+  /* Sections */
+  .section{ padding:3rem 1.2rem; }
+  .section-title{ font-size:2rem; }
+
+  /* Vision */
+  .vision-content{ grid-template-columns:1fr; gap:2rem; }
+
+  /* News */
+  .news-grid-horizontal{ padding:0 1.2rem; }
+  .news-card-h{ min-width:280px; max-width:280px; }
+
+  /* Portfolio */
+  .portfolio-preview{
+    grid-template-columns:1fr;
+    grid-template-rows:auto;
+  }
+  .port-item:nth-child(1),
+  .port-item:nth-child(2),
+  .port-item:nth-child(3),
+  .port-item:nth-child(4){
+    grid-column:1; grid-row:auto;
+  }
+  .btn-view-all{ font-size:.68rem; padding:.7rem 1.5rem; }
+
+  /* Contact */
+  #contact .section-title{ font-size:2rem; }
+  .contact-buttons{ flex-direction:column; align-items:stretch; gap:.8rem; }
+  .contact-buttons .btn-hero{ width:100%; }
+
+  /* Partners */
   .partners-grid{
     display:grid !important;
     grid-template-columns:repeat(4, 1fr);
@@ -944,16 +966,40 @@ footer{ background:#1a1a1a; color:var(--white); padding:3rem 3.5rem 2rem; border
     justify-items:center;
     align-items:center;
   }
-  .partner-logo{ height:55px; }
+  #partners{ padding:2rem 1.2rem; }
+  .partner-logo{ height:50px; }
 
-  /* Login mobile */
-  .login-box{ padding:2rem 1.5rem; }
+  /* Footer */
+  footer{ padding:2rem 1.2rem 1.5rem; }
+  .footer-inner{ flex-direction:column; gap:1.5rem; align-items:flex-start; }
+  .footer-links{ flex-wrap:wrap; gap:1.2rem; }
+  .footer-links a{ font-size:.65rem; }
+  .footer-bottom{ flex-direction:column; gap:.5rem; font-size:.65rem; }
+
+  /* Login */
+  .login-box{ padding:2rem 1.2rem; }
   .login-box-logo img{ height:36px; }
 
-  /* Hero mobile */
-  .hero-content{ padding:0 1.6rem 10vh; }
-  .hero-buttons{ flex-direction:column; gap:.8rem; }
-  .btn-hero{ width:100%; text-align:center; }
+  /* Vestiaire */
+  .v-nav{ padding:.6rem .8rem; flex-wrap:wrap; gap:.5rem; }
+  .v-nav-logo img{ height:38px; }
+  .v-club-logo{ height:35px; }
+  .v-nav-club-wrapper{ padding-left:.8rem; gap:.5rem; border-left:none; }
+  .v-nav-left{ gap:.6rem; }
+  .v-nav-right{ gap:.5rem; width:100%; justify-content:center; }
+  .v-tab{ font-size:.55rem; letter-spacing:.1em; padding:.3rem 0; }
+  .v-btn-cart{ font-size:.55rem; padding:.35rem .6rem; }
+  .v-btn-quit{ font-size:.55rem; padding:.3rem .5rem; }
+  .v-section{ padding:1.5rem 1rem; }
+  .cat-header{ flex-direction:column; align-items:flex-start; gap:.8rem; }
+  .cat-header h2{ font-size:1.6rem; }
+  .cat-filters{ gap:.4rem; }
+  .cat-filter-btn{ font-size:.6rem; padding:.4rem .7rem; }
+  .product-grid{ grid-template-columns:repeat(2, 1fr); gap:1rem; }
+
+  /* Modal produit */
+  .modal{ grid-template-columns:1fr; }
+  .modal-img{ min-height:260px; }
 }
 
 /* =============================================
