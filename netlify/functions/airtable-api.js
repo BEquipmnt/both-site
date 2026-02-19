@@ -12,6 +12,7 @@ const TABLE_CLUBS = 'tblsBiicwKqdFe7h5';
 const TABLE_PRODUITS = 'tbl8ri4tUfg1TH659';
 const TABLE_COMMANDES = 'tbloz7JkktaBoHWie';
 const TABLE_LIGNES = 'tblWuqefKcUPd4I22';
+const TABLE_DEMANDES = process.env.AIRTABLE_TABLE_DEMANDES || '';
 
 // ============================================================
 // HELPER: Requête Airtable
@@ -114,7 +115,7 @@ async function getCatalogue(clubId, clubNom) {
         image: r.fields['Image URL'] || '',
         prix: parseFloat(r.fields['Prix Vente Club']) || 0,
         tailles: r.fields['Tailles disponibles'] || [],
-        personnalisable: r.fields['Personnalisable'] || false,
+        personnalisation: r.fields['Personnalisation'] || 'Aucune',
         categorie: r.fields['Type'] || '',
         description: r.fields['Description'] || '',
         minQuantite: parseInt(r.fields['Min Quantité']) || 0
@@ -217,6 +218,70 @@ async function createOrder(payload) {
 }
 
 // ============================================================
+// GET DEMANDES
+// ============================================================
+async function getDemandes(clubId) {
+  try {
+    if (!TABLE_DEMANDES) return { demandes: [], error: 'Table Demandes non configurée' };
+    
+    const data = await airtableRequest(TABLE_DEMANDES, {
+      method: 'GET'
+    });
+
+    const demandes = (data.records || [])
+      .filter(r => {
+        const clubLink = r.fields['Club'];
+        return clubLink && clubLink[0] === clubId;
+      })
+      .map(r => ({
+        id: r.id,
+        objet: r.fields['Objet'] || '',
+        message: r.fields['Message'] || '',
+        date: r.fields['Date'] ? new Date(r.fields['Date']).toLocaleDateString('fr-FR') : '',
+        statut: r.fields['Statut'] || 'Nouvelle',
+        reponse: r.fields['Réponse'] || ''
+      }))
+      .sort((a, b) => {
+        // Plus récentes en premier
+        const da = r => r.fields && r.fields['Date'] ? new Date(r.fields['Date']) : new Date(0);
+        return 0; // Airtable renvoie déjà dans l'ordre de création
+      })
+      .reverse();
+
+    return { demandes };
+  } catch (error) {
+    console.error('getDemandes error:', error);
+    return { error: error.message };
+  }
+}
+
+// ============================================================
+// CREATE DEMANDE
+// ============================================================
+async function createDemande(payload) {
+  try {
+    if (!TABLE_DEMANDES) return { success: false, error: 'Table Demandes non configurée' };
+
+    await airtableRequest(TABLE_DEMANDES, {
+      method: 'POST',
+      body: JSON.stringify({
+        fields: {
+          'Club': [payload.clubId],
+          'Objet': payload.objet || '',
+          'Message': payload.message || '',
+          'Statut': 'Nouvelle'
+        }
+      })
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('createDemande error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// ============================================================
 // HANDLER PRINCIPAL
 // ============================================================
 exports.handler = async (event) => {
@@ -250,6 +315,9 @@ exports.handler = async (event) => {
         case 'getOrders':
           result = await getOrders(params.clubId);
           break;
+        case 'getDemandes':
+          result = await getDemandes(params.clubId);
+          break;
         default:
           result = { error: 'Action inconnue' };
       }
@@ -263,6 +331,9 @@ exports.handler = async (event) => {
       switch (action) {
         case 'createOrder':
           result = await createOrder(payload);
+          break;
+        case 'createDemande':
+          result = await createDemande(payload);
           break;
         default:
           result = { error: 'Action POST inconnue' };
