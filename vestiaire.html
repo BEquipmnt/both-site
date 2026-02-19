@@ -257,9 +257,11 @@ img{ max-width:100%; display:block; }
   text-transform:uppercase; letter-spacing:.04em;
 }
 .perso-row{
-  display:grid; grid-template-columns:auto 1fr 60px; gap:.4rem; align-items:center;
+  display:grid; gap:.4rem; align-items:center;
   margin-bottom:.5rem; font-size:.75rem;
 }
+.perso-row.perso-row-both{ grid-template-columns:auto 1fr 60px; }
+.perso-row.perso-row-single{ grid-template-columns:auto 1fr; }
 .perso-row input{
   padding:.35rem .5rem; border:2px solid #ddd; font-size:16px;
   outline:none; font-family:var(--body);
@@ -344,6 +346,55 @@ img{ max-width:100%; display:block; }
 .badge-production{ color:var(--blue); border-color:#b0d2ee; background:#eff6fb; }
 .badge-shipped{ color:var(--green); border-color:#a8ddc8; background:#eff9f4; }
 .badge-delivered{ color:var(--grey-600); border-color:#ddd; background:var(--off); }
+
+/* ===== DEMANDES ===== */
+.demande-form{ max-width:600px; margin-bottom:2.5rem; }
+.demande-form .field input,
+.demande-form .field textarea{ font-size:16px; }
+.btn-send-demande{
+  padding:.8rem 2rem; background:var(--black); color:var(--white); border:none;
+  font-size:.65rem; letter-spacing:.18em; text-transform:uppercase; font-weight:600;
+  cursor:pointer; transition:background var(--ease);
+}
+.btn-send-demande:hover{ background:#2a2a2a; }
+.btn-send-demande:disabled{ background:#ccc; color:#888; }
+
+.demandes-list{ margin-top:2rem; }
+.demande-card{
+  border:1px solid #e0e0e0; border-radius:6px; padding:1rem; margin-bottom:1rem;
+  background:#fafafa;
+}
+.demande-card-header{
+  display:flex; justify-content:space-between; align-items:center;
+  margin-bottom:.6rem; flex-wrap:wrap; gap:.3rem;
+}
+.demande-card-objet{
+  font-family:var(--display); font-size:1rem; font-weight:700;
+  text-transform:uppercase; letter-spacing:.04em;
+}
+.demande-card-date{ font-size:.65rem; color:var(--grey-400); }
+.demande-card-statut{
+  display:inline-block; padding:.15rem .5rem; border-radius:3px;
+  font-size:.5rem; letter-spacing:.1em; text-transform:uppercase; font-weight:700;
+}
+.statut-nouvelle{ background:#fff3cd; color:#856404; }
+.statut-encours{ background:#d1ecf1; color:#0c5460; }
+.statut-traitee{ background:#d4edda; color:#155724; }
+.demande-card-message{
+  font-size:.8rem; color:var(--grey-600); line-height:1.6;
+  margin-bottom:.5rem; white-space:pre-wrap;
+}
+.demande-card-reponse{
+  background:#e8f5e9; border-left:3px solid var(--green); padding:.8rem;
+  margin-top:.6rem; border-radius:0 4px 4px 0;
+}
+.demande-card-reponse-label{
+  font-size:.55rem; letter-spacing:.15em; text-transform:uppercase;
+  color:var(--green); font-weight:700; margin-bottom:.3rem;
+}
+.demande-card-reponse-text{
+  font-size:.8rem; color:var(--black); line-height:1.6; white-space:pre-wrap;
+}
 
 /* ===== CONFIRMATION ===== */
 #order-confirmation{ position:fixed; inset:0; z-index:999; display:none; }
@@ -466,6 +517,7 @@ img{ max-width:100%; display:block; }
     <div class="v-nav-right">
       <button class="v-tab active" data-tab="catalogue" onclick="switchTab('catalogue')">Catalogue</button>
       <button class="v-tab" data-tab="commandes" onclick="switchTab('commandes')">Commandes</button>
+      <button class="v-tab" data-tab="demandes" onclick="switchTab('demandes')">Demandes</button>
       <button class="v-btn-cart" onclick="toggleCart()">Panier <div class="cart-badge" id="cart-badge">0</div></button>
       <button class="v-btn-quit" onclick="closePortal()">Quitter</button>
     </div>
@@ -490,6 +542,27 @@ img{ max-width:100%; display:block; }
         <p>Suivi en temps réel de vos commandes passées.</p>
       </div>
       <div id="orders-wrap"><div class="spinner"></div></div>
+    </div>
+  </div>
+
+  <div class="v-section" id="section-demandes">
+    <div class="v-section-inner">
+      <div class="dash-header">
+        <h2>Demandes</h2>
+        <p>Envoyez-nous vos demandes : devis, nouveau produit, question...</p>
+      </div>
+      <div class="demande-form">
+        <div class="field">
+          <label>Objet</label>
+          <input type="text" id="demande-objet" placeholder="Ex: Demande de devis hoodie">
+        </div>
+        <div class="field">
+          <label>Message</label>
+          <textarea id="demande-message" placeholder="Décrivez votre demande..."></textarea>
+        </div>
+        <button class="btn-send-demande" id="btn-send-demande" onclick="sendDemande()">Envoyer la demande</button>
+      </div>
+      <div class="demandes-list" id="demandes-list"><div class="spinner"></div></div>
     </div>
   </div>
 </div>
@@ -562,7 +635,7 @@ img{ max-width:100%; display:block; }
 
 <script>
 const API = "/.netlify/functions/airtable-api";
-const S = { club:null, products:[], cart:[], orders:[], currentProduct:null, qty:1, persoData:{}, carouselIndex:0, carouselTotal:0 };
+const S = { club:null, products:[], cart:[], orders:[], demandes:[], currentProduct:null, qty:1, persoData:{}, carouselIndex:0, carouselTotal:0 };
 
 function toast(msg, dur=2800){ const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),dur); }
 function fmt(n){ return n.toFixed(2).replace('.',',')+' €'; }
@@ -652,7 +725,13 @@ function filterProducts(btn,cat){
   renderProducts(cat==='tous'?S.products:S.products.filter(p=>p.categorie===cat));
 }
 
-// MODAL
+// ============================================================
+// MODAL — avec personnalisation granulaire
+// ============================================================
+function hasPerso(p){ return p.personnalisation && p.personnalisation !== 'Aucune'; }
+function persoHasNom(p){ return p.personnalisation === 'Nom' || p.personnalisation === 'Nom + Numéro'; }
+function persoHasNum(p){ return p.personnalisation === 'Numéro' || p.personnalisation === 'Nom + Numéro'; }
+
 function openModal(id){
   const p=S.products.find(x=>x.id===id); if(!p)return;
   S.currentProduct=p; S.persoData={};
@@ -669,8 +748,9 @@ function openModal(id){
   document.getElementById('modal-desc').textContent=p.description||'Équipement sportif — Studio Both.';
   const tailles=Array.isArray(p.tailles)?p.tailles:(p.tailles?p.tailles.split(',').map(t=>t.trim()):['S','M','L','XL']);
   const minQty=p.minQuantite||1;
-  let t=`<table class="size-table"><thead><tr><th>Taille</th><th>Prix</th>${p.personnalisable?'<th>Perso</th>':''}<th>Qté</th></tr></thead><tbody>`;
-  tailles.forEach(s=>{t+=`<tr><td>${s}</td><td>${fmt(p.prix)}</td>${p.personnalisable?`<td><button class="perso-btn" id="perso-btn-${s}" onclick="openPerso('${s}')" style="display:none">Perso</button></td>`:''}<td><input type="number" class="qty-input" id="qty-${s}" min="0" value="0" onchange="onQtyChange()" oninput="onQtyChange()"></td></tr>`;});
+  const showPerso = hasPerso(p);
+  let t=`<table class="size-table"><thead><tr><th>Taille</th><th>Prix</th>${showPerso?'<th>Perso</th>':''}<th>Qté</th></tr></thead><tbody>`;
+  tailles.forEach(s=>{t+=`<tr><td>${s}</td><td>${fmt(p.prix)}</td>${showPerso?`<td><button class="perso-btn" id="perso-btn-${s}" onclick="openPerso('${s}')" style="display:none">Perso</button></td>`:''}<td><input type="number" class="qty-input" id="qty-${s}" min="0" value="0" onchange="onQtyChange()" oninput="onQtyChange()"></td></tr>`;});
   t+='</tbody></table>';
   if(minQty>1)t+=`<div class="modal-min-warn show">⚠️ Minimum : ${minQty} pièces</div>`;
   document.getElementById('modal-table-wrap').innerHTML=t;
@@ -684,8 +764,9 @@ function onQtyChange(){
   const p=S.currentProduct;
   const tailles=Array.isArray(p.tailles)?p.tailles:(p.tailles?p.tailles.split(',').map(t=>t.trim()):['S','M','L','XL']);
   let totalQty=0;
+  const showPerso = hasPerso(p);
   tailles.forEach(t=>{const input=document.getElementById('qty-'+t);const qty=parseInt(input.value)||0;totalQty+=qty;
-    if(p.personnalisable){const btn=document.getElementById('perso-btn-'+t);if(qty>0){btn.style.display='inline-block';if(S.persoData[t]&&S.persoData[t].length===qty){btn.textContent='✓ Modif.';btn.classList.add('done');}else{btn.textContent='Perso';btn.classList.remove('done');if(S.persoData[t]&&S.persoData[t].length!==qty)delete S.persoData[t];}}else{btn.style.display='none';delete S.persoData[t];}}
+    if(showPerso){const btn=document.getElementById('perso-btn-'+t);if(qty>0){btn.style.display='inline-block';if(S.persoData[t]&&S.persoData[t].length===qty){btn.textContent='✓ Modif.';btn.classList.add('done');}else{btn.textContent='Perso';btn.classList.remove('done');if(S.persoData[t]&&S.persoData[t].length!==qty)delete S.persoData[t];}}else{btn.style.display='none';delete S.persoData[t];}}
   });
   document.getElementById('modal-total-qty').textContent=totalQty;
   document.getElementById('modal-total-price').textContent=fmt(totalQty*p.prix);
@@ -696,15 +777,42 @@ function changeCarouselImage(d){if(!S.carouselTotal||S.carouselTotal<=1)return;S
 function goToCarouselImage(i){S.carouselIndex=i;updateCarousel();}
 function updateCarousel(){const c=document.getElementById('carousel-images');const dots=document.querySelectorAll('.carousel-dot');if(!c)return;c.style.transform=`translateX(-${S.carouselIndex*100}%)`;dots.forEach((d,i)=>d.classList.toggle('active',i===S.carouselIndex));}
 
+// ============================================================
+// PERSONNALISATION GRANULAIRE
+// ============================================================
 function openPerso(taille){
   const p=S.currentProduct;const qty=parseInt(document.getElementById('qty-'+taille).value)||0;if(!qty)return;
   const existing=S.persoData[taille]||[];
-  let html=`<div class="perso-overlay active" id="perso-overlay" onclick="if(event.target===this)closePerso()"><div class="perso-box"><button onclick="closePerso()" style="position:absolute;top:.6rem;right:.6rem;width:28px;height:28px;border:none;background:#eee;border-radius:50%;font-size:.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button><h4>${p.nom} — ${taille}</h4><p style="font-size:.7rem;color:var(--grey-400);margin-bottom:.8rem;">${qty} pièce${qty>1?'s':''}</p>`;
-  for(let i=0;i<qty;i++){const nom=existing[i]?existing[i].nom:'';const num=existing[i]?existing[i].num:'';html+=`<div class="perso-row"><span>#${i+1}</span><input type="text" placeholder="Nom" maxlength="16" id="perso-nom-${taille}-${i}" value="${nom}"><input type="text" placeholder="N°" maxlength="3" id="perso-num-${taille}-${i}" value="${num}"></div>`;}
+  const showNom = persoHasNom(p);
+  const showNum = persoHasNum(p);
+  const rowClass = (showNom && showNum) ? 'perso-row-both' : 'perso-row-single';
+
+  let html=`<div class="perso-overlay active" id="perso-overlay" onclick="if(event.target===this)closePerso()"><div class="perso-box"><button onclick="closePerso()" style="position:absolute;top:.6rem;right:.6rem;width:28px;height:28px;border:none;background:#eee;border-radius:50%;font-size:.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button><h4>${p.nom} — ${taille}</h4><p style="font-size:.7rem;color:var(--grey-400);margin-bottom:.8rem;">${qty} pièce${qty>1?'s':''} — ${p.personnalisation}</p>`;
+  for(let i=0;i<qty;i++){
+    const nom=existing[i]?existing[i].nom:'';
+    const num=existing[i]?existing[i].num:'';
+    html+=`<div class="perso-row ${rowClass}"><span>#${i+1}</span>`;
+    if(showNom) html+=`<input type="text" placeholder="Nom" maxlength="16" id="perso-nom-${taille}-${i}" value="${nom}">`;
+    if(showNum) html+=`<input type="text" placeholder="N°" maxlength="3" id="perso-num-${taille}-${i}" value="${num}">`;
+    html+=`</div>`;
+  }
   html+=`<button class="perso-save" onclick="savePerso('${taille}',${qty})">Valider</button></div></div>`;
   document.body.insertAdjacentHTML('beforeend',html);
 }
-function savePerso(taille,qty){S.persoData[taille]=[];for(let i=0;i<qty;i++){S.persoData[taille].push({nom:document.getElementById('perso-nom-'+taille+'-'+i).value.trim(),num:document.getElementById('perso-num-'+taille+'-'+i).value.trim()});}closePerso();onQtyChange();}
+
+function savePerso(taille,qty){
+  const p=S.currentProduct;
+  const showNom = persoHasNom(p);
+  const showNum = persoHasNum(p);
+  S.persoData[taille]=[];
+  for(let i=0;i<qty;i++){
+    S.persoData[taille].push({
+      nom: showNom ? document.getElementById('perso-nom-'+taille+'-'+i).value.trim() : '',
+      num: showNum ? document.getElementById('perso-num-'+taille+'-'+i).value.trim() : ''
+    });
+  }
+  closePerso();onQtyChange();
+}
 function closePerso(){const o=document.getElementById('perso-overlay');if(o)o.remove();}
 function closeModal(){document.getElementById('modal-backdrop').classList.remove('active');}
 function modalClickOut(e){if(e.target===document.getElementById('modal-backdrop'))closeModal();}
@@ -713,7 +821,7 @@ function addToCart(){
   const p=S.currentProduct;
   const tailles=Array.isArray(p.tailles)?p.tailles:(p.tailles?p.tailles.split(',').map(t=>t.trim()):['S','M','L','XL']);
   tailles.forEach(t=>{const qty=parseInt(document.getElementById('qty-'+t).value)||0;if(!qty)return;
-    if(p.personnalisable&&S.persoData[t]){S.persoData[t].forEach(perso=>{S.cart.push({productId:p.id,nom:p.nom,image:p.image,prix:p.prix,taille:t,nomPerso:perso.nom,numPerso:perso.num,quantite:1});});}
+    if(hasPerso(p)&&S.persoData[t]){S.persoData[t].forEach(perso=>{S.cart.push({productId:p.id,nom:p.nom,image:p.image,prix:p.prix,taille:t,nomPerso:perso.nom,numPerso:perso.num,quantite:1});});}
     else{S.cart.push({productId:p.id,nom:p.nom,image:p.image,prix:p.prix,taille:t,nomPerso:'',numPerso:'',quantite:qty});}
   });
   updateCartUI();closeModal();
@@ -758,6 +866,9 @@ function showOrderConfirmation(ref,cart,total){
 function closeConfirmation(){document.getElementById('order-confirmation').classList.remove('active');}
 function copyToClipboard(id){const el=document.getElementById(id);const text=el.textContent.trim().replace('📋','').trim();navigator.clipboard.writeText(text).then(()=>toast('✓ Copié')).catch(()=>toast('Erreur de copie'));}
 
+// ============================================================
+// COMMANDES
+// ============================================================
 async function loadOrders(){
   const wrap=document.getElementById('orders-wrap');wrap.innerHTML='<div class="spinner"></div>';
   try{
@@ -768,12 +879,58 @@ async function loadOrders(){
   }catch(e){console.error(e);wrap.innerHTML='<p style="color:red;padding:2rem;">Erreur.</p>';}
 }
 
+// ============================================================
+// DEMANDES
+// ============================================================
+async function loadDemandes(){
+  const wrap=document.getElementById('demandes-list');wrap.innerHTML='<div class="spinner"></div>';
+  try{
+    const res=await apiGet('getDemandes',{clubId:S.club.id});
+    S.demandes=res.demandes||[];
+    if(!S.demandes.length){wrap.innerHTML='<p style="color:var(--grey-400);padding:1rem 0;font-style:italic;">Aucune demande pour le moment.</p>';return;}
+    wrap.innerHTML=S.demandes.map(d=>{
+      const statutClass = d.statut.includes('cours') ? 'statut-encours' : d.statut.includes('rait') ? 'statut-traitee' : 'statut-nouvelle';
+      return `<div class="demande-card">
+        <div class="demande-card-header">
+          <span class="demande-card-objet">${d.objet||'Sans objet'}</span>
+          <span class="demande-card-date">${d.date}</span>
+        </div>
+        <span class="demande-card-statut ${statutClass}">${d.statut}</span>
+        <div class="demande-card-message">${d.message}</div>
+        ${d.reponse ? `<div class="demande-card-reponse"><div class="demande-card-reponse-label">Réponse de Both Equipmnt</div><div class="demande-card-reponse-text">${d.reponse}</div></div>` : ''}
+      </div>`;
+    }).join('');
+  }catch(e){console.error(e);wrap.innerHTML='<p style="color:red;padding:1rem;">Erreur de chargement.</p>';}
+}
+
+async function sendDemande(){
+  const objet=document.getElementById('demande-objet').value.trim();
+  const message=document.getElementById('demande-message').value.trim();
+  if(!objet||!message){toast('Remplissez l\'objet et le message.');return;}
+  const btn=document.getElementById('btn-send-demande');
+  btn.disabled=true;btn.textContent='Envoi...';
+  try{
+    const res=await apiPost('createDemande',{clubId:S.club.id,objet,message});
+    if(res.success){
+      toast('✓ Demande envoyée !');
+      document.getElementById('demande-objet').value='';
+      document.getElementById('demande-message').value='';
+      loadDemandes();
+    }else{toast('Erreur : '+(res.error||'Réessayez.'));}
+  }catch(e){console.error(e);toast('Erreur réseau.');}
+  btn.disabled=false;btn.textContent='Envoyer la demande';
+}
+
+// ============================================================
+// TAB SWITCH
+// ============================================================
 function switchTab(tab){
   document.querySelectorAll('.v-tab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.v-section').forEach(s=>s.classList.remove('active'));
   document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
   document.getElementById(`section-${tab}`).classList.add('active');
   if(tab==='commandes')loadOrders();
+  if(tab==='demandes')loadDemandes();
 }
 </script>
 </body>
