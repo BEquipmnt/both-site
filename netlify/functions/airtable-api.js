@@ -38,6 +38,32 @@ async function airtableRequest(table, options = {}) {
 }
 
 // ============================================================
+// HELPER: Fetch all records with pagination
+// ============================================================
+async function airtableRequestAll(table) {
+  let allRecords = [];
+  let offset = null;
+  do {
+    let url = `${AIRTABLE_API}/${BASE_ID}/${table}`;
+    if (offset) url += `?offset=${offset}`;
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${AIRTABLE_TOKEN}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Airtable error: ${error}`);
+    }
+    const data = await response.json();
+    allRecords = allRecords.concat(data.records || []);
+    offset = data.offset;
+  } while (offset);
+  return allRecords;
+}
+
+// ============================================================
 // GET CLUB (login)
 // ============================================================
 async function getClub(email) {
@@ -102,13 +128,44 @@ async function getClub(email) {
 }
 
 // ============================================================
+// HELPER: Quantités déjà commandées par le club
+// ============================================================
+async function getDejaCommande(clubId) {
+  const commandesRecords = await airtableRequestAll(TABLE_COMMANDES);
+  const clubCommandeIds = commandesRecords
+    .filter(r => {
+      const clubLink = r.fields['Club'];
+      return clubLink && clubLink[0] === clubId;
+    })
+    .map(r => r.id);
+
+  if (!clubCommandeIds.length) return {};
+
+  const lignesRecords = await airtableRequestAll(TABLE_LIGNES);
+  const dejaCommande = {};
+  lignesRecords.forEach(r => {
+    const cmdLink = r.fields['Commande'];
+    if (cmdLink && clubCommandeIds.includes(cmdLink[0])) {
+      const prodLink = r.fields['Produit'];
+      const prodId = prodLink ? prodLink[0] : null;
+      if (prodId) {
+        dejaCommande[prodId] = (dejaCommande[prodId] || 0) + (r.fields['Quantité'] || 0);
+      }
+    }
+  });
+
+  return dejaCommande;
+}
+
+// ============================================================
 // GET CATALOGUE
 // ============================================================
 async function getCatalogue(clubId, clubNom) {
   try {
-    const data = await airtableRequest(TABLE_PRODUITS, {
-      method: 'GET'
-    });
+    const [data, dejaCommande] = await Promise.all([
+      airtableRequest(TABLE_PRODUITS, { method: 'GET' }),
+      getDejaCommande(clubId)
+    ]);
 
     const products = (data.records || [])
       .filter(r => r.fields['Visible Vestiaire'] && !r.fields['Expiré'])
@@ -128,7 +185,8 @@ async function getCatalogue(clubId, clubNom) {
         minQuantite: parseInt(r.fields['Min Quantité']) || 0,
         maxQuantite: parseInt(r.fields['Max Quantité']) || 0,
         groupeStock: r.fields['Groupe Stock'] || '',
-        stockGroupe: parseInt(r.fields['Stock Groupe']) || 0
+        stockGroupe: parseInt(r.fields['Stock Groupe']) || 0,
+        dejaCommande: dejaCommande[r.id] || 0
       }));
 
     return { products };
