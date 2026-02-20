@@ -126,7 +126,9 @@ async function getCatalogue(clubId, clubNom) {
         categorie: r.fields['Type'] || '',
         description: r.fields['Description'] || '',
         minQuantite: parseInt(r.fields['Min Quantité']) || 0,
-        maxQuantite: parseInt(r.fields['Max Quantité']) || 0
+        maxQuantite: parseInt(r.fields['Max Quantité']) || 0,
+        groupeStock: r.fields['Groupe Stock'] || '',
+        stockGroupe: parseInt(r.fields['Stock Groupe']) || 0
       }));
 
     return { products };

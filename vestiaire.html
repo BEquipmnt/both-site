@@ -777,14 +777,42 @@ function openModal(id){
 function onQtyChange(){
   const p=S.currentProduct;
   const tailles=Array.isArray(p.tailles)?p.tailles:(p.tailles?p.tailles.split(',').map(t=>t.trim()):['S','M','L','XL']);
-  let totalQty=0;
   const showPerso = hasPerso(p);
-  tailles.forEach(t=>{const input=document.getElementById('qty-'+t);const qty=parseInt(input.value)||0;totalQty+=qty;
+
+  // Calculate effective max (maxQuantite and/or stock groupe remaining)
+  let effectiveMax = Infinity;
+  let cartGroupQty = 0;
+  if(p.maxQuantite > 0) effectiveMax = Math.min(effectiveMax, p.maxQuantite);
+  if(p.groupeStock && p.stockGroupe > 0){
+    cartGroupQty = S.cart.filter(i => { const prod = S.products.find(x => x.id === i.productId); return prod && prod.groupeStock === p.groupeStock; }).reduce((s, i) => s + i.quantite, 0);
+    effectiveMax = Math.min(effectiveMax, Math.max(0, p.stockGroupe - cartGroupQty));
+  }
+  if(effectiveMax < 0) effectiveMax = 0;
+
+  // Cap input values and calculate totalQty
+  let totalQty = 0;
+  if(effectiveMax < Infinity){
+    let rawTotal = 0;
+    tailles.forEach(t => { rawTotal += Math.max(0, parseInt(document.getElementById('qty-'+t).value) || 0); });
+    if(rawTotal > effectiveMax){
+      let running = 0;
+      tailles.forEach(t => { const input = document.getElementById('qty-'+t); let qty = Math.max(0, parseInt(input.value) || 0); const allowed = Math.max(0, effectiveMax - running); if(qty > allowed){ qty = allowed; input.value = qty; } running += qty; });
+      totalQty = running;
+    } else { totalQty = rawTotal; }
+    // Set max attribute on each input so browser prevents further increase
+    tailles.forEach(t => { const input = document.getElementById('qty-'+t); const thisQty = parseInt(input.value) || 0; input.max = Math.max(0, effectiveMax - (totalQty - thisQty)); });
+  } else {
+    tailles.forEach(t => { const input = document.getElementById('qty-'+t); totalQty += Math.max(0, parseInt(input.value) || 0); input.removeAttribute('max'); });
+  }
+
+  // Handle perso buttons
+  tailles.forEach(t => { const qty = parseInt(document.getElementById('qty-'+t).value) || 0;
     if(showPerso){const btn=document.getElementById('perso-btn-'+t);if(qty>0){btn.style.display='inline-block';if(S.persoData[t]&&S.persoData[t].length===qty){btn.textContent='✓ Modif.';btn.classList.add('done');}else{btn.textContent='Personnaliser';btn.classList.remove('done');if(S.persoData[t]&&S.persoData[t].length!==qty)delete S.persoData[t];}}else{btn.style.display='none';delete S.persoData[t];}}
   });
+
   document.getElementById('modal-total-qty').textContent=totalQty;
   document.getElementById('modal-total-price').textContent=fmt(totalQty*p.prix);
-  
+
   // Min quantité — si groupe stock, ne PAS bloquer l'ajout, on vérifiera au panier
   let minOk;
   const minGroupeWarn = document.getElementById('modal-min-groupe-warn');
@@ -792,10 +820,6 @@ function onQtyChange(){
     // Toujours autoriser l'ajout pour un groupe stock
     minOk = totalQty > 0;
     // Afficher la progression du groupe
-    const cartGroupQty = S.cart.filter(i => {
-      const prod = S.products.find(x => x.id === i.productId);
-      return prod && prod.groupeStock === p.groupeStock;
-    }).reduce((s, i) => s + i.quantite, 0);
     const groupTotal = cartGroupQty + totalQty;
     if(minGroupeWarn){
       if(totalQty > 0){
@@ -815,28 +839,24 @@ function onQtyChange(){
     minOk = totalQty >= (p.minQuantite||1);
     if(minGroupeWarn) minGroupeWarn.style.display = 'none';
   }
-  const maxOk = !p.maxQuantite || totalQty <= p.maxQuantite;
 
-  // Vérif stock groupe partagé
-  let stockOk = true;
+  // Stock groupe warning display (inputs already capped above)
   const stockWarn = document.getElementById('modal-stock-warn');
   if(p.groupeStock && p.stockGroupe > 0){
-    const cartGroupQty = S.cart.filter(i => {
-      const prod = S.products.find(x => x.id === i.productId);
-      return prod && prod.groupeStock === p.groupeStock;
-    }).reduce((s, i) => s + i.quantite, 0);
     const remaining = p.stockGroupe - cartGroupQty;
-    if(totalQty > remaining){
-      stockOk = false;
-      if(stockWarn) stockWarn.style.display = 'block';
-      if(stockWarn) stockWarn.textContent = `⚠️ Stock limité : ${remaining} restant${remaining>1?'s':''} sur ${p.stockGroupe} (partagé entre variantes)`;
-    } else {
-      if(stockWarn) stockWarn.style.display = (remaining < p.stockGroupe) ? 'block' : 'none';
-      if(stockWarn && remaining < p.stockGroupe) stockWarn.textContent = `ℹ️ ${remaining} restant${remaining>1?'s':''} sur ${p.stockGroupe} (stock partagé)`;
+    if(stockWarn){
+      stockWarn.style.display = 'block';
+      if(remaining <= 0){
+        stockWarn.textContent = `⚠️ Stock épuisé pour ce groupe (${p.stockGroupe}/${p.stockGroupe} utilisés)`;
+      } else if(remaining < p.stockGroupe){
+        stockWarn.textContent = `ℹ️ ${remaining} restant${remaining>1?'s':''} sur ${p.stockGroupe} (stock partagé entre variantes)`;
+      } else {
+        stockWarn.textContent = `ℹ️ Stock limité : ${p.stockGroupe} pièce${p.stockGroupe>1?'s':''} (partagé entre variantes)`;
+      }
     }
   }
 
-  document.getElementById('btn-add-cart').disabled = !minOk || !maxOk || !stockOk || totalQty === 0;
+  document.getElementById('btn-add-cart').disabled = !minOk || totalQty === 0;
 }
 
 function changeCarouselImage(d){if(!S.carouselTotal||S.carouselTotal<=1)return;S.carouselIndex=(S.carouselIndex+d+S.carouselTotal)%S.carouselTotal;updateCarousel();}
