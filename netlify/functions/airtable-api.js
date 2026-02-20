@@ -65,11 +65,18 @@ async function getClub(email) {
     const records = data.records || [];
     console.log('Number of records:', records.length);
 
-    // Filtrer manuellement (case insensitive)
+    // Filtrer manuellement (case insensitive, multi-emails)
     const club = records.find(r => {
-      const recordEmail = r.fields['email'];
-      console.log('Checking record email:', recordEmail, 'against:', email);
-      return recordEmail && recordEmail.toLowerCase() === email.toLowerCase();
+      // Champ single email
+      const singleEmail = r.fields['email'] || '';
+      if (singleEmail && singleEmail.toLowerCase() === email.toLowerCase()) return true;
+      // Champ multi emails (séparés par virgule)
+      const multiEmails = r.fields['Emails'] || '';
+      if (multiEmails) {
+        const list = multiEmails.split(',').map(e => e.trim().toLowerCase());
+        if (list.includes(email.toLowerCase())) return true;
+      }
+      return false;
     });
 
     console.log('Found club:', club);
