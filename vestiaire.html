@@ -754,8 +754,19 @@ function openModal(id){
   let t=`<table class="size-table"><thead><tr><th>Taille</th><th>Prix</th>${showPerso?'<th>Personnalisation</th>':''}<th>Qté</th></tr></thead><tbody>`;
   tailles.forEach(s=>{t+=`<tr><td>${s}</td><td>${fmt(p.prix)}</td>${showPerso?`<td><button class="perso-btn" id="perso-btn-${s}" onclick="openPerso('${s}')" style="display:none">Personnaliser</button></td>`:''}<td><input type="number" class="qty-input" id="qty-${s}" min="0" value="0" onchange="onQtyChange()" oninput="onQtyChange()"></td></tr>`;});
   t+='</tbody></table>';
-  if(minQty>1)t+=`<div class="modal-min-warn show">⚠️ Minimum : ${minQty} pièces</div>`;
+  if(minQty>1 && p.groupeStock)t+=`<div class="modal-min-warn show" style="background:#e8f4fd;border-color:#90caf9;color:#1565c0;">ℹ️ Minimum ${minQty} pièces — combinable avec les autres variantes de ce groupe</div>`;
+  else if(minQty>1)t+=`<div class="modal-min-warn show">⚠️ Minimum : ${minQty} pièces</div>`;
   if(maxQty>0)t+=`<div class="modal-min-warn show" style="background:#e8f4fd;border-color:#90caf9;color:#1565c0;">ℹ️ Maximum : ${maxQty} pièce${maxQty>1?'s':''} par commande</div>`;
+  // Stock groupe partagé
+  if(p.groupeStock && p.stockGroupe > 0){
+    const cartGroupQty = S.cart.filter(i => { const pr = S.products.find(x => x.id === i.productId); return pr && pr.groupeStock === p.groupeStock; }).reduce((s, i) => s + i.quantite, 0);
+    const remaining = p.stockGroupe - cartGroupQty;
+    t+=`<div class="modal-min-warn show" id="modal-stock-warn" style="background:#fff3e0;border-color:#ffb74d;color:#e65100;">ℹ️ Stock limité : ${remaining} restant${remaining>1?'s':''} sur ${p.stockGroupe}${remaining < p.stockGroupe ? ' (stock partagé entre variantes)' : ''}</div>`;
+  } else {
+    t+=`<div class="modal-min-warn" id="modal-stock-warn" style="background:#fff3e0;border-color:#ffb74d;color:#e65100;display:none;"></div>`;
+  }
+  // Progression min groupe stock
+  t+=`<div class="modal-min-warn" id="modal-min-groupe-warn" style="display:none;"></div>`;
   document.getElementById('modal-table-wrap').innerHTML=t;
   document.getElementById('modal-total-qty').textContent='0';
   document.getElementById('modal-total-price').textContent=fmt(0);
@@ -773,9 +784,59 @@ function onQtyChange(){
   });
   document.getElementById('modal-total-qty').textContent=totalQty;
   document.getElementById('modal-total-price').textContent=fmt(totalQty*p.prix);
-  const minOk = totalQty >= (p.minQuantite||1);
+  
+  // Min quantité — si groupe stock, ne PAS bloquer l'ajout, on vérifiera au panier
+  let minOk;
+  const minGroupeWarn = document.getElementById('modal-min-groupe-warn');
+  if(p.groupeStock && p.minQuantite > 0){
+    // Toujours autoriser l'ajout pour un groupe stock
+    minOk = totalQty > 0;
+    // Afficher la progression du groupe
+    const cartGroupQty = S.cart.filter(i => {
+      const prod = S.products.find(x => x.id === i.productId);
+      return prod && prod.groupeStock === p.groupeStock;
+    }).reduce((s, i) => s + i.quantite, 0);
+    const groupTotal = cartGroupQty + totalQty;
+    if(minGroupeWarn){
+      if(totalQty > 0){
+        minGroupeWarn.style.display = 'block';
+        if(groupTotal >= p.minQuantite){
+          minGroupeWarn.style.background = '#e8f5e9'; minGroupeWarn.style.borderColor = '#81c784'; minGroupeWarn.style.color = '#2e7d32';
+          minGroupeWarn.textContent = `✅ Minimum atteint : ${groupTotal}/${p.minQuantite} pièces (toutes variantes)`;
+        } else {
+          minGroupeWarn.style.background = '#fff3e0'; minGroupeWarn.style.borderColor = '#ffb74d'; minGroupeWarn.style.color = '#e65100';
+          minGroupeWarn.textContent = `🛒 ${groupTotal}/${p.minQuantite} pièces — encore ${p.minQuantite - groupTotal} à ajouter (toutes variantes combinées)`;
+        }
+      } else {
+        minGroupeWarn.style.display = 'none';
+      }
+    }
+  } else {
+    minOk = totalQty >= (p.minQuantite||1);
+    if(minGroupeWarn) minGroupeWarn.style.display = 'none';
+  }
   const maxOk = !p.maxQuantite || totalQty <= p.maxQuantite;
-  document.getElementById('btn-add-cart').disabled = !minOk || !maxOk || totalQty === 0;
+
+  // Vérif stock groupe partagé
+  let stockOk = true;
+  const stockWarn = document.getElementById('modal-stock-warn');
+  if(p.groupeStock && p.stockGroupe > 0){
+    const cartGroupQty = S.cart.filter(i => {
+      const prod = S.products.find(x => x.id === i.productId);
+      return prod && prod.groupeStock === p.groupeStock;
+    }).reduce((s, i) => s + i.quantite, 0);
+    const remaining = p.stockGroupe - cartGroupQty;
+    if(totalQty > remaining){
+      stockOk = false;
+      if(stockWarn) stockWarn.style.display = 'block';
+      if(stockWarn) stockWarn.textContent = `⚠️ Stock limité : ${remaining} restant${remaining>1?'s':''} sur ${p.stockGroupe} (partagé entre variantes)`;
+    } else {
+      if(stockWarn) stockWarn.style.display = (remaining < p.stockGroupe) ? 'block' : 'none';
+      if(stockWarn && remaining < p.stockGroupe) stockWarn.textContent = `ℹ️ ${remaining} restant${remaining>1?'s':''} sur ${p.stockGroupe} (stock partagé)`;
+    }
+  }
+
+  document.getElementById('btn-add-cart').disabled = !minOk || !maxOk || !stockOk || totalQty === 0;
 }
 
 function changeCarouselImage(d){if(!S.carouselTotal||S.carouselTotal<=1)return;S.carouselIndex=(S.carouselIndex+d+S.carouselTotal)%S.carouselTotal;updateCarousel();}
@@ -854,6 +915,22 @@ function toggleCart(){document.getElementById('cart-drawer').classList.toggle('o
 
 async function validateOrder(){
   if(!S.cart.length)return;
+  // Vérifier les minimums par groupe stock
+  const groupes = {};
+  S.cart.forEach(item => {
+    const prod = S.products.find(x => x.id === item.productId);
+    if(prod && prod.groupeStock && prod.minQuantite > 0){
+      if(!groupes[prod.groupeStock]) groupes[prod.groupeStock] = { total: 0, min: prod.minQuantite, noms: [] };
+      groupes[prod.groupeStock].total += item.quantite;
+      if(!groupes[prod.groupeStock].noms.includes(prod.nom)) groupes[prod.groupeStock].noms.push(prod.nom);
+    }
+  });
+  for(const g of Object.values(groupes)){
+    if(g.total < g.min){
+      toast(`⚠️ Minimum ${g.min} pièces requis pour : ${g.noms.join(', ')} (vous en avez ${g.total})`);
+      return;
+    }
+  }
   const btn=document.getElementById('btn-validate');btn.disabled=true;btn.textContent='Envoi...';
   try{
     const res=await apiPost('createOrder',{clubId:S.club.id,clubNom:S.club.nom,lignes:S.cart.map(i=>({productId:i.productId,nom:i.nom,prix:i.prix,taille:i.taille,nomPerso:i.nomPerso||'',numPerso:i.numPerso||'',quantite:i.quantite})),total:S.cart.reduce((s,i)=>s+(i.prix*i.quantite),0)});
