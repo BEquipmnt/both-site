@@ -749,11 +749,13 @@ function openModal(id){
   document.getElementById('modal-desc').textContent=p.description||'Équipement sportif — Studio Both.';
   const tailles=Array.isArray(p.tailles)?p.tailles:(p.tailles?p.tailles.split(',').map(t=>t.trim()):['S','M','L','XL']);
   const minQty=p.minQuantite||1;
+  const maxQty=p.maxQuantite||0;
   const showPerso = hasPerso(p);
   let t=`<table class="size-table"><thead><tr><th>Taille</th><th>Prix</th>${showPerso?'<th>Personnalisation</th>':''}<th>Qté</th></tr></thead><tbody>`;
   tailles.forEach(s=>{t+=`<tr><td>${s}</td><td>${fmt(p.prix)}</td>${showPerso?`<td><button class="perso-btn" id="perso-btn-${s}" onclick="openPerso('${s}')" style="display:none">Personnaliser</button></td>`:''}<td><input type="number" class="qty-input" id="qty-${s}" min="0" value="0" onchange="onQtyChange()" oninput="onQtyChange()"></td></tr>`;});
   t+='</tbody></table>';
   if(minQty>1)t+=`<div class="modal-min-warn show">⚠️ Minimum : ${minQty} pièces</div>`;
+  if(maxQty>0)t+=`<div class="modal-min-warn show" style="background:#e8f4fd;border-color:#90caf9;color:#1565c0;">ℹ️ Maximum : ${maxQty} pièce${maxQty>1?'s':''} par commande</div>`;
   document.getElementById('modal-table-wrap').innerHTML=t;
   document.getElementById('modal-total-qty').textContent='0';
   document.getElementById('modal-total-price').textContent=fmt(0);
@@ -771,7 +773,9 @@ function onQtyChange(){
   });
   document.getElementById('modal-total-qty').textContent=totalQty;
   document.getElementById('modal-total-price').textContent=fmt(totalQty*p.prix);
-  document.getElementById('btn-add-cart').disabled=totalQty<(p.minQuantite||1);
+  const minOk = totalQty >= (p.minQuantite||1);
+  const maxOk = !p.maxQuantite || totalQty <= p.maxQuantite;
+  document.getElementById('btn-add-cart').disabled = !minOk || !maxOk || totalQty === 0;
 }
 
 function changeCarouselImage(d){if(!S.carouselTotal||S.carouselTotal<=1)return;S.carouselIndex=(S.carouselIndex+d+S.carouselTotal)%S.carouselTotal;updateCarousel();}
