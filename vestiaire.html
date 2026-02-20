@@ -708,12 +708,21 @@ function renderProducts(list){
   Object.keys(grouped).forEach(cat=>{
     html+=`<div class="category-section"><h3 class="category-title">${cat}</h3></div>`;
     grouped[cat].forEach(p=>{
-      const minTag=p.minQuantite>1?`<div class="product-card-tag">Min. ${p.minQuantite} pcs</div>`:'';
+      // Check if product is out of stock (max/stock reached with previous orders)
+      let rupture = false;
+      if(p.groupeStock && p.stockGroupe > 0){
+        const dejaGroupe = S.products.filter(x => x.groupeStock === p.groupeStock).reduce((s, x) => s + (x.dejaCommande || 0), 0);
+        if(dejaGroupe >= p.stockGroupe) rupture = true;
+      } else if(p.maxQuantite > 0 && (p.dejaCommande || 0) >= p.maxQuantite){
+        rupture = true;
+      }
+      const ruptureTag = rupture ? `<div class="product-card-tag" style="background:#ef5350;color:white;">Rupture</div>` : '';
+      const minTag = !rupture && p.minQuantite>1?`<div class="product-card-tag">Min. ${p.minQuantite} pcs</div>`:'';
       const imgSrc=Array.isArray(p.image)?p.image[0]:p.image?p.image.split(',')[0].trim():'';
-      html+=`<div class="product-card" onclick="openModal('${p.id}')">
-        <div class="product-card-img">${imgSrc?`<img src="${imgSrc}" alt="${p.nom}" loading="lazy">`:''}${minTag}</div>
+      html+=`<div class="product-card" onclick="openModal('${p.id}')" style="${rupture ? 'opacity:0.5;' : ''}">
+        <div class="product-card-img">${imgSrc?`<img src="${imgSrc}" alt="${p.nom}" loading="lazy">`:''}${ruptureTag}${minTag}</div>
         <div class="product-card-name">${p.nom}</div>
-        <div class="product-card-price">${fmt(p.prix)}</div>
+        <div class="product-card-price">${rupture ? 'Rupture de stock' : fmt(p.prix)}</div>
       </div>`;
     });
   });
@@ -756,12 +765,22 @@ function openModal(id){
   t+='</tbody></table>';
   if(minQty>1 && p.groupeStock)t+=`<div class="modal-min-warn show" style="background:#e8f4fd;border-color:#90caf9;color:#1565c0;">ℹ️ Minimum ${minQty} pièces — combinable avec les autres variantes de ce groupe</div>`;
   else if(minQty>1)t+=`<div class="modal-min-warn show">⚠️ Minimum : ${minQty} pièces</div>`;
-  if(maxQty>0)t+=`<div class="modal-min-warn show" style="background:#e8f4fd;border-color:#90caf9;color:#1565c0;">ℹ️ Maximum : ${maxQty} pièce${maxQty>1?'s':''} par commande</div>`;
+  if(maxQty>0){
+    const maxRemaining = maxQty - (p.dejaCommande || 0);
+    if(maxRemaining <= 0) t+=`<div class="modal-min-warn show" style="background:#ffebee;border-color:#ef5350;color:#c62828;">⚠️ Maximum atteint — ${maxQty} pièce${maxQty>1?'s':''} déjà commandée${maxQty>1?'s':''}</div>`;
+    else if((p.dejaCommande || 0) > 0) t+=`<div class="modal-min-warn show" style="background:#e8f4fd;border-color:#90caf9;color:#1565c0;">ℹ️ Maximum : ${maxQty} — encore ${maxRemaining} disponible${maxRemaining>1?'s':''} (${p.dejaCommande} déjà commandé${p.dejaCommande>1?'s':''})</div>`;
+    else t+=`<div class="modal-min-warn show" style="background:#e8f4fd;border-color:#90caf9;color:#1565c0;">ℹ️ Maximum : ${maxQty} pièce${maxQty>1?'s':''} par commande</div>`;
+  }
   // Stock groupe partagé
   if(p.groupeStock && p.stockGroupe > 0){
+    const dejaCommandeGroupe = S.products.filter(x => x.groupeStock === p.groupeStock).reduce((s, x) => s + (x.dejaCommande || 0), 0);
     const cartGroupQty = S.cart.filter(i => { const pr = S.products.find(x => x.id === i.productId); return pr && pr.groupeStock === p.groupeStock; }).reduce((s, i) => s + i.quantite, 0);
-    const remaining = p.stockGroupe - cartGroupQty;
-    t+=`<div class="modal-min-warn show" id="modal-stock-warn" style="background:#fff3e0;border-color:#ffb74d;color:#e65100;">ℹ️ Stock limité : ${remaining} restant${remaining>1?'s':''} sur ${p.stockGroupe}${remaining < p.stockGroupe ? ' (stock partagé entre variantes)' : ''}</div>`;
+    const remaining = p.stockGroupe - dejaCommandeGroupe - cartGroupQty;
+    if(remaining <= 0){
+      t+=`<div class="modal-min-warn show" id="modal-stock-warn" style="background:#ffebee;border-color:#ef5350;color:#c62828;">⚠️ Stock épuisé — ${dejaCommandeGroupe} pièce${dejaCommandeGroupe>1?'s':''} déjà commandée${dejaCommandeGroupe>1?'s':''} sur ${p.stockGroupe} (toutes variantes)</div>`;
+    } else {
+      t+=`<div class="modal-min-warn show" id="modal-stock-warn" style="background:#fff3e0;border-color:#ffb74d;color:#e65100;">ℹ️ Stock limité : ${remaining} restant${remaining>1?'s':''} sur ${p.stockGroupe}${dejaCommandeGroupe > 0 ? ` (${dejaCommandeGroupe} déjà commandé${dejaCommandeGroupe>1?'s':''})` : ''} (stock partagé entre variantes)</div>`;
+    }
   } else {
     t+=`<div class="modal-min-warn" id="modal-stock-warn" style="background:#fff3e0;border-color:#ffb74d;color:#e65100;display:none;"></div>`;
   }
@@ -779,13 +798,18 @@ function onQtyChange(){
   const tailles=Array.isArray(p.tailles)?p.tailles:(p.tailles?p.tailles.split(',').map(t=>t.trim()):['S','M','L','XL']);
   const showPerso = hasPerso(p);
 
-  // Calculate effective max (maxQuantite and/or stock groupe remaining)
+  // Calculate effective max (maxQuantite and/or stock groupe remaining, minus already ordered)
   let effectiveMax = Infinity;
   let cartGroupQty = 0;
-  if(p.maxQuantite > 0) effectiveMax = Math.min(effectiveMax, p.maxQuantite);
+  let dejaCommandeGroupe = 0;
+  if(p.maxQuantite > 0){
+    const cartProductQty = S.cart.filter(i => i.productId === p.id).reduce((s, i) => s + i.quantite, 0);
+    effectiveMax = Math.min(effectiveMax, Math.max(0, p.maxQuantite - (p.dejaCommande || 0) - cartProductQty));
+  }
   if(p.groupeStock && p.stockGroupe > 0){
+    dejaCommandeGroupe = S.products.filter(x => x.groupeStock === p.groupeStock).reduce((s, x) => s + (x.dejaCommande || 0), 0);
     cartGroupQty = S.cart.filter(i => { const prod = S.products.find(x => x.id === i.productId); return prod && prod.groupeStock === p.groupeStock; }).reduce((s, i) => s + i.quantite, 0);
-    effectiveMax = Math.min(effectiveMax, Math.max(0, p.stockGroupe - cartGroupQty));
+    effectiveMax = Math.min(effectiveMax, Math.max(0, p.stockGroupe - dejaCommandeGroupe - cartGroupQty));
   }
   if(effectiveMax < 0) effectiveMax = 0;
 
@@ -840,18 +864,27 @@ function onQtyChange(){
     if(minGroupeWarn) minGroupeWarn.style.display = 'none';
   }
 
-  // Stock groupe warning display (inputs already capped above)
+  // Stock/max warning display (inputs already capped above)
   const stockWarn = document.getElementById('modal-stock-warn');
   if(p.groupeStock && p.stockGroupe > 0){
-    const remaining = p.stockGroupe - cartGroupQty;
+    const remaining = p.stockGroupe - dejaCommandeGroupe - cartGroupQty;
     if(stockWarn){
       stockWarn.style.display = 'block';
       if(remaining <= 0){
-        stockWarn.textContent = `⚠️ Stock épuisé pour ce groupe (${p.stockGroupe}/${p.stockGroupe} utilisés)`;
-      } else if(remaining < p.stockGroupe){
-        stockWarn.textContent = `ℹ️ ${remaining} restant${remaining>1?'s':''} sur ${p.stockGroupe} (stock partagé entre variantes)`;
+        stockWarn.textContent = `⚠️ Stock épuisé — ${dejaCommandeGroupe} pièce${dejaCommandeGroupe>1?'s':''} déjà commandée${dejaCommandeGroupe>1?'s':''} sur ${p.stockGroupe} (toutes variantes)`;
       } else {
-        stockWarn.textContent = `ℹ️ Stock limité : ${p.stockGroupe} pièce${p.stockGroupe>1?'s':''} (partagé entre variantes)`;
+        stockWarn.textContent = `ℹ️ ${remaining} restant${remaining>1?'s':''} sur ${p.stockGroupe}${dejaCommandeGroupe > 0 ? ` (${dejaCommandeGroupe} déjà commandé${dejaCommandeGroupe>1?'s':''})` : ''} (stock partagé entre variantes)`;
+      }
+    }
+  } else if(p.maxQuantite > 0 && (p.dejaCommande || 0) > 0){
+    const cartProductQty = S.cart.filter(i => i.productId === p.id).reduce((s, i) => s + i.quantite, 0);
+    const remaining = p.maxQuantite - (p.dejaCommande || 0) - cartProductQty;
+    if(stockWarn){
+      stockWarn.style.display = 'block';
+      if(remaining <= 0){
+        stockWarn.textContent = `⚠️ Maximum atteint — ${p.maxQuantite} pièce${p.maxQuantite>1?'s':''} déjà commandée${p.maxQuantite>1?'s':''}`;
+      } else {
+        stockWarn.textContent = `ℹ️ ${remaining} restant${remaining>1?'s':''} sur ${p.maxQuantite} (${p.dejaCommande} déjà commandé${p.dejaCommande>1?'s':''})`;
       }
     }
   }
