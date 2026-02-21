@@ -233,7 +233,6 @@ async function createOrder(payload) {
     const clubName = (payload.clubNom || 'CLUB').toUpperCase().replace(/[^A-Z0-9]/g, '');
     const shortId = Date.now().toString().slice(-6);
     const ref = `CMD-${clubName}-${shortId}`;
-    const now = new Date().toISOString();
     const totalArticles = payload.lignes.reduce((sum, l) => sum + l.quantite, 0);
 
     // Créer la commande
@@ -309,11 +308,6 @@ async function getDemandes(clubId) {
         statut: r.fields['Statut'] || 'Nouvelle',
         reponse: r.fields['Réponse'] || ''
       }))
-      .sort((a, b) => {
-        // Plus récentes en premier
-        const da = r => r.fields && r.fields['Date'] ? new Date(r.fields['Date']) : new Date(0);
-        return 0; // Airtable renvoie déjà dans l'ordre de création
-      })
       .reverse();
 
     return { demandes };
