@@ -118,7 +118,8 @@ async function getClub(email) {
         email: club.fields['email'] || '',
         logoClub: club.fields['Logo Club URL'] || '',
         minCommande: parseFloat(club.fields['Minimum Commande']) || 0,
-        activeMin: club.fields['Active Minimum'] || false
+        activeMin: club.fields['Active Minimum'] || false,
+        fraisLivraison: parseFloat(club.fields['Frais Livraison']) || 0
       }
     };
   } catch (error) {
