@@ -594,7 +594,9 @@ img{ max-width:100%; display:block; }
   <div class="cart-head"><h3>Panier</h3><button class="cart-close-btn" onclick="toggleCart()">✕</button></div>
   <div class="cart-items-wrap" id="cart-items-wrap"><div class="cart-empty-msg">Votre panier est vide.</div></div>
   <div class="cart-foot">
-    <div class="cart-total-row"><span>Total</span><span id="cart-total">0,00 €</span></div>
+    <div class="cart-total-row"><span>Sous-total</span><span id="cart-subtotal">0,00 €</span></div>
+    <div class="cart-total-row" id="cart-livraison-row" style="display:none;font-size:.85em;color:var(--grey-400);"><span>Frais de livraison</span><span id="cart-livraison">0,00 €</span></div>
+    <div class="cart-total-row" style="border-top:1px solid #ddd;padding-top:.5rem;margin-top:.3rem;"><span>Total</span><span id="cart-total">0,00 €</span></div>
     <div class="cart-min-warn" id="cart-min-warn">⚠ Minimum non atteint. Il manque <strong id="min-rest">0,00 €</strong>.</div>
     <button class="btn-validate" id="btn-validate" onclick="validateOrder()">Valider la commande</button>
   </div>
@@ -953,14 +955,19 @@ function removeFromCart(i){S.cart.splice(i,1);updateCartUI();}
 function updateCartUI(){
   const wrap=document.getElementById('cart-items-wrap');
   const totalArticles=S.cart.reduce((s,i)=>s+i.quantite,0);
-  const totalPrix=S.cart.reduce((s,i)=>s+(i.prix*i.quantite),0);
+  const sousTotal=S.cart.reduce((s,i)=>s+(i.prix*i.quantite),0);
+  const fraisLiv=(S.club&&S.club.fraisLivraison)?S.club.fraisLivraison:0;
+  const totalPrix=sousTotal+(totalArticles>0?fraisLiv:0);
   const badge=document.getElementById('cart-badge');
   badge.textContent=totalArticles;badge.classList.toggle('show',totalArticles>0);
+  document.getElementById('cart-subtotal').textContent=fmt(sousTotal);
+  const livRow=document.getElementById('cart-livraison-row');
+  if(fraisLiv>0&&totalArticles>0){livRow.style.display='flex';document.getElementById('cart-livraison').textContent=fmt(fraisLiv);}else{livRow.style.display='none';}
   document.getElementById('cart-total').textContent=fmt(totalPrix);
   if(!S.cart.length){wrap.innerHTML='<div class="cart-empty-msg">Votre panier est vide.</div>';}
   else{wrap.innerHTML=S.cart.map((item,i)=>`<div class="cart-item"><div class="cart-item-img">${item.image?`<img src="${Array.isArray(item.image)?item.image[0]:item.image.split(',')[0].trim()}" alt="${item.nom}">`:'<div style="width:100%;height:100%;background:var(--off);"></div>'}</div><div class="cart-item-info"><div class="cart-item-name">${item.nom}</div><div class="cart-item-meta">Taille: ${item.taille}${item.nomPerso?' · '+item.nomPerso:''}${item.numPerso?' · #'+item.numPerso:''} · Qté: ${item.quantite}</div></div><div class="cart-item-right"><div class="cart-item-price">${fmt(item.prix*item.quantite)}</div><button class="btn-remove" onclick="removeFromCart(${i})">Supprimer</button></div></div>`).join('');}
   const warnEl=document.getElementById('cart-min-warn');const btnVal=document.getElementById('btn-validate');
-  if(S.club&&S.club.activeMin){const min=parseFloat(S.club.minCommande)||0;if(totalPrix<min){warnEl.classList.add('show');document.getElementById('min-rest').textContent=fmt(min-totalPrix);btnVal.disabled=true;}else{warnEl.classList.remove('show');btnVal.disabled=(totalArticles===0);}}
+  if(S.club&&S.club.activeMin){const min=parseFloat(S.club.minCommande)||0;if(sousTotal<min){warnEl.classList.add('show');document.getElementById('min-rest').textContent=fmt(min-sousTotal);btnVal.disabled=true;}else{warnEl.classList.remove('show');btnVal.disabled=(totalArticles===0);}}
   else{warnEl.classList.remove('show');btnVal.disabled=(totalArticles===0);}
 }
 
@@ -986,17 +993,23 @@ async function validateOrder(){
   }
   const btn=document.getElementById('btn-validate');btn.disabled=true;btn.textContent='Envoi...';
   try{
-    const res=await apiPost('createOrder',{clubId:S.club.id,clubNom:S.club.nom,lignes:S.cart.map(i=>({productId:i.productId,nom:i.nom,prix:i.prix,taille:i.taille,nomPerso:i.nomPerso||'',numPerso:i.numPerso||'',quantite:i.quantite})),total:S.cart.reduce((s,i)=>s+(i.prix*i.quantite),0)});
-    if(res.success){const ref=res.orderRef||'CMD-'+Date.now();const total=S.cart.reduce((s,i)=>s+(i.prix*i.quantite),0);showOrderConfirmation(ref,S.cart,total);S.cart=[];updateCartUI();toggleCart();if(document.getElementById('section-commandes').classList.contains('active'))loadOrders();}
+    const fraisLiv=(S.club&&S.club.fraisLivraison)?S.club.fraisLivraison:0;
+    const sousTotal=S.cart.reduce((s,i)=>s+(i.prix*i.quantite),0);
+    const res=await apiPost('createOrder',{clubId:S.club.id,clubNom:S.club.nom,lignes:S.cart.map(i=>({productId:i.productId,nom:i.nom,prix:i.prix,taille:i.taille,nomPerso:i.nomPerso||'',numPerso:i.numPerso||'',quantite:i.quantite})),total:sousTotal+fraisLiv});
+    if(res.success){const ref=res.orderRef||'CMD-'+Date.now();showOrderConfirmation(ref,S.cart,sousTotal,fraisLiv);S.cart=[];updateCartUI();toggleCart();if(document.getElementById('section-commandes').classList.contains('active'))loadOrders();}
     else{toast('Erreur. Réessayez.');}
   }catch(e){console.error(e);toast('Erreur réseau.');}
   btn.disabled=false;btn.textContent='Valider la commande';
 }
 
-function showOrderConfirmation(ref,cart,total){
+function showOrderConfirmation(ref,cart,sousTotal,fraisLiv){
   document.getElementById('order-confirmation').classList.add('active');
   document.getElementById('order-reference').textContent=ref;
-  document.getElementById('confirmation-recap').innerHTML=`<p><strong>Réf:</strong> ${ref}</p><p><strong>Club:</strong> ${S.club.nom}</p><p><strong>Articles:</strong> ${cart.reduce((s,i)=>s+i.quantite,0)}</p><p><strong>Total:</strong> ${fmt(total)}</p><br>${cart.map(i=>`<p style="font-size:.8rem;margin-top:.3rem;">• ${i.nom} (${i.taille}) ${i.nomPerso?'- '+i.nomPerso:''} ${i.numPerso?'#'+i.numPerso:''} ×${i.quantite}</p>`).join('')}`;
+  const totalConf=sousTotal+(fraisLiv||0);
+  let recapHtml=`<p><strong>Réf:</strong> ${ref}</p><p><strong>Club:</strong> ${S.club.nom}</p><p><strong>Articles:</strong> ${cart.reduce((s,i)=>s+i.quantite,0)}</p>`;
+  if(fraisLiv>0) recapHtml+=`<p><strong>Sous-total:</strong> ${fmt(sousTotal)}</p><p><strong>Frais de livraison:</strong> ${fmt(fraisLiv)}</p>`;
+  recapHtml+=`<p><strong>Total:</strong> ${fmt(totalConf)}</p><br>${cart.map(i=>`<p style="font-size:.8rem;margin-top:.3rem;">• ${i.nom} (${i.taille}) ${i.nomPerso?'- '+i.nomPerso:''} ${i.numPerso?'#'+i.numPerso:''} ×${i.quantite}</p>`).join('')}`;
+  document.getElementById('confirmation-recap').innerHTML=recapHtml;
 }
 function closeConfirmation(){document.getElementById('order-confirmation').classList.remove('active');}
 function copyToClipboard(id){const el=document.getElementById(id);const text=el.textContent.trim().replace('📋','').trim();navigator.clipboard.writeText(text).then(()=>toast('✓ Copié')).catch(()=>toast('Erreur de copie'));}
