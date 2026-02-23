@@ -111,6 +111,21 @@ async function getClub(email) {
       return { club: null };
     }
 
+    // Enregistrer la connexion (non bloquant)
+    fetch(`${AIRTABLE_API}/${BASE_ID}/${TABLE_CLUBS}/${club.id}`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${AIRTABLE_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        fields: {
+          'Dernière connexion': new Date().toISOString(),
+          'Dernier email connexion': email
+        }
+      })
+    }).catch(err => console.error('Erreur maj connexion:', err));
+
     return {
       club: {
         id: club.id,
