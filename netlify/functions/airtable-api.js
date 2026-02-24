@@ -227,7 +227,6 @@ async function getOrders(clubId) {
         return clubLink && clubLink[0] === clubId;
       })
       .map(r => ({
-        id: r.id,
         ref: r.fields['Référence'] || '',
         date: r.fields['Date'] ? new Date(r.fields['Date']).toLocaleDateString('fr-FR') : '',
         nbArticles: r.fields['Nb Articles'] || 0,
@@ -238,64 +237,6 @@ async function getOrders(clubId) {
     return { orders };
   } catch (error) {
     console.error('getOrders error:', error);
-    return { error: error.message };
-  }
-}
-
-// ============================================================
-// GET ORDER DETAIL (pour facture PDF)
-// ============================================================
-async function getOrderDetail(orderId) {
-  try {
-    // 1. Récupérer la commande
-    const commande = await airtableRequest(`${TABLE_COMMANDES}/${orderId}`);
-    if (!commande || !commande.fields) return { error: 'Commande introuvable' };
-
-    // 2. Récupérer les lignes de cette commande
-    const allLignes = await airtableRequestAll(TABLE_LIGNES);
-    const lignes = allLignes.filter(r => {
-      const cmdLink = r.fields['Commande'];
-      return cmdLink && cmdLink[0] === orderId;
-    });
-
-    // 3. Récupérer les produits référencés
-    const productIds = [...new Set(lignes.map(l => l.fields['Produit'] ? l.fields['Produit'][0] : null).filter(Boolean))];
-    const produitsMap = {};
-    for (const pid of productIds) {
-      try {
-        const prod = await airtableRequest(`${TABLE_PRODUITS}/${pid}`);
-        produitsMap[pid] = { nom: prod.fields['Nom'] || '', prix: parseFloat(prod.fields['Prix Vente Club']) || 0 };
-      } catch (e) { produitsMap[pid] = { nom: 'Produit inconnu', prix: 0 }; }
-    }
-
-    // 4. Construire les lignes enrichies
-    const lignesDetail = lignes.map(l => {
-      const prodId = l.fields['Produit'] ? l.fields['Produit'][0] : null;
-      const prod = prodId ? produitsMap[prodId] : { nom: '—', prix: 0 };
-      return {
-        produit: prod.nom,
-        prixUnitaire: prod.prix,
-        taille: l.fields['Taille'] || '',
-        quantite: l.fields['Quantité'] || 0,
-        nomPerso: l.fields['Nom Personnalisation'] || '',
-        numPerso: l.fields['Numéro Personnalisation'] || ''
-      };
-    });
-
-    return {
-      order: {
-        id: commande.id,
-        ref: commande.fields['Référence'] || '',
-        date: commande.fields['Date'] ? new Date(commande.fields['Date']).toLocaleDateString('fr-FR') : '',
-        dateISO: commande.fields['Date'] || '',
-        total: commande.fields['Total'] || 0,
-        nbArticles: commande.fields['Nb Articles'] || 0,
-        statut: commande.fields['Statut'] || ''
-      },
-      lignes: lignesDetail
-    };
-  } catch (error) {
-    console.error('getOrderDetail error:', error);
     return { error: error.message };
   }
 }
@@ -451,9 +392,6 @@ exports.handler = async (event) => {
           break;
         case 'getOrders':
           result = await getOrders(params.clubId);
-          break;
-        case 'getOrderDetail':
-          result = await getOrderDetail(params.orderId);
           break;
         case 'getDemandes':
           result = await getDemandes(params.clubId);
