@@ -134,7 +134,8 @@ async function getClub(email) {
         logoClub: club.fields['Logo Club URL'] || '',
         minCommande: parseFloat(club.fields['Minimum Commande']) || 0,
         activeMin: club.fields['Active Minimum'] || false,
-        fraisLivraison: parseFloat(club.fields['Frais Livraison']) || 0
+        fraisLivraison: parseFloat(club.fields['Frais Livraison']) || 0,
+        admin: club.fields['Admin'] || false
       }
     };
   } catch (error) {
@@ -237,6 +238,118 @@ async function getOrders(clubId) {
     return { orders };
   } catch (error) {
     console.error('getOrders error:', error);
+    return { error: error.message };
+  }
+}
+
+// ============================================================
+// GET ALL ORDERS (admin — toutes les commandes de tous les clubs)
+// ============================================================
+async function getAllOrders() {
+  try {
+    const [commandesRecords, clubsData] = await Promise.all([
+      airtableRequestAll(TABLE_COMMANDES),
+      airtableRequest(TABLE_CLUBS, { method: 'GET' })
+    ]);
+
+    // Map club IDs to names/emails
+    const clubsMap = {};
+    (clubsData.records || []).forEach(r => {
+      clubsMap[r.id] = {
+        nom: r.fields['Nom'] || '',
+        email: r.fields['email'] || '',
+        fraisLivraison: parseFloat(r.fields['Frais Livraison']) || 0
+      };
+    });
+
+    const orders = commandesRecords.map(r => {
+      const clubLink = r.fields['Club'];
+      const clubId = clubLink ? clubLink[0] : null;
+      const club = clubId ? clubsMap[clubId] : { nom: '—', email: '', fraisLivraison: 0 };
+      return {
+        id: r.id,
+        ref: r.fields['Référence'] || '',
+        date: r.fields['Date'] ? new Date(r.fields['Date']).toLocaleDateString('fr-FR') : '',
+        nbArticles: r.fields['Nb Articles'] || 0,
+        total: r.fields['Total'] || 0,
+        statut: r.fields['Statut'] || '🟡 EN ATTENTE DE PAIEMENT',
+        clubNom: club.nom,
+        clubEmail: club.email,
+        fraisLivraison: club.fraisLivraison
+      };
+    });
+
+    return { orders };
+  } catch (error) {
+    console.error('getAllOrders error:', error);
+    return { error: error.message };
+  }
+}
+
+// ============================================================
+// GET ORDER DETAIL (admin — pour facture PDF)
+// ============================================================
+async function getOrderDetail(orderId) {
+  try {
+    const commande = await airtableRequest(`${TABLE_COMMANDES}/${orderId}`);
+    if (!commande || !commande.fields) return { error: 'Commande introuvable' };
+
+    // Récupérer club info
+    const clubLink = commande.fields['Club'];
+    const clubId = clubLink ? clubLink[0] : null;
+    let clubInfo = { nom: '—', email: '' };
+    if (clubId) {
+      try {
+        const clubRec = await airtableRequest(`${TABLE_CLUBS}/${clubId}`);
+        clubInfo = { nom: clubRec.fields['Nom'] || '', email: clubRec.fields['email'] || '' };
+      } catch (e) { /* ignore */ }
+    }
+
+    // Récupérer les lignes de cette commande
+    const allLignes = await airtableRequestAll(TABLE_LIGNES);
+    const lignes = allLignes.filter(r => {
+      const cmdLink = r.fields['Commande'];
+      return cmdLink && cmdLink[0] === orderId;
+    });
+
+    // Récupérer les produits référencés (en parallèle)
+    const productIds = [...new Set(lignes.map(l => l.fields['Produit'] ? l.fields['Produit'][0] : null).filter(Boolean))];
+    const produitsMap = {};
+    await Promise.all(productIds.map(async pid => {
+      try {
+        const prod = await airtableRequest(`${TABLE_PRODUITS}/${pid}`);
+        produitsMap[pid] = { nom: prod.fields['Nom'] || '', prix: parseFloat(prod.fields['Prix Vente Club']) || 0 };
+      } catch (e) { produitsMap[pid] = { nom: 'Produit inconnu', prix: 0 }; }
+    }));
+
+    const lignesDetail = lignes.map(l => {
+      const prodId = l.fields['Produit'] ? l.fields['Produit'][0] : null;
+      const prod = prodId ? produitsMap[prodId] : { nom: '—', prix: 0 };
+      return {
+        produit: prod.nom,
+        prixUnitaire: prod.prix,
+        taille: l.fields['Taille'] || '',
+        quantite: l.fields['Quantité'] || 0,
+        nomPerso: l.fields['Nom Personnalisation'] || '',
+        numPerso: l.fields['Numéro Personnalisation'] || ''
+      };
+    });
+
+    return {
+      order: {
+        id: commande.id,
+        ref: commande.fields['Référence'] || '',
+        date: commande.fields['Date'] ? new Date(commande.fields['Date']).toLocaleDateString('fr-FR') : '',
+        total: commande.fields['Total'] || 0,
+        nbArticles: commande.fields['Nb Articles'] || 0,
+        statut: commande.fields['Statut'] || '',
+        clubNom: clubInfo.nom,
+        clubEmail: clubInfo.email
+      },
+      lignes: lignesDetail
+    };
+  } catch (error) {
+    console.error('getOrderDetail error:', error);
     return { error: error.message };
   }
 }
@@ -392,6 +505,12 @@ exports.handler = async (event) => {
           break;
         case 'getOrders':
           result = await getOrders(params.clubId);
+          break;
+        case 'getAllOrders':
+          result = await getAllOrders();
+          break;
+        case 'getOrderDetail':
+          result = await getOrderDetail(params.orderId);
           break;
         case 'getDemandes':
           result = await getDemandes(params.clubId);

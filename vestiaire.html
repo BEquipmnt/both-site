@@ -527,6 +527,7 @@ img{ max-width:100%; display:block; }
       <button class="v-tab active" data-tab="catalogue" onclick="switchTab('catalogue')">Catalogue</button>
       <button class="v-tab" data-tab="commandes" onclick="switchTab('commandes')">Commandes</button>
       <button class="v-tab" data-tab="demandes" onclick="switchTab('demandes')">Demandes</button>
+      <button class="v-tab" data-tab="facturation" onclick="switchTab('facturation')" id="tab-facturation" style="display:none;color:var(--red);">Facturation</button>
       <button class="v-btn-cart" onclick="toggleCart()">Panier <div class="cart-badge" id="cart-badge">0</div></button>
       <button class="v-btn-quit" onclick="closePortal()">Quitter</button>
     </div>
@@ -572,6 +573,16 @@ img{ max-width:100%; display:block; }
         <button class="btn-send-demande" id="btn-send-demande" onclick="sendDemande()">Envoyer la demande</button>
       </div>
       <div class="demandes-list" id="demandes-list"><div class="spinner"></div></div>
+    </div>
+  </div>
+
+  <div class="v-section" id="section-facturation">
+    <div class="v-section-inner">
+      <div class="dash-header">
+        <h2>Facturation</h2>
+        <p>Toutes les commandes — cliquez sur "Facture" pour generer le PDF.</p>
+      </div>
+      <div id="facturation-wrap"><div class="spinner"></div></div>
     </div>
   </div>
 </div>
@@ -640,10 +651,7 @@ img{ max-width:100%; display:block; }
         <div class="rib-note">Cliquez sur les valeurs pour les copier</div>
       </div>
     </div>
-    <div class="confirmation-footer">
-      <button class="btn-facture" style="padding:.6rem 1.5rem;font-size:.6rem;margin-right:.5rem;" onclick="window.__dlFacture && window.__dlFacture()">Telecharger la facture</button>
-      <button class="btn-confirmation-close" onclick="closeConfirmation()">Fermer</button>
-    </div>
+    <div class="confirmation-footer"><button class="btn-confirmation-close" onclick="closeConfirmation()">Fermer</button></div>
   </div>
 </div>
 
@@ -689,6 +697,8 @@ async function openPortal(){
   const logoEl=document.getElementById('v-club-logo');
   if(S.club.logoClub&&S.club.logoClub.trim()){logoEl.src=S.club.logoClub;logoEl.alt=S.club.nom;logoEl.style.display='block';}
   else{logoEl.style.display='none';}
+  if(S.club.admin) document.getElementById('tab-facturation').style.display='';
+  else document.getElementById('tab-facturation').style.display='none';
   await loadCatalogue();
 }
 
@@ -1021,8 +1031,6 @@ function showOrderConfirmation(ref,cart,sousTotal,fraisLiv){
   if(fraisLiv>0) recapHtml+=`<p><strong>Sous-total:</strong> ${fmt(sousTotal)}</p><p><strong>Frais de livraison:</strong> ${fmt(fraisLiv)}</p>`;
   recapHtml+=`<p><strong>Total:</strong> ${fmt(totalConf)}</p><br>${cart.map(i=>`<p style="font-size:.8rem;margin-top:.3rem;">• ${i.nom} (${i.taille}) ${i.nomPerso?'- '+i.nomPerso:''} ${i.numPerso?'#'+i.numPerso:''} ×${i.quantite}</p>`).join('')}`;
   document.getElementById('confirmation-recap').innerHTML=recapHtml;
-  // Lier le bouton facture aux données de cette commande
-  window.__dlFacture=function(){ generateInvoicePDF(ref, cart, sousTotal, fraisLiv); };
 }
 function closeConfirmation(){document.getElementById('order-confirmation').classList.remove('active');}
 function copyToClipboard(id){const el=document.getElementById(id);const text=el.textContent.trim().replace('📋','').trim();navigator.clipboard.writeText(text).then(()=>toast('✓ Copié')).catch(()=>toast('Erreur de copie'));}
@@ -1041,191 +1049,134 @@ async function loadOrders(){
 }
 
 // ============================================================
-// FACTURE PDF (générée à partir des données du panier, 0 appel API)
+// FACTURATION (admin only)
 // ============================================================
-function generateInvoicePDF(ref, cart, sousTotal, fraisLiv){
+async function loadFacturation(){
+  const wrap=document.getElementById('facturation-wrap');wrap.innerHTML='<div class="spinner"></div>';
+  try{
+    const res=await apiGet('getAllOrders');
+    const orders=res.orders||[];
+    if(!orders.length){wrap.innerHTML='<p style="color:var(--grey-400);padding:2rem;font-style:italic;">Aucune commande.</p>';return;}
+    const bc=s=>{if(s.includes('ATTENTE'))return'badge-pending';if(s.includes('PRODUCTION'))return'badge-production';if(s.includes('LIVRÉE')||s.includes('LIVREE'))return'badge-delivered';return'badge-pending';};
+    wrap.innerHTML=`<table class="orders-table"><thead><tr><th>Club</th><th>Ref.</th><th>Date</th><th>Articles</th><th>Total</th><th>Statut</th><th></th></tr></thead><tbody>${orders.map(o=>`<tr><td style="font-weight:600;">${o.clubNom||'—'}</td><td>${o.ref||'—'}</td><td>${o.date||'—'}</td><td>${o.nbArticles||'—'}</td><td>${fmt(parseFloat(o.total)||0)}</td><td><span class="badge ${bc(o.statut)}">${o.statut||'—'}</span></td><td><button class="btn-facture" onclick="downloadFacture('${o.id}',this)">Facture</button></td></tr>`).join('')}</tbody></table>`;
+  }catch(e){console.error(e);wrap.innerHTML='<p style="color:red;padding:2rem;">Erreur.</p>';}
+}
+
+async function downloadFacture(orderId, btn){
+  btn.disabled=true; btn.textContent='...';
+  try{
+    const res=await apiGet('getOrderDetail',{orderId});
+    if(res.error){toast('Erreur : '+res.error);btn.disabled=false;btn.textContent='Facture';return;}
+    generateInvoicePDF(res.order, res.lignes);
+  }catch(e){console.error(e);toast('Erreur de chargement.');}
+  btn.disabled=false; btn.textContent='Facture';
+}
+
+function generateInvoicePDF(order, lignes){
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit:'mm', format:'a4' });
-  const W = 210, MG = 20;
-  const cW = W - 2*MG;
+  const W = 210, MG = 20, cW = W - 2*MG;
   let y = MG;
-  const today = new Date().toLocaleDateString('fr-FR');
+  const noir=[10,10,10], gris=[106,106,106], or=[255,215,0], blanc=[250,250,248];
 
-  const noir = [10,10,10], gris = [106,106,106], or = [255,215,0], blanc = [250,250,248];
-
-  // ─── EN-TÊTE ───
+  // EN-TETE
   doc.setFillColor(...noir);
-  doc.rect(0, 0, W, 42, 'F');
-  doc.setTextColor(...blanc);
-  doc.setFont('helvetica','bold');
-  doc.setFontSize(22);
+  doc.rect(0,0,W,42,'F');
+  doc.setTextColor(...blanc); doc.setFont('helvetica','bold'); doc.setFontSize(22);
   doc.text('BOTH EQUIPMNT', MG, 18);
-  doc.setFontSize(9);
-  doc.setFont('helvetica','normal');
+  doc.setFontSize(9); doc.setFont('helvetica','normal');
   doc.text('Equipementier sportif', MG, 25);
-  doc.setTextColor(...or);
-  doc.setFontSize(14);
-  doc.text('FACTURE', W - MG, 18, { align:'right' });
-  doc.setTextColor(...blanc);
-  doc.setFontSize(9);
-  doc.text(ref, W - MG, 25, { align:'right' });
-  doc.text(today, W - MG, 31, { align:'right' });
+  doc.setTextColor(...or); doc.setFontSize(14);
+  doc.text('FACTURE', W-MG, 18, {align:'right'});
+  doc.setTextColor(...blanc); doc.setFontSize(9);
+  doc.text(order.ref, W-MG, 25, {align:'right'});
+  doc.text(order.date||'', W-MG, 31, {align:'right'});
+  y=52;
 
-  y = 52;
+  // DESTINATAIRE
+  doc.setTextColor(...gris); doc.setFontSize(8);
+  doc.text('DESTINATAIRE', MG, y); y+=5;
+  doc.setTextColor(...noir); doc.setFontSize(11); doc.setFont('helvetica','bold');
+  doc.text(order.clubNom||'', MG, y); y+=5;
+  doc.setFont('helvetica','normal'); doc.setFontSize(9);
+  doc.text(order.clubEmail||'', MG, y); y+=12;
 
-  // ─── INFOS CLUB ───
-  doc.setTextColor(...gris);
-  doc.setFontSize(8);
-  doc.text('DESTINATAIRE', MG, y);
-  y += 5;
-  doc.setTextColor(...noir);
-  doc.setFontSize(11);
-  doc.setFont('helvetica','bold');
-  doc.text(S.club.nom, MG, y);
-  y += 5;
-  doc.setFont('helvetica','normal');
-  doc.setFontSize(9);
-  doc.text(S.club.email, MG, y);
-  y += 12;
+  // LIGNE OR
+  doc.setDrawColor(...or); doc.setLineWidth(0.8);
+  doc.line(MG, y, W-MG, y); y+=8;
 
-  // ─── LIGNE OR ───
-  doc.setDrawColor(...or);
-  doc.setLineWidth(0.8);
-  doc.line(MG, y, W - MG, y);
-  y += 8;
+  // TABLEAU
+  const colX=[MG, MG+70, MG+95, MG+115, MG+140];
+  doc.setFillColor(245,245,245); doc.rect(MG, y-4, cW, 8, 'F');
+  doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(...gris);
+  doc.text('PRODUIT',colX[0]+2,y); doc.text('TAILLE',colX[1]+2,y);
+  doc.text('QTE',colX[2]+2,y); doc.text('P.U.',colX[3]+2,y); doc.text('TOTAL',colX[4]+2,y);
+  y+=7;
+  doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(...noir);
 
-  // ─── TABLEAU LIGNES ───
-  const colX = [MG, MG+70, MG+95, MG+115, MG+140];
-  doc.setFillColor(245,245,245);
-  doc.rect(MG, y-4, cW, 8, 'F');
-  doc.setFontSize(7);
-  doc.setFont('helvetica','bold');
-  doc.setTextColor(...gris);
-  doc.text('PRODUIT', colX[0]+2, y);
-  doc.text('TAILLE', colX[1]+2, y);
-  doc.text('QTE', colX[2]+2, y);
-  doc.text('P.U.', colX[3]+2, y);
-  doc.text('TOTAL', colX[4]+2, y);
-  y += 7;
-
-  doc.setFont('helvetica','normal');
-  doc.setFontSize(8.5);
-  doc.setTextColor(...noir);
-
-  cart.forEach(l => {
-    const lineTotal = l.prix * l.quantite;
-    if(y > 260){ doc.addPage(); y = MG; }
-
+  let sousTotal=0;
+  lignes.forEach(l=>{
+    const lt=l.prixUnitaire*l.quantite; sousTotal+=lt;
+    if(y>260){doc.addPage();y=MG;}
     doc.setFont('helvetica','bold');
-    doc.text(l.nom, colX[0]+2, y, { maxWidth: 65 });
+    doc.text(l.produit, colX[0]+2, y, {maxWidth:65});
     doc.setFont('helvetica','normal');
     doc.text(l.taille, colX[1]+2, y);
     doc.text(String(l.quantite), colX[2]+2, y);
-    doc.text(fmtPDF(l.prix), colX[3]+2, y);
-    doc.text(fmtPDF(lineTotal), colX[4]+2, y);
-
-    let extraY = 0;
-    if(l.nomPerso || l.numPerso){
-      extraY = 4;
-      doc.setFontSize(7);
-      doc.setTextColor(...gris);
-      let persoText = '';
-      if(l.nomPerso) persoText += l.nomPerso;
-      if(l.numPerso) persoText += (persoText ? ' — ' : '') + '#' + l.numPerso;
-      doc.text(persoText, colX[0]+4, y+4);
-      doc.setFontSize(8.5);
-      doc.setTextColor(...noir);
+    doc.text(fmtPDF(l.prixUnitaire), colX[3]+2, y);
+    doc.text(fmtPDF(lt), colX[4]+2, y);
+    let extraY=0;
+    if(l.nomPerso||l.numPerso){
+      extraY=4; doc.setFontSize(7); doc.setTextColor(...gris);
+      let pt=''; if(l.nomPerso) pt+=l.nomPerso; if(l.numPerso) pt+=(pt?' — ':'')+'#'+l.numPerso;
+      doc.text(pt, colX[0]+4, y+4);
+      doc.setFontSize(8.5); doc.setTextColor(...noir);
     }
-
-    y += 5 + extraY;
-    doc.setDrawColor(230,230,230);
-    doc.setLineWidth(0.2);
-    doc.line(MG, y, W-MG, y);
-    y += 4;
+    y+=5+extraY;
+    doc.setDrawColor(230,230,230); doc.setLineWidth(0.2); doc.line(MG,y,W-MG,y); y+=4;
   });
+  y+=4;
 
-  y += 4;
-
-  // ─── TOTAUX ───
-  const total = sousTotal + (fraisLiv || 0);
-  const tX = W - MG - 55;
+  // TOTAUX
+  const total=order.total;
+  const fraisLiv=Math.max(0, total-sousTotal);
+  const tX=W-MG-55;
   doc.setFontSize(9);
-
-  doc.setTextColor(...gris);
-  doc.text('Sous-total', tX, y);
-  doc.setTextColor(...noir);
-  doc.text(fmtPDF(sousTotal), W - MG, y, { align:'right' });
-  y += 6;
-
-  if(fraisLiv > 0){
-    doc.setTextColor(...gris);
-    doc.text('Frais de livraison', tX, y);
-    doc.setTextColor(...noir);
-    doc.text(fmtPDF(fraisLiv), W - MG, y, { align:'right' });
-    y += 6;
+  doc.setTextColor(...gris); doc.text('Sous-total',tX,y);
+  doc.setTextColor(...noir); doc.text(fmtPDF(sousTotal),W-MG,y,{align:'right'}); y+=6;
+  if(fraisLiv>0.01){
+    doc.setTextColor(...gris); doc.text('Frais de livraison',tX,y);
+    doc.setTextColor(...noir); doc.text(fmtPDF(fraisLiv),W-MG,y,{align:'right'}); y+=6;
   }
+  doc.setDrawColor(...or); doc.setLineWidth(0.6); doc.line(tX,y,W-MG,y); y+=6;
+  doc.setFont('helvetica','bold'); doc.setFontSize(12);
+  doc.text('TOTAL',tX,y); doc.text(fmtPDF(total),W-MG,y,{align:'right'}); y+=4;
+  doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(...gris);
+  doc.text('TVA non applicable — article 293 B du CGI',tX,y); y+=14;
 
-  doc.setDrawColor(...or);
-  doc.setLineWidth(0.6);
-  doc.line(tX, y, W - MG, y);
-  y += 6;
-
-  doc.setFont('helvetica','bold');
-  doc.setFontSize(12);
-  doc.text('TOTAL', tX, y);
-  doc.text(fmtPDF(total), W - MG, y, { align:'right' });
-  y += 4;
-  doc.setFontSize(7);
-  doc.setFont('helvetica','normal');
-  doc.setTextColor(...gris);
-  doc.text('TVA non applicable — article 293 B du CGI', tX, y);
-  y += 14;
-
-  // ─── COORDONNÉES BANCAIRES ───
-  if(y > 240){ doc.addPage(); y = MG; }
-
-  doc.setFillColor(255,251,235);
-  doc.setDrawColor(...or);
-  doc.setLineWidth(0.5);
-  const ribH = 38;
-  doc.roundedRect(MG, y, cW, ribH, 2, 2, 'FD');
-  y += 7;
-  doc.setFontSize(9);
-  doc.setFont('helvetica','bold');
-  doc.setTextColor(...noir);
-  doc.text('COORDONNEES BANCAIRES', MG + 6, y);
-  y += 3;
-  doc.setFontSize(7);
-  doc.setFont('helvetica','normal');
-  doc.setTextColor(...gris);
-  doc.text('Effectuez votre virement avec la reference de commande en objet.', MG + 6, y);
-  y += 6;
-  doc.setFontSize(8.5);
-  doc.setTextColor(...noir);
-  [['Beneficiaire','BOTH EQUIPMNT'],['IBAN','FR76 1451 8292 6705 3640 9504 091'],['BIC','FTNOFRP1XXX'],['Reference',ref]].forEach(([label, value]) => {
-    doc.setFont('helvetica','normal');
-    doc.setTextColor(...gris);
-    doc.text(label, MG + 6, y);
-    doc.setFont('helvetica','bold');
-    doc.setTextColor(...noir);
-    doc.text(value, MG + 42, y);
-    y += 5;
+  // COORDONNEES BANCAIRES
+  if(y>240){doc.addPage();y=MG;}
+  doc.setFillColor(255,251,235); doc.setDrawColor(...or); doc.setLineWidth(0.5);
+  doc.roundedRect(MG,y,cW,38,2,2,'FD'); y+=7;
+  doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(...noir);
+  doc.text('COORDONNEES BANCAIRES',MG+6,y); y+=3;
+  doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(...gris);
+  doc.text('Effectuez votre virement avec la reference de commande en objet.',MG+6,y); y+=6;
+  doc.setFontSize(8.5); doc.setTextColor(...noir);
+  [['Beneficiaire','BOTH EQUIPMNT'],['IBAN','FR76 1451 8292 6705 3640 9504 091'],['BIC','FTNOFRP1XXX'],['Reference',order.ref]].forEach(([label,value])=>{
+    doc.setFont('helvetica','normal'); doc.setTextColor(...gris); doc.text(label,MG+6,y);
+    doc.setFont('helvetica','bold'); doc.setTextColor(...noir); doc.text(value,MG+42,y); y+=5;
   });
 
-  // ─── PIED DE PAGE ───
-  const footY = 285;
-  doc.setDrawColor(230,230,230);
-  doc.setLineWidth(0.2);
-  doc.line(MG, footY - 4, W - MG, footY - 4);
-  doc.setFontSize(7);
-  doc.setFont('helvetica','normal');
-  doc.setTextColor(...gris);
-  doc.text('BOTH EQUIPMNT — contact@bothequipmnt.com — bothequipmnt.com', W/2, footY, { align:'center' });
+  // PIED DE PAGE
+  doc.setDrawColor(230,230,230); doc.setLineWidth(0.2); doc.line(MG,281,W-MG,281);
+  doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(...gris);
+  doc.text('BOTH EQUIPMNT — contact@bothequipmnt.com — bothequipmnt.com',W/2,285,{align:'center'});
 
-  doc.save('Facture_' + ref + '.pdf');
+  doc.save('Facture_'+order.ref+'.pdf');
 }
 
-function fmtPDF(n){ return n.toFixed(2).replace('.',',') + ' \u20AC'; }
+function fmtPDF(n){ return n.toFixed(2).replace('.',',')+' \u20AC'; }
 
 // ============================================================
 // DEMANDES
@@ -1279,6 +1230,7 @@ function switchTab(tab){
   document.getElementById(`section-${tab}`).classList.add('active');
   if(tab==='commandes')loadOrders();
   if(tab==='demandes')loadDemandes();
+  if(tab==='facturation')loadFacturation();
 }
 </script>
 </body>
