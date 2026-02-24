@@ -6,6 +6,7 @@
 <title>Le Vestiaire — BOTH EQUIPMNT</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
 <style>
 *,*::before,*::after{ box-sizing:border-box; margin:0; padding:0; }
 :root{
@@ -347,6 +348,13 @@ img{ max-width:100%; display:block; }
 .badge-production{ color:var(--blue); border-color:#b0d2ee; background:#eff6fb; }
 .badge-shipped{ color:var(--green); border-color:#a8ddc8; background:#eff9f4; }
 .badge-delivered{ color:var(--grey-600); border-color:#ddd; background:var(--off); }
+.btn-facture{
+  padding:.25rem .5rem; border:1px solid var(--black); background:transparent;
+  font-size:.5rem; letter-spacing:.1em; text-transform:uppercase; font-weight:600;
+  color:var(--black); cursor:pointer; transition:all var(--ease); white-space:nowrap;
+}
+.btn-facture:hover{ background:var(--black); color:var(--white); }
+.btn-facture:disabled{ opacity:.4; cursor:wait; }
 
 /* ===== DEMANDES ===== */
 .demande-form{ max-width:600px; margin-bottom:2.5rem; }
@@ -1023,9 +1031,227 @@ async function loadOrders(){
     const res=await apiGet('getOrders',{clubId:S.club.id});S.orders=res.orders||[];
     if(!S.orders.length){wrap.innerHTML='<p style="color:var(--grey-400);padding:2rem;font-style:italic;">Aucune commande.</p>';return;}
     const bc=s=>{if(s.includes('ATTENTE'))return'badge-pending';if(s.includes('PRODUCTION'))return'badge-production';if(s.includes('LIVRÉE')||s.includes('LIVREE'))return'badge-delivered';return'badge-pending';};
-    wrap.innerHTML=`<table class="orders-table"><thead><tr><th>Réf.</th><th>Date</th><th>Articles</th><th>Total</th><th>Statut</th></tr></thead><tbody>${S.orders.map(o=>`<tr><td>${o.ref||'—'}</td><td>${o.date||'—'}</td><td>${o.nbArticles||'—'}</td><td>${fmt(parseFloat(o.total)||0)}</td><td><span class="badge ${bc(o.statut)}">${o.statut||'—'}</span></td></tr>`).join('')}</tbody></table>`;
+    wrap.innerHTML=`<table class="orders-table"><thead><tr><th>Réf.</th><th>Date</th><th>Articles</th><th>Total</th><th>Statut</th><th></th></tr></thead><tbody>${S.orders.map(o=>`<tr><td>${o.ref||'—'}</td><td>${o.date||'—'}</td><td>${o.nbArticles||'—'}</td><td>${fmt(parseFloat(o.total)||0)}</td><td><span class="badge ${bc(o.statut)}">${o.statut||'—'}</span></td><td><button class="btn-facture" onclick="downloadFacture('${o.id}',this)">Facture</button></td></tr>`).join('')}</tbody></table>`;
   }catch(e){console.error(e);wrap.innerHTML='<p style="color:red;padding:2rem;">Erreur.</p>';}
 }
+
+// ============================================================
+// FACTURE PDF
+// ============================================================
+async function downloadFacture(orderId, btn){
+  btn.disabled=true; btn.textContent='...';
+  try{
+    const res = await apiGet('getOrderDetail',{orderId});
+    if(res.error){ toast('Erreur : '+res.error); btn.disabled=false; btn.textContent='Facture'; return; }
+    generateInvoicePDF(res.order, res.lignes);
+  }catch(e){ console.error(e); toast('Erreur de chargement.'); }
+  btn.disabled=false; btn.textContent='Facture';
+}
+
+function generateInvoicePDF(order, lignes){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit:'mm', format:'a4' });
+  const W = 210, M = 20; // largeur page, marge
+  const cW = W - 2*M; // largeur utile
+  let y = M;
+
+  // Couleurs
+  const noir = [10,10,10];
+  const gris = [106,106,106];
+  const or = [255,215,0];
+  const blanc = [250,250,248];
+
+  // ─── EN-TÊTE ───
+  doc.setFillColor(...noir);
+  doc.rect(0, 0, W, 42, 'F');
+  doc.setTextColor(...blanc);
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(22);
+  doc.text('BOTH EQUIPMNT', M, 18);
+  doc.setFontSize(9);
+  doc.setFont('helvetica','normal');
+  doc.text('Equipementier sportif', M, 25);
+  doc.setTextColor(...or);
+  doc.setFontSize(14);
+  doc.text('FACTURE', W - M, 18, { align:'right' });
+  doc.setTextColor(...blanc);
+  doc.setFontSize(9);
+  doc.text(order.ref, W - M, 25, { align:'right' });
+  doc.text(order.date || '', W - M, 31, { align:'right' });
+
+  y = 52;
+
+  // ─── INFOS CLUB ───
+  doc.setTextColor(...gris);
+  doc.setFontSize(8);
+  doc.text('DESTINATAIRE', M, y);
+  y += 5;
+  doc.setTextColor(...noir);
+  doc.setFontSize(11);
+  doc.setFont('helvetica','bold');
+  doc.text(S.club.nom, M, y);
+  y += 5;
+  doc.setFont('helvetica','normal');
+  doc.setFontSize(9);
+  doc.text(S.club.email, M, y);
+  y += 12;
+
+  // ─── LIGNE OR ───
+  doc.setDrawColor(...or);
+  doc.setLineWidth(0.8);
+  doc.line(M, y, W - M, y);
+  y += 8;
+
+  // ─── TABLEAU LIGNES ───
+  // En-têtes colonnes
+  const colX = [M, M+70, M+95, M+115, M+140];
+  doc.setFillColor(245,245,245);
+  doc.rect(M, y-4, cW, 8, 'F');
+  doc.setFontSize(7);
+  doc.setFont('helvetica','bold');
+  doc.setTextColor(...gris);
+  doc.text('PRODUIT', colX[0]+2, y);
+  doc.text('TAILLE', colX[1]+2, y);
+  doc.text('QTÉ', colX[2]+2, y);
+  doc.text('P.U.', colX[3]+2, y);
+  doc.text('TOTAL', colX[4]+2, y);
+  y += 7;
+
+  doc.setFont('helvetica','normal');
+  doc.setFontSize(8.5);
+  doc.setTextColor(...noir);
+
+  let sousTotal = 0;
+  lignes.forEach(l => {
+    const lineTotal = l.prixUnitaire * l.quantite;
+    sousTotal += lineTotal;
+
+    // Vérifier saut de page
+    if(y > 260){ doc.addPage(); y = M; }
+
+    doc.setFont('helvetica','bold');
+    doc.text(l.produit, colX[0]+2, y, { maxWidth: 65 });
+    doc.setFont('helvetica','normal');
+    doc.text(l.taille, colX[1]+2, y);
+    doc.text(String(l.quantite), colX[2]+2, y);
+    doc.text(fmtPDF(l.prixUnitaire), colX[3]+2, y);
+    doc.text(fmtPDF(lineTotal), colX[4]+2, y);
+
+    // Personnalisation
+    let extraY = 0;
+    if(l.nomPerso || l.numPerso){
+      extraY = 4;
+      doc.setFontSize(7);
+      doc.setTextColor(...gris);
+      let persoText = '';
+      if(l.nomPerso) persoText += l.nomPerso;
+      if(l.numPerso) persoText += (persoText ? ' — ' : '') + '#' + l.numPerso;
+      doc.text(persoText, colX[0]+4, y+4);
+      doc.setFontSize(8.5);
+      doc.setTextColor(...noir);
+    }
+
+    // Ligne séparatrice
+    y += 5 + extraY;
+    doc.setDrawColor(230,230,230);
+    doc.setLineWidth(0.2);
+    doc.line(M, y, W-M, y);
+    y += 4;
+  });
+
+  y += 4;
+
+  // ─── TOTAUX ───
+  const fraisLiv = (S.club && S.club.fraisLivraison) ? S.club.fraisLivraison : 0;
+  const total = order.total;
+
+  // Bloc totaux aligné à droite
+  const tX = W - M - 55;
+  doc.setFontSize(9);
+
+  doc.setTextColor(...gris);
+  doc.text('Sous-total', tX, y);
+  doc.setTextColor(...noir);
+  doc.text(fmtPDF(sousTotal), W - M, y, { align:'right' });
+  y += 6;
+
+  if(fraisLiv > 0){
+    doc.setTextColor(...gris);
+    doc.text('Frais de livraison', tX, y);
+    doc.setTextColor(...noir);
+    doc.text(fmtPDF(fraisLiv), W - M, y, { align:'right' });
+    y += 6;
+  }
+
+  // Ligne
+  doc.setDrawColor(...or);
+  doc.setLineWidth(0.6);
+  doc.line(tX, y, W - M, y);
+  y += 6;
+
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(12);
+  doc.text('TOTAL', tX, y);
+  doc.text(fmtPDF(total), W - M, y, { align:'right' });
+  y += 4;
+  doc.setFontSize(7);
+  doc.setFont('helvetica','normal');
+  doc.setTextColor(...gris);
+  doc.text('TVA non applicable — article 293 B du CGI', tX, y);
+  y += 14;
+
+  // ─── COORDONNÉES BANCAIRES ───
+  if(y > 240){ doc.addPage(); y = M; }
+
+  doc.setFillColor(255,251,235);
+  doc.setDrawColor(...or);
+  doc.setLineWidth(0.5);
+  const ribH = 38;
+  doc.roundedRect(M, y, cW, ribH, 2, 2, 'FD');
+  y += 7;
+  doc.setFontSize(9);
+  doc.setFont('helvetica','bold');
+  doc.setTextColor(...noir);
+  doc.text('COORDONNÉES BANCAIRES', M + 6, y);
+  y += 3;
+  doc.setFontSize(7);
+  doc.setFont('helvetica','normal');
+  doc.setTextColor(...gris);
+  doc.text('Effectuez votre virement avec la référence de commande en objet.', M + 6, y);
+  y += 6;
+  doc.setFontSize(8.5);
+  doc.setTextColor(...noir);
+  const ribData = [
+    ['Bénéficiaire', 'BOTH EQUIPMNT'],
+    ['IBAN', 'FR76 1451 8292 6705 3640 9504 091'],
+    ['BIC', 'FTNOFRP1XXX'],
+    ['Référence', order.ref]
+  ];
+  ribData.forEach(([label, value]) => {
+    doc.setFont('helvetica','normal');
+    doc.setTextColor(...gris);
+    doc.text(label, M + 6, y);
+    doc.setFont('helvetica','bold');
+    doc.setTextColor(...noir);
+    doc.text(value, M + 42, y);
+    y += 5;
+  });
+
+  // ─── PIED DE PAGE ───
+  const footY = 285;
+  doc.setDrawColor(230,230,230);
+  doc.setLineWidth(0.2);
+  doc.line(M, footY - 4, W - M, footY - 4);
+  doc.setFontSize(7);
+  doc.setFont('helvetica','normal');
+  doc.setTextColor(...gris);
+  doc.text('BOTH EQUIPMNT — contact@bothequipmnt.com — bothequipmnt.com', W/2, footY, { align:'center' });
+
+  // Télécharger
+  doc.save(`Facture_${order.ref}.pdf`);
+}
+
+function fmtPDF(n){ return n.toFixed(2).replace('.',',') + ' \u20AC'; }
 
 // ============================================================
 // DEMANDES
