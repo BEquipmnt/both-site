@@ -40,12 +40,15 @@ async function airtableRequest(table, options = {}) {
 // ============================================================
 // HELPER: Fetch all records with pagination
 // ============================================================
-async function airtableRequestAll(table) {
+async function airtableRequestAll(table, filterFormula) {
   let allRecords = [];
   let offset = null;
   do {
     let url = `${AIRTABLE_API}/${BASE_ID}/${table}`;
-    if (offset) url += `?offset=${offset}`;
+    const qs = [];
+    if (filterFormula) qs.push(`filterByFormula=${encodeURIComponent(filterFormula)}`);
+    if (offset) qs.push(`offset=${offset}`);
+    if (qs.length) url += '?' + qs.join('&');
     const response = await fetch(url, {
       headers: {
         'Authorization': `Bearer ${AIRTABLE_TOKEN}`,
@@ -294,23 +297,41 @@ async function getOrderDetail(orderId) {
     const commande = await airtableRequest(`${TABLE_COMMANDES}/${orderId}`);
     if (!commande || !commande.fields) return { error: 'Commande introuvable' };
 
-    // Récupérer club info
+    // Récupérer club info et lignes en parallèle
     const clubLink = commande.fields['Club'];
     const clubId = clubLink ? clubLink[0] : null;
-    let clubInfo = { nom: '—', email: '' };
-    if (clubId) {
-      try {
-        const clubRec = await airtableRequest(`${TABLE_CLUBS}/${clubId}`);
-        clubInfo = { nom: clubRec.fields['Nom'] || '', email: clubRec.fields['email'] || '' };
-      } catch (e) { /* ignore */ }
-    }
+    const lignesIds = commande.fields['Lignes'];
+    const ref = commande.fields['Référence'] || '';
 
-    // Récupérer les lignes de cette commande
-    const allLignes = await airtableRequestAll(TABLE_LIGNES);
-    const lignes = allLignes.filter(r => {
-      const cmdLink = r.fields['Commande'];
-      return cmdLink && cmdLink[0] === orderId;
-    });
+    const [clubInfo, lignes] = await Promise.all([
+      // Club info
+      (async () => {
+        if (!clubId) return { nom: '—', email: '' };
+        try {
+          const clubRec = await airtableRequest(`${TABLE_CLUBS}/${clubId}`);
+          return { nom: clubRec.fields['Nom'] || '', email: clubRec.fields['email'] || '' };
+        } catch (e) { return { nom: '—', email: '' }; }
+      })(),
+      // Lignes de commande
+      (async () => {
+        if (Array.isArray(lignesIds) && lignesIds.length) {
+          // Reverse link disponible — récupérer chaque ligne par ID (rapide)
+          return (await Promise.all(lignesIds.map(id =>
+            airtableRequest(`${TABLE_LIGNES}/${id}`).catch(() => null)
+          ))).filter(Boolean);
+        } else if (ref) {
+          // Filtrer par Référence de la commande (display value du linked record)
+          return await airtableRequestAll(TABLE_LIGNES, `FIND("${ref}", {Commande}&"")`);
+        } else {
+          // Dernier recours — tout charger et filtrer
+          const all = await airtableRequestAll(TABLE_LIGNES);
+          return all.filter(r => {
+            const cmdLink = r.fields['Commande'];
+            return cmdLink && cmdLink[0] === orderId;
+          });
+        }
+      })()
+    ]);
 
     // Récupérer les produits référencés (en parallèle)
     const productIds = [...new Set(lignes.map(l => l.fields['Produit'] ? l.fields['Produit'][0] : null).filter(Boolean))];
