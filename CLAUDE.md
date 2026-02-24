@@ -63,6 +63,8 @@ Tables Airtable (IDs hardcodes) :
 | `getClub` | `email` | Auth par email (champ unique ou liste separee par virgules) |
 | `getCatalogue` | `clubId`, `clubNom` | Produits visibles pour le club + `dejaCommande` par produit |
 | `getOrders` | `clubId` | Historique commandes du club |
+| `getAllOrders` | — | Toutes les commandes (admin only) |
+| `getOrderDetail` | `orderId` | Detail commande + lignes (admin, pour facture PDF) |
 | `getDemandes` | `clubId` | Demandes/reclamations du club |
 
 **POST :**
@@ -72,7 +74,7 @@ Tables Airtable (IDs hardcodes) :
 | `createDemande` | `{ clubId, objet, message }` | Cree une demande |
 
 Helpers :
-- `airtableRequestAll(table)` : pagination automatique (offset) pour recuperer tous les records
+- `airtableRequestAll(table, filterFormula?)` : pagination automatique (offset) pour recuperer tous les records, avec filtre optionnel `filterByFormula`
 - `getDejaCommande(clubId)` : somme des quantites deja commandees par produit
 
 ### notion-api.js (`/.netlify/functions/notion-api`)
@@ -96,7 +98,7 @@ Login par email (pas de mot de passe). L'email est cherche dans la table Clubs (
 ### State global `S`
 ```js
 const S = {
-  club: null,           // { id, nom, email, logoClub, minCommande, activeMin }
+  club: null,           // { id, nom, email, logoClub, minCommande, activeMin, admin, fraisLivraison }
   products: [],         // catalogue charge depuis Airtable
   cart: [],             // items du panier en cours
   orders: [],           // historique commandes
@@ -131,12 +133,18 @@ Quand active : bouton "Personnaliser" par taille, overlay modale avec champs nom
 Au panier : chaque piece personnalisee = 1 ligne panier separee (quantite 1).
 
 ### Flux de commande
-1. Login email → `getClub`
+1. Login email → `getClub` (enregistre la derniere connexion)
 2. Catalogue → `getCatalogue` (inclut `dejaCommande`)
 3. Modal produit → choix tailles/quantites + perso optionnelle
 4. Ajout panier → validation min/max
 5. Validation commande → `createOrder` (cree Commande + Lignes Airtable)
 6. Confirmation → affiche ref + coordonnees bancaires (IBAN/BIC) pour virement
+
+### Frais de livraison
+Champ `Frais Livraison` sur la table Clubs. Ajoutes automatiquement au total de la commande si > 0.
+
+### Facturation (admin)
+Onglet visible uniquement pour les clubs avec le flag `Admin`. Affiche toutes les commandes de tous les clubs. Bouton "Facture" genere un PDF cote client avec jsPDF (v3.x, CDN cdnjs). Le PDF inclut : en-tete BOTH EQUIPMNT, detail des lignes, sous-total, frais de livraison, total, coordonnees bancaires.
 
 ## Site vitrine (index.html)
 
@@ -189,6 +197,7 @@ npx netlify-cli dev
 - La variable CSS `--red` est en realite du jaune/or (#ffd700), pas du rouge
 - Le champ `personnalisable` dans le JS correspond au champ Airtable `Personnalisation`
 - Les images produits peuvent etre une URL unique ou une liste separee par virgules
-- `airtableRequestAll()` gere la pagination Airtable (max 100 records par requete, utilise `offset`)
+- `airtableRequestAll()` gere la pagination Airtable (max 100 records par requete, utilise `offset`), supporte `filterByFormula` optionnel
+- jsPDF est charge depuis cdnjs (v3.x) — si le CDN retire la version, mettre a jour le lien dans `vestiaire.html`
 - Le formulaire contact est un Netlify Form (soumis en POST sur `/`)
 - Pas de base de donnees propre — tout est dans Airtable et Notion
