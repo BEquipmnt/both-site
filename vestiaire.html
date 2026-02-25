@@ -1084,12 +1084,16 @@ async function validateOrder(){
   // Envoi en arrière-plan
   apiPost('createOrder',payload).then(res=>{
     _orderSubmitting=false;
-    if(!res.success){toast('Attention : erreur lors de l\'enregistrement. Contactez-nous avec la réf '+orderRef,6000);}
-    else if(document.getElementById('section-commandes').classList.contains('active'))loadOrders();
+    if(res.success){
+      toast('✓ Commande enregistrée !');
+      if(document.getElementById('section-commandes').classList.contains('active'))loadOrders();
+    }else{
+      toast('⚠️ Problème d\'enregistrement — vérifiez dans Mes Commandes ou contactez-nous (réf '+orderRef+')',8000);
+    }
   }).catch(e=>{
     console.error(e);
     _orderSubmitting=false;
-    toast('Attention : erreur réseau. Vérifiez vos commandes ou contactez-nous (réf '+orderRef+')',6000);
+    toast('⚠️ Délai dépassé — la commande est probablement enregistrée. Vérifiez dans Mes Commandes.',8000);
   });
 }
 
