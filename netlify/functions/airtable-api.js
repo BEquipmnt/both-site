@@ -437,8 +437,7 @@ async function createOrder(payload) {
           'Statut': '🟡 EN ATTENTE DE PAIEMENT',
           'Vu': '❌',
           'Total': payload.total,
-          'Nb Articles': totalArticles,
-          'Frais Livraison': payload.fraisLivraison || 0
+          'Nb Articles': totalArticles
         }
       })
     });
