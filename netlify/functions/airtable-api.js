@@ -38,6 +38,22 @@ async function airtableRequest(table, options = {}) {
 }
 
 // ============================================================
+// HELPER: Batch create records (max 10 per request, Airtable limit)
+// ============================================================
+async function airtableBatchCreate(table, records) {
+  const results = [];
+  for (let i = 0; i < records.length; i += 10) {
+    const batch = records.slice(i, i + 10);
+    const data = await airtableRequest(table, {
+      method: 'POST',
+      body: JSON.stringify({ records: batch })
+    });
+    results.push(...(data.records || []));
+  }
+  return results;
+}
+
+// ============================================================
 // HELPER: Fetch all records with pagination
 // ============================================================
 async function airtableRequestAll(table, filterFormula) {
@@ -364,6 +380,7 @@ async function getOrderDetail(orderId) {
         total: commande.fields['Total'] || 0,
         nbArticles: commande.fields['Nb Articles'] || 0,
         statut: commande.fields['Statut'] || '',
+        fraisLivraison: parseFloat(commande.fields['Frais Livraison']) || 0,
         clubNom: clubInfo.nom,
         clubEmail: clubInfo.email
       },
@@ -395,31 +412,27 @@ async function createOrder(payload) {
           'Statut': '🟡 EN ATTENTE DE PAIEMENT',
           'Vu': '❌',
           'Total': payload.total,
-          'Nb Articles': totalArticles
+          'Nb Articles': totalArticles,
+          'Frais Livraison': payload.fraisLivraison || 0
         }
       })
     });
 
     const commandeId = commandeData.id;
 
-    // Créer les lignes de commande
-    const lignesPromises = payload.lignes.map(ligne => {
-      return airtableRequest(TABLE_LIGNES, {
-        method: 'POST',
-        body: JSON.stringify({
-          fields: {
-            'Commande': [commandeId],
-            'Produit': [ligne.productId],
-            'Taille': ligne.taille,
-            'Quantité': ligne.quantite,
-            'Nom Personnalisation': ligne.nomPerso || '',
-            'Numéro Personnalisation': ligne.numPerso || ''
-          }
-        })
-      });
-    });
+    // Créer les lignes en batch (10 par requête — limite Airtable)
+    const lignesRecords = payload.lignes.map(ligne => ({
+      fields: {
+        'Commande': [commandeId],
+        'Produit': [ligne.productId],
+        'Taille': ligne.taille,
+        'Quantité': ligne.quantite,
+        'Nom Personnalisation': ligne.nomPerso || '',
+        'Numéro Personnalisation': ligne.numPerso || ''
+      }
+    }));
 
-    await Promise.all(lignesPromises);
+    await airtableBatchCreate(TABLE_LIGNES, lignesRecords);
 
     return {
       success: true,
@@ -427,9 +440,9 @@ async function createOrder(payload) {
     };
   } catch (error) {
     console.error('createOrder error:', error);
-    return { 
-      success: false, 
-      error: error.message 
+    return {
+      success: false,
+      error: error.message
     };
   }
 }

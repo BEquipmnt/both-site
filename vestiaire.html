@@ -658,6 +658,7 @@ img{ max-width:100%; display:block; }
 <script>
 const API = "/.netlify/functions/airtable-api";
 const S = { club:null, products:[], cart:[], orders:[], demandes:[], currentProduct:null, qty:1, persoData:{}, carouselIndex:0, carouselTotal:0 };
+let _orderSubmitting = false;
 
 function toast(msg, dur=2800){ const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),dur); }
 function fmt(n){ return n.toFixed(2).replace('.',',')+' €'; }
@@ -995,7 +996,7 @@ function updateCartUI(){
 function toggleCart(){document.getElementById('cart-drawer').classList.toggle('open');document.getElementById('cart-backdrop').classList.toggle('active');}
 
 async function validateOrder(){
-  if(!S.cart.length)return;
+  if(!S.cart.length || _orderSubmitting)return;
   // Vérifier les minimums par groupe stock
   const groupes = {};
   S.cart.forEach(item => {
@@ -1012,14 +1013,16 @@ async function validateOrder(){
       return;
     }
   }
-  const btn=document.getElementById('btn-validate');btn.disabled=true;btn.textContent='Envoi...';
+  _orderSubmitting=true;
+  const btn=document.getElementById('btn-validate');btn.disabled=true;btn.textContent='Envoi en cours...';
   try{
     const fraisLiv=(S.club&&S.club.fraisLivraison)?S.club.fraisLivraison:0;
     const sousTotal=S.cart.reduce((s,i)=>s+(i.prix*i.quantite),0);
-    const res=await apiPost('createOrder',{clubId:S.club.id,clubNom:S.club.nom,lignes:S.cart.map(i=>({productId:i.productId,nom:i.nom,prix:i.prix,taille:i.taille,nomPerso:i.nomPerso||'',numPerso:i.numPerso||'',quantite:i.quantite})),total:sousTotal+fraisLiv});
+    const res=await apiPost('createOrder',{clubId:S.club.id,clubNom:S.club.nom,lignes:S.cart.map(i=>({productId:i.productId,nom:i.nom,prix:i.prix,taille:i.taille,nomPerso:i.nomPerso||'',numPerso:i.numPerso||'',quantite:i.quantite})),total:sousTotal+fraisLiv,fraisLivraison:fraisLiv});
     if(res.success){const ref=res.orderRef||'CMD-'+Date.now();showOrderConfirmation(ref,S.cart,sousTotal,fraisLiv);S.cart=[];updateCartUI();toggleCart();if(document.getElementById('section-commandes').classList.contains('active'))loadOrders();}
-    else{toast('Erreur. Réessayez.');}
-  }catch(e){console.error(e);toast('Erreur réseau.');}
+    else{toast('Erreur lors de la commande. Veuillez patienter puis réessayer.');}
+  }catch(e){console.error(e);toast('Erreur réseau. Veuillez patienter avant de réessayer.');}
+  _orderSubmitting=false;
   btn.disabled=false;btn.textContent='Valider la commande';
 }
 
@@ -1139,7 +1142,7 @@ function generateInvoicePDF(order, lignes){
 
   // TOTAUX
   const total=order.total;
-  const fraisLiv=Math.max(0, total-sousTotal);
+  const fraisLiv=order.fraisLivraison || 0;
   const tX=W-MG-55;
   doc.setFontSize(9);
   doc.setTextColor(...gris); doc.text('Sous-total',tX,y);
