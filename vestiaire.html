@@ -1015,15 +1015,23 @@ async function validateOrder(){
   }
   _orderSubmitting=true;
   const btn=document.getElementById('btn-validate');btn.disabled=true;btn.textContent='Envoi en cours...';
+  // Générer la référence côté client (idempotence : si retry, même ref = pas de doublon)
+  const clubName=(S.club.nom||'CLUB').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  const orderRef=`CMD-${clubName}-${Date.now().toString().slice(-6)}`;
   try{
     const fraisLiv=(S.club&&S.club.fraisLivraison)?S.club.fraisLivraison:0;
     const sousTotal=S.cart.reduce((s,i)=>s+(i.prix*i.quantite),0);
-    const res=await apiPost('createOrder',{clubId:S.club.id,clubNom:S.club.nom,lignes:S.cart.map(i=>({productId:i.productId,nom:i.nom,prix:i.prix,taille:i.taille,nomPerso:i.nomPerso||'',numPerso:i.numPerso||'',quantite:i.quantite})),total:sousTotal+fraisLiv,fraisLivraison:fraisLiv});
-    if(res.success){const ref=res.orderRef||'CMD-'+Date.now();showOrderConfirmation(ref,S.cart,sousTotal,fraisLiv);S.cart=[];updateCartUI();toggleCart();if(document.getElementById('section-commandes').classList.contains('active'))loadOrders();}
-    else{toast('Erreur lors de la commande. Veuillez patienter puis réessayer.');}
-  }catch(e){console.error(e);toast('Erreur réseau. Veuillez patienter avant de réessayer.');}
-  _orderSubmitting=false;
-  btn.disabled=false;btn.textContent='Valider la commande';
+    const res=await apiPost('createOrder',{clubId:S.club.id,clubNom:S.club.nom,orderRef,lignes:S.cart.map(i=>({productId:i.productId,nom:i.nom,prix:i.prix,taille:i.taille,nomPerso:i.nomPerso||'',numPerso:i.numPerso||'',quantite:i.quantite})),total:sousTotal+fraisLiv,fraisLivraison:fraisLiv});
+    if(res.success){showOrderConfirmation(res.orderRef||orderRef,S.cart,sousTotal,fraisLiv);S.cart=[];updateCartUI();toggleCart();if(document.getElementById('section-commandes').classList.contains('active'))loadOrders();_orderSubmitting=false;btn.textContent='Valider la commande';}
+    else{toast('Erreur lors de la commande. Veuillez patienter puis réessayer.');_orderSubmitting=false;btn.disabled=false;btn.textContent='Valider la commande';}
+  }catch(e){
+    console.error(e);
+    // Erreur réseau/timeout : la commande est peut-être en cours de création
+    // Garder le bouton bloqué et demander de vérifier
+    toast('Erreur réseau. Vérifiez vos commandes avant de réessayer.',5000);
+    btn.textContent='Vérifiez vos commandes';
+    setTimeout(()=>{_orderSubmitting=false;btn.disabled=false;btn.textContent='Valider la commande';},10000);
+  }
 }
 
 function showOrderConfirmation(ref,cart,sousTotal,fraisLiv){

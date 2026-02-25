@@ -397,9 +397,15 @@ async function getOrderDetail(orderId) {
 // ============================================================
 async function createOrder(payload) {
   try {
-    const clubName = (payload.clubNom || 'CLUB').toUpperCase().replace(/[^A-Z0-9]/g, '');
-    const shortId = Date.now().toString().slice(-6);
-    const ref = `CMD-${clubName}-${shortId}`;
+    // Référence générée côté client (idempotence) ou serveur (fallback)
+    const ref = payload.orderRef || `CMD-${(payload.clubNom || 'CLUB').toUpperCase().replace(/[^A-Z0-9]/g, '')}-${Date.now().toString().slice(-6)}`;
+
+    // Vérifier si cette commande existe déjà (protection doublon)
+    const existing = await airtableRequestAll(TABLE_COMMANDES, `{Référence}="${ref}"`);
+    if (existing.length > 0) {
+      return { success: true, orderRef: ref, duplicate: true };
+    }
+
     const totalArticles = payload.lignes.reduce((sum, l) => sum + l.quantite, 0);
 
     // Créer la commande
