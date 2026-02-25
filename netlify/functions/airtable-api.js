@@ -19,22 +19,33 @@ const TABLE_DEMANDES = process.env.AIRTABLE_TABLE_DEMANDES || '';
 // ============================================================
 async function airtableRequest(table, options = {}) {
   const url = `${AIRTABLE_API}/${BASE_ID}/${table}`;
-  
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      'Authorization': `Bearer ${AIRTABLE_TOKEN}`,
-      'Content-Type': 'application/json',
-      ...options.headers
+  const MAX_RETRIES = 3;
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        'Authorization': `Bearer ${AIRTABLE_TOKEN}`,
+        'Content-Type': 'application/json',
+        ...options.headers
+      }
+    });
+
+    // Retry on rate limit (429)
+    if (response.status === 429 && attempt < MAX_RETRIES) {
+      const wait = (attempt + 1) * 1500; // 1.5s, 3s, 4.5s
+      console.log(`Rate limited, retry ${attempt + 1}/${MAX_RETRIES} in ${wait}ms`);
+      await new Promise(r => setTimeout(r, wait));
+      continue;
     }
-  });
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Airtable error: ${error}`);
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Airtable error ${response.status}: ${error}`);
+    }
+
+    return response.json();
   }
-
-  return response.json();
 }
 
 // ============================================================
@@ -406,18 +417,17 @@ async function getOrderDetail(orderId) {
 // ============================================================
 async function createOrder(payload) {
   try {
-    // Référence générée côté client (idempotence) ou serveur (fallback)
     const ref = payload.orderRef || `CMD-${(payload.clubNom || 'CLUB').toUpperCase().replace(/[^A-Z0-9]/g, '')}-${Date.now().toString().slice(-6)}`;
 
     // Vérifier si cette commande existe déjà (protection doublon)
     const existing = await airtableRequestAll(TABLE_COMMANDES, `{Référence}="${ref}"`);
     if (existing.length > 0) {
-      return { success: true, orderRef: ref, duplicate: true };
+      return { success: true, orderRef: ref, commandeId: existing[0].id, duplicate: true };
     }
 
-    const totalArticles = payload.lignes.reduce((sum, l) => sum + l.quantite, 0);
+    const totalArticles = payload.nbArticles || (payload.lignes ? payload.lignes.reduce((sum, l) => sum + l.quantite, 0) : 0);
 
-    // Créer la commande
+    // Créer la commande (rapide — 1 seul appel Airtable)
     const commandeData = await airtableRequest(TABLE_COMMANDES, {
       method: 'POST',
       body: JSON.stringify({
@@ -435,8 +445,45 @@ async function createOrder(payload) {
 
     const commandeId = commandeData.id;
 
-    // Créer les lignes en batch (10 par requête — limite Airtable)
-    const lignesRecords = payload.lignes.map(ligne => ({
+    // Si des lignes sont incluses (petites commandes ou legacy), les créer
+    // En cas d'erreur lignes, la commande reste créée
+    if (payload.lignes && payload.lignes.length > 0) {
+      try {
+        const lignesRecords = payload.lignes.map(ligne => ({
+          fields: {
+            'Commande': [commandeId],
+            'Produit': [ligne.productId],
+            'Taille': ligne.taille,
+            'Quantité': ligne.quantite,
+            'Nom Personnalisation': ligne.nomPerso || '',
+            'Numéro Personnalisation': ligne.numPerso || ''
+          }
+        }));
+        await airtableBatchCreate(TABLE_LIGNES, lignesRecords);
+      } catch (lignesErr) {
+        console.error('Lignes creation error (commande créée OK):', lignesErr);
+        return { success: true, orderRef: ref, commandeId, lignesError: true };
+      }
+    }
+
+    return { success: true, orderRef: ref, commandeId };
+  } catch (error) {
+    console.error('createOrder error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// ============================================================
+// CREATE LIGNES (envoi de lignes par chunks séparés)
+// ============================================================
+async function createLignes(payload) {
+  try {
+    const { commandeId, lignes } = payload;
+    if (!commandeId || !Array.isArray(lignes) || !lignes.length) {
+      return { success: false, error: 'commandeId et lignes requis' };
+    }
+
+    const lignesRecords = lignes.map(ligne => ({
       fields: {
         'Commande': [commandeId],
         'Produit': [ligne.productId],
@@ -447,18 +494,11 @@ async function createOrder(payload) {
       }
     }));
 
-    await airtableBatchCreate(TABLE_LIGNES, lignesRecords);
-
-    return {
-      success: true,
-      orderRef: ref
-    };
+    const results = await airtableBatchCreate(TABLE_LIGNES, lignesRecords);
+    return { success: true, created: results.length };
   } catch (error) {
-    console.error('createOrder error:', error);
-    return {
-      success: false,
-      error: error.message
-    };
+    console.error('createLignes error:', error);
+    return { success: false, error: error.message };
   }
 }
 
@@ -577,6 +617,9 @@ exports.handler = async (event) => {
       switch (action) {
         case 'createOrder':
           result = await createOrder(payload);
+          break;
+        case 'createLignes':
+          result = await createLignes(payload);
           break;
         case 'createDemande':
           result = await createDemande(payload);
