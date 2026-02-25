@@ -1076,25 +1076,51 @@ async function validateOrder(){
   const fraisLiv=(S.club&&S.club.fraisLivraison)?S.club.fraisLivraison:0;
   const sousTotal=S.cart.reduce((s,i)=>s+(i.prix*i.quantite),0);
   const cartSnapshot=[...S.cart];
-  const payload={clubId:S.club.id,clubNom:S.club.nom,orderRef,lignes:S.cart.map(i=>({productId:i.productId,nom:i.nom,prix:i.prix,taille:i.taille,nomPerso:i.nomPerso||'',numPerso:i.numPerso||'',quantite:i.quantite})),total:sousTotal+fraisLiv,fraisLivraison:fraisLiv};
+  const allLignes=S.cart.map(i=>({productId:i.productId,nom:i.nom,prix:i.prix,taille:i.taille,nomPerso:i.nomPerso||'',numPerso:i.numPerso||'',quantite:i.quantite}));
+  const nbArticles=S.cart.reduce((s,i)=>s+i.quantite,0);
   // Confirmation immédiate — l'envoi continue en arrière-plan
   showOrderConfirmation(orderRef,cartSnapshot,sousTotal,fraisLiv);
   S.cart=[];updateCartUI();toggleCart();
-  btn.disabled=false;btn.textContent='Valider la commande';
-  // Envoi en arrière-plan
-  apiPost('createOrder',payload).then(res=>{
-    _orderSubmitting=false;
-    if(res.success){
-      toast('✓ Commande enregistrée !');
+  // Envoi en arrière-plan : 2 étapes (commande puis lignes en chunks)
+  (async()=>{
+    try{
+      // Étape 1 : créer la commande (rapide — 1 seul appel Airtable)
+      btn.textContent='Création commande...';
+      const res=await apiPost('createOrder',{clubId:S.club.id,clubNom:S.club.nom,orderRef,total:sousTotal+fraisLiv,fraisLivraison:fraisLiv,nbArticles});
+      if(!res.success){
+        toast('⚠️ Erreur création commande — contactez-nous (réf '+orderRef+')',8000);
+        _orderSubmitting=false;btn.disabled=false;btn.textContent='Valider la commande';
+        return;
+      }
+      const commandeId=res.commandeId;
+      // Étape 2 : envoyer les lignes en chunks de 50
+      const CHUNK=50;
+      const chunks=[];
+      for(let i=0;i<allLignes.length;i+=CHUNK)chunks.push(allLignes.slice(i,i+CHUNK));
+      let totalCreated=0;
+      for(let i=0;i<chunks.length;i++){
+        btn.textContent=`Envoi articles ${i+1}/${chunks.length}...`;
+        try{
+          const lr=await apiPost('createLignes',{commandeId,lignes:chunks[i]});
+          if(lr.success)totalCreated+=lr.created;
+        }catch(chunkErr){
+          console.error('Chunk '+i+' error:',chunkErr);
+          // Retry once after 2s
+          await new Promise(r=>setTimeout(r,2000));
+          try{
+            const lr2=await apiPost('createLignes',{commandeId,lignes:chunks[i]});
+            if(lr2.success)totalCreated+=lr2.created;
+          }catch(e2){console.error('Chunk '+i+' retry failed:',e2);}
+        }
+      }
+      toast('✓ Commande enregistrée ('+totalCreated+' articles) !');
       if(document.getElementById('section-commandes').classList.contains('active'))loadOrders();
-    }else{
-      toast('⚠️ Problème d\'enregistrement — vérifiez dans Mes Commandes ou contactez-nous (réf '+orderRef+')',8000);
+    }catch(e){
+      console.error(e);
+      toast('⚠️ Problème — vérifiez dans Mes Commandes (réf '+orderRef+')',8000);
     }
-  }).catch(e=>{
-    console.error(e);
-    _orderSubmitting=false;
-    toast('⚠️ Délai dépassé — la commande est probablement enregistrée. Vérifiez dans Mes Commandes.',8000);
-  });
+    _orderSubmitting=false;btn.disabled=false;btn.textContent='Valider la commande';
+  })();
 }
 
 function showOrderConfirmation(ref,cart,sousTotal,fraisLiv){
