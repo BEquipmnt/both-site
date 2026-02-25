@@ -247,6 +247,7 @@ async function getOrders(clubId) {
         return clubLink && clubLink[0] === clubId;
       })
       .map(r => ({
+        id: r.id,
         ref: r.fields['Référence'] || '',
         date: r.fields['Date'] ? new Date(r.fields['Date']).toLocaleDateString('fr-FR') : '',
         nbArticles: r.fields['Nb Articles'] || 0,

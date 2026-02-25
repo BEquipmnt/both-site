@@ -355,6 +355,50 @@ img{ max-width:100%; display:block; }
 }
 .btn-facture:hover{ background:var(--black); color:var(--white); }
 .btn-facture:disabled{ opacity:.4; cursor:wait; }
+.orders-table tbody tr{ cursor:pointer; transition:background var(--ease); }
+.orders-table tbody tr:hover{ background:#f5f5f5; }
+
+/* ===== MODAL DETAIL COMMANDE ===== */
+.order-detail-backdrop{
+  display:none; position:fixed; inset:0; background:rgba(10,10,10,.52); z-index:300;
+  align-items:center; justify-content:center; padding:1rem;
+}
+.order-detail-backdrop.active{ display:flex; }
+.order-detail-modal{
+  background:var(--white); width:100%; max-width:600px; max-height:90vh;
+  overflow-y:auto; border-radius:8px; position:relative;
+}
+.order-detail-close{
+  position:absolute; top:.6rem; right:.6rem; z-index:5;
+  width:32px; height:32px; border-radius:50%; border:none;
+  background:rgba(250,250,248,.95); font-size:1rem; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+}
+.order-detail-header{
+  padding:1.5rem 1.2rem; border-bottom:1px solid #ddd;
+}
+.order-detail-header h3{
+  font-family:var(--display); font-size:1.3rem; font-weight:700;
+  text-transform:uppercase; letter-spacing:.04em; margin-bottom:.3rem;
+}
+.order-detail-meta{ font-size:.78rem; color:var(--grey-400); line-height:1.8; }
+.order-detail-body{ padding:1.2rem; }
+.order-detail-lignes{ width:100%; border-collapse:collapse; font-size:.78rem; }
+.order-detail-lignes th{
+  text-align:left; font-size:.5rem; letter-spacing:.15em; text-transform:uppercase;
+  color:var(--grey-400); font-weight:600; padding:.5rem .3rem; border-bottom:2px solid #ddd;
+}
+.order-detail-lignes td{
+  padding:.5rem .3rem; border-bottom:1px solid #eee; font-size:.78rem;
+}
+.order-detail-lignes td:first-child{ font-weight:600; }
+.order-detail-perso{ font-size:.65rem; color:var(--grey-400); margin-top:.15rem; }
+.order-detail-totaux{
+  margin-top:1rem; padding-top:1rem; border-top:2px solid #ddd;
+  display:flex; flex-direction:column; align-items:flex-end; gap:.3rem; font-size:.85rem;
+}
+.order-detail-totaux .total-line{ display:flex; gap:2rem; }
+.order-detail-totaux .total-line.grand-total{ font-weight:700; font-size:1rem; border-top:1px solid #ddd; padding-top:.5rem; }
 
 /* ===== DEMANDES ===== */
 .demande-form{ max-width:600px; margin-bottom:2.5rem; }
@@ -618,6 +662,18 @@ img{ max-width:100%; display:block; }
     <div class="cart-total-row" style="border-top:1px solid #ddd;padding-top:.5rem;margin-top:.3rem;"><span>Total</span><span id="cart-total">0,00 €</span></div>
     <div class="cart-min-warn" id="cart-min-warn">⚠ Minimum non atteint. Il manque <strong id="min-rest">0,00 €</strong>.</div>
     <button class="btn-validate" id="btn-validate" onclick="validateOrder()">Valider la commande</button>
+  </div>
+</div>
+
+<!-- ===== ORDER DETAIL MODAL ===== -->
+<div class="order-detail-backdrop" id="order-detail-backdrop" onclick="if(event.target===this)closeOrderDetail()">
+  <div class="order-detail-modal">
+    <button class="order-detail-close" onclick="closeOrderDetail()">✕</button>
+    <div class="order-detail-header">
+      <h3 id="od-ref">—</h3>
+      <div class="order-detail-meta" id="od-meta"></div>
+    </div>
+    <div class="order-detail-body" id="od-body"><div class="spinner"></div></div>
   </div>
 </div>
 
@@ -1015,23 +1071,26 @@ async function validateOrder(){
   }
   _orderSubmitting=true;
   const btn=document.getElementById('btn-validate');btn.disabled=true;btn.textContent='Envoi en cours...';
-  // Générer la référence côté client (idempotence : si retry, même ref = pas de doublon)
   const clubName=(S.club.nom||'CLUB').toUpperCase().replace(/[^A-Z0-9]/g,'');
   const orderRef=`CMD-${clubName}-${Date.now().toString().slice(-6)}`;
-  try{
-    const fraisLiv=(S.club&&S.club.fraisLivraison)?S.club.fraisLivraison:0;
-    const sousTotal=S.cart.reduce((s,i)=>s+(i.prix*i.quantite),0);
-    const res=await apiPost('createOrder',{clubId:S.club.id,clubNom:S.club.nom,orderRef,lignes:S.cart.map(i=>({productId:i.productId,nom:i.nom,prix:i.prix,taille:i.taille,nomPerso:i.nomPerso||'',numPerso:i.numPerso||'',quantite:i.quantite})),total:sousTotal+fraisLiv,fraisLivraison:fraisLiv});
-    if(res.success){showOrderConfirmation(res.orderRef||orderRef,S.cart,sousTotal,fraisLiv);S.cart=[];updateCartUI();toggleCart();if(document.getElementById('section-commandes').classList.contains('active'))loadOrders();_orderSubmitting=false;btn.textContent='Valider la commande';}
-    else{toast('Erreur lors de la commande. Veuillez patienter puis réessayer.');_orderSubmitting=false;btn.disabled=false;btn.textContent='Valider la commande';}
-  }catch(e){
+  const fraisLiv=(S.club&&S.club.fraisLivraison)?S.club.fraisLivraison:0;
+  const sousTotal=S.cart.reduce((s,i)=>s+(i.prix*i.quantite),0);
+  const cartSnapshot=[...S.cart];
+  const payload={clubId:S.club.id,clubNom:S.club.nom,orderRef,lignes:S.cart.map(i=>({productId:i.productId,nom:i.nom,prix:i.prix,taille:i.taille,nomPerso:i.nomPerso||'',numPerso:i.numPerso||'',quantite:i.quantite})),total:sousTotal+fraisLiv,fraisLivraison:fraisLiv};
+  // Confirmation immédiate — l'envoi continue en arrière-plan
+  showOrderConfirmation(orderRef,cartSnapshot,sousTotal,fraisLiv);
+  S.cart=[];updateCartUI();toggleCart();
+  btn.disabled=false;btn.textContent='Valider la commande';
+  // Envoi en arrière-plan
+  apiPost('createOrder',payload).then(res=>{
+    _orderSubmitting=false;
+    if(!res.success){toast('Attention : erreur lors de l\'enregistrement. Contactez-nous avec la réf '+orderRef,6000);}
+    else if(document.getElementById('section-commandes').classList.contains('active'))loadOrders();
+  }).catch(e=>{
     console.error(e);
-    // Erreur réseau/timeout : la commande est peut-être en cours de création
-    // Garder le bouton bloqué et demander de vérifier
-    toast('Erreur réseau. Vérifiez vos commandes avant de réessayer.',5000);
-    btn.textContent='Vérifiez vos commandes';
-    setTimeout(()=>{_orderSubmitting=false;btn.disabled=false;btn.textContent='Valider la commande';},10000);
-  }
+    _orderSubmitting=false;
+    toast('Attention : erreur réseau. Vérifiez vos commandes ou contactez-nous (réf '+orderRef+')',6000);
+  });
 }
 
 function showOrderConfirmation(ref,cart,sousTotal,fraisLiv){
@@ -1055,9 +1114,48 @@ async function loadOrders(){
     const res=await apiGet('getOrders',{clubId:S.club.id});S.orders=res.orders||[];
     if(!S.orders.length){wrap.innerHTML='<p style="color:var(--grey-400);padding:2rem;font-style:italic;">Aucune commande.</p>';return;}
     const bc=s=>{if(s.includes('ATTENTE'))return'badge-pending';if(s.includes('PRODUCTION'))return'badge-production';if(s.includes('LIVRÉE')||s.includes('LIVREE'))return'badge-delivered';return'badge-pending';};
-    wrap.innerHTML=`<table class="orders-table"><thead><tr><th>Réf.</th><th>Date</th><th>Articles</th><th>Total</th><th>Statut</th></tr></thead><tbody>${S.orders.map(o=>`<tr><td>${o.ref||'—'}</td><td>${o.date||'—'}</td><td>${o.nbArticles||'—'}</td><td>${fmt(parseFloat(o.total)||0)}</td><td><span class="badge ${bc(o.statut)}">${o.statut||'—'}</span></td></tr>`).join('')}</tbody></table>`;
+    wrap.innerHTML=`<table class="orders-table"><thead><tr><th>Réf.</th><th>Date</th><th>Articles</th><th>Total</th><th>Statut</th></tr></thead><tbody>${S.orders.map(o=>`<tr onclick="openOrderDetail('${o.id}')" title="Voir le détail"><td>${o.ref||'—'}</td><td>${o.date||'—'}</td><td>${o.nbArticles||'—'}</td><td>${fmt(parseFloat(o.total)||0)}</td><td><span class="badge ${bc(o.statut)}">${o.statut||'—'}</span></td></tr>`).join('')}</tbody></table>`;
   }catch(e){console.error(e);wrap.innerHTML='<p style="color:red;padding:2rem;">Erreur.</p>';}
 }
+
+// ============================================================
+// DETAIL COMMANDE (modal)
+// ============================================================
+async function openOrderDetail(orderId){
+  const backdrop=document.getElementById('order-detail-backdrop');
+  backdrop.classList.add('active');
+  document.getElementById('od-ref').textContent='Chargement...';
+  document.getElementById('od-meta').innerHTML='';
+  document.getElementById('od-body').innerHTML='<div class="spinner"></div>';
+  try{
+    const res=await apiGet('getOrderDetail',{orderId});
+    if(res.error){document.getElementById('od-body').innerHTML=`<p style="color:red;padding:1rem;">Erreur : ${res.error}</p>`;return;}
+    const o=res.order; const lignes=res.lignes||[];
+    const bc=s=>{if(s.includes('ATTENTE'))return'badge-pending';if(s.includes('PRODUCTION'))return'badge-production';if(s.includes('LIVRÉE')||s.includes('LIVREE'))return'badge-delivered';return'badge-pending';};
+    document.getElementById('od-ref').textContent=o.ref;
+    document.getElementById('od-meta').innerHTML=`<span class="badge ${bc(o.statut)}">${o.statut}</span><br>Date : ${o.date} · ${o.nbArticles} article${o.nbArticles>1?'s':''}`;
+    let sousTotal=0;
+    let html=`<table class="order-detail-lignes"><thead><tr><th>Produit</th><th>Taille</th><th>Qté</th><th>P.U.</th><th>Total</th></tr></thead><tbody>`;
+    lignes.forEach(l=>{
+      const lt=l.prixUnitaire*l.quantite; sousTotal+=lt;
+      let perso='';
+      if(l.nomPerso) perso+=l.nomPerso;
+      if(l.numPerso) perso+=(perso?' · ':'')+'#'+l.numPerso;
+      html+=`<tr><td>${l.produit}${perso?'<div class="order-detail-perso">'+perso+'</div>':''}</td><td>${l.taille}</td><td>${l.quantite}</td><td>${fmt(l.prixUnitaire)}</td><td>${fmt(lt)}</td></tr>`;
+    });
+    html+='</tbody></table>';
+    const fraisLiv=o.fraisLivraison||0;
+    html+='<div class="order-detail-totaux">';
+    if(fraisLiv>0){
+      html+=`<div class="total-line"><span>Sous-total</span><span>${fmt(sousTotal)}</span></div>`;
+      html+=`<div class="total-line"><span>Frais de livraison</span><span>${fmt(fraisLiv)}</span></div>`;
+    }
+    html+=`<div class="total-line grand-total"><span>Total</span><span>${fmt(o.total)}</span></div>`;
+    html+='</div>';
+    document.getElementById('od-body').innerHTML=html;
+  }catch(e){console.error(e);document.getElementById('od-body').innerHTML='<p style="color:red;padding:1rem;">Erreur de chargement.</p>';}
+}
+function closeOrderDetail(){document.getElementById('order-detail-backdrop').classList.remove('active');}
 
 // ============================================================
 // FACTURATION (admin only)
