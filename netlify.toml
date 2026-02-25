@@ -3,6 +3,10 @@
 
 [functions]
   node_bundler = "esbuild"
+  external_node_modules = []
+
+[functions."airtable-api"]
+  timeout = 26
 
 # Variables d'environnement (à configurer dans Netlify Dashboard > Site settings > Environment variables)
 # NOTION_KEY = ntn_...

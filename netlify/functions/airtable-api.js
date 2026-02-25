@@ -38,6 +38,22 @@ async function airtableRequest(table, options = {}) {
 }
 
 // ============================================================
+// HELPER: Batch create records (max 10 per request, Airtable limit)
+// ============================================================
+async function airtableBatchCreate(table, records) {
+  const results = [];
+  for (let i = 0; i < records.length; i += 10) {
+    const batch = records.slice(i, i + 10);
+    const data = await airtableRequest(table, {
+      method: 'POST',
+      body: JSON.stringify({ records: batch })
+    });
+    results.push(...(data.records || []));
+  }
+  return results;
+}
+
+// ============================================================
 // HELPER: Fetch all records with pagination
 // ============================================================
 async function airtableRequestAll(table, filterFormula) {
@@ -231,6 +247,7 @@ async function getOrders(clubId) {
         return clubLink && clubLink[0] === clubId;
       })
       .map(r => ({
+        id: r.id,
         ref: r.fields['Référence'] || '',
         date: r.fields['Date'] ? new Date(r.fields['Date']).toLocaleDateString('fr-FR') : '',
         nbArticles: r.fields['Nb Articles'] || 0,
@@ -364,6 +381,7 @@ async function getOrderDetail(orderId) {
         total: commande.fields['Total'] || 0,
         nbArticles: commande.fields['Nb Articles'] || 0,
         statut: commande.fields['Statut'] || '',
+        fraisLivraison: parseFloat(commande.fields['Frais Livraison']) || 0,
         clubNom: clubInfo.nom,
         clubEmail: clubInfo.email
       },
@@ -380,9 +398,15 @@ async function getOrderDetail(orderId) {
 // ============================================================
 async function createOrder(payload) {
   try {
-    const clubName = (payload.clubNom || 'CLUB').toUpperCase().replace(/[^A-Z0-9]/g, '');
-    const shortId = Date.now().toString().slice(-6);
-    const ref = `CMD-${clubName}-${shortId}`;
+    // Référence générée côté client (idempotence) ou serveur (fallback)
+    const ref = payload.orderRef || `CMD-${(payload.clubNom || 'CLUB').toUpperCase().replace(/[^A-Z0-9]/g, '')}-${Date.now().toString().slice(-6)}`;
+
+    // Vérifier si cette commande existe déjà (protection doublon)
+    const existing = await airtableRequestAll(TABLE_COMMANDES, `{Référence}="${ref}"`);
+    if (existing.length > 0) {
+      return { success: true, orderRef: ref, duplicate: true };
+    }
+
     const totalArticles = payload.lignes.reduce((sum, l) => sum + l.quantite, 0);
 
     // Créer la commande
@@ -395,31 +419,27 @@ async function createOrder(payload) {
           'Statut': '🟡 EN ATTENTE DE PAIEMENT',
           'Vu': '❌',
           'Total': payload.total,
-          'Nb Articles': totalArticles
+          'Nb Articles': totalArticles,
+          'Frais Livraison': payload.fraisLivraison || 0
         }
       })
     });
 
     const commandeId = commandeData.id;
 
-    // Créer les lignes de commande
-    const lignesPromises = payload.lignes.map(ligne => {
-      return airtableRequest(TABLE_LIGNES, {
-        method: 'POST',
-        body: JSON.stringify({
-          fields: {
-            'Commande': [commandeId],
-            'Produit': [ligne.productId],
-            'Taille': ligne.taille,
-            'Quantité': ligne.quantite,
-            'Nom Personnalisation': ligne.nomPerso || '',
-            'Numéro Personnalisation': ligne.numPerso || ''
-          }
-        })
-      });
-    });
+    // Créer les lignes en batch (10 par requête — limite Airtable)
+    const lignesRecords = payload.lignes.map(ligne => ({
+      fields: {
+        'Commande': [commandeId],
+        'Produit': [ligne.productId],
+        'Taille': ligne.taille,
+        'Quantité': ligne.quantite,
+        'Nom Personnalisation': ligne.nomPerso || '',
+        'Numéro Personnalisation': ligne.numPerso || ''
+      }
+    }));
 
-    await Promise.all(lignesPromises);
+    await airtableBatchCreate(TABLE_LIGNES, lignesRecords);
 
     return {
       success: true,
@@ -427,9 +447,9 @@ async function createOrder(payload) {
     };
   } catch (error) {
     console.error('createOrder error:', error);
-    return { 
-      success: false, 
-      error: error.message 
+    return {
+      success: false,
+      error: error.message
     };
   }
 }
