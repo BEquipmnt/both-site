@@ -42,13 +42,21 @@ async function airtableRequest(table, options = {}) {
 // ============================================================
 async function airtableBatchCreate(table, records) {
   const results = [];
+  const batches = [];
   for (let i = 0; i < records.length; i += 10) {
-    const batch = records.slice(i, i + 10);
-    const data = await airtableRequest(table, {
-      method: 'POST',
-      body: JSON.stringify({ records: batch })
-    });
-    results.push(...(data.records || []));
+    batches.push(records.slice(i, i + 10));
+  }
+  // Envoyer 5 batchs en parallèle (limite Airtable = 5 req/sec/base)
+  const PARALLEL = 5;
+  for (let i = 0; i < batches.length; i += PARALLEL) {
+    const group = batches.slice(i, i + PARALLEL);
+    const groupResults = await Promise.all(group.map(batch =>
+      airtableRequest(table, {
+        method: 'POST',
+        body: JSON.stringify({ records: batch })
+      })
+    ));
+    groupResults.forEach(data => results.push(...(data.records || [])));
   }
   return results;
 }
