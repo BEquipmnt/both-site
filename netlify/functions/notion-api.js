@@ -6,6 +6,7 @@ const NOTION_KEY = process.env.NOTION_KEY;
 const DB_ACTUALITES = process.env.NOTION_DB_ACTUALITES;
 const DB_PORTFOLIO = process.env.NOTION_DB_PORTFOLIO;
 const DB_PARTNERS = process.env.NOTION_DB_PARTNERS;
+const PAGE_VISION = process.env.NOTION_PAGE_VISION;
 
 const NOTION_API = 'https://api.notion.com/v1';
 const NOTION_VERSION = '2022-06-28';
@@ -242,6 +243,32 @@ function richTextToHtml(richText) {
   }).join('');
 }
 
+async function getVision() {
+  if (!PAGE_VISION) return { vision: null };
+  const page = await notionFetch(`/pages/${PAGE_VISION}`);
+  if (page.object === 'error') return { vision: null };
+
+  // Récupérer les blocs de la page
+  let allBlocks = [];
+  let cursor = undefined;
+  do {
+    const endpoint = `/blocks/${PAGE_VISION}/children?page_size=100${cursor ? '&start_cursor=' + cursor : ''}`;
+    const data = await notionFetch(endpoint);
+    allBlocks = allBlocks.concat(data.results || []);
+    cursor = data.has_more ? data.next_cursor : undefined;
+  } while (cursor);
+
+  const blocks = allBlocks.map(block => mapBlock(block)).filter(Boolean);
+
+  return {
+    vision: {
+      titre: getProp(page, 'Titre', 'title') || getProp(page, 'Name', 'title'),
+      bouton: getProp(page, 'Bouton', 'rich_text') || '',
+      blocks
+    }
+  };
+}
+
 async function getPartners() {
   const data = await notionFetch(`/databases/${DB_PARTNERS}/query`, {});
   const partners = (data.results || []).map(page => ({
@@ -268,6 +295,9 @@ exports.handler = async (event) => {
         break;
       case 'getProjectBlocks':
         result = await getProjectBlocks(params.id);
+        break;
+      case 'getVision':
+        result = await getVision();
         break;
       case 'getPartners':
         result = await getPartners();
