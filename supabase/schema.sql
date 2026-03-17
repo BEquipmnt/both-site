@@ -25,19 +25,41 @@ CREATE TABLE produits (
   id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   airtable_id     text UNIQUE,
   nom             text NOT NULL,
-  image_url       text DEFAULT '',
-  prix_vente_club numeric(10,2) DEFAULT 0,
-  tailles         text[] DEFAULT '{}',               -- ex: {'S','M','L','XL'}
-  personnalisation text DEFAULT 'Aucune',            -- 'Aucune', 'Nom', 'Numero', 'Nom + Numero'
-  type            text DEFAULT '',                   -- catégorie
-  description     text DEFAULT '',
-  min_quantite    integer DEFAULT 0,
-  max_quantite    integer DEFAULT 0,
-  groupe_stock    text DEFAULT '',                   -- ex: 'CAGOULE-01'
-  stock_groupe    integer DEFAULT 0,
   club            text DEFAULT '',                   -- nom du club (filtre catalogue)
+  type            text DEFAULT '',                   -- Performance, Lifestyle, Maillots, etc.
+  gamme           text DEFAULT '',                   -- T-shirts, Hoodie, Vestes, etc.
+  couleur         text DEFAULT '',
+  matiere         text DEFAULT '',                   -- Coton, Polyester
+  genre           text DEFAULT '',                   -- Unisex, Femmes, Enfants, Bébé
+  tailles         text[] DEFAULT '{}',               -- ex: {'S','M','L','XL'}
+  description     text DEFAULT '',
+
+  -- Fournisseur & Fabrication
+  lien_fournisseur text DEFAULT '',
+  impression       text DEFAULT '',                  -- nom du visuel/marquage
+  produit_asie     boolean DEFAULT false,
+
+  -- Prix & Coûts
+  prix_ht_textile   numeric(10,2) DEFAULT 0,
+  cout_impression   numeric(10,2) DEFAULT 0,
+  prix_vente_club   numeric(10,2) DEFAULT 0,
+  taux_impots       numeric(5,2) DEFAULT 0.20,
+
+  -- Vestiaire
+  image_url         text DEFAULT '',
   visible_vestiaire boolean DEFAULT true,
-  expire          boolean DEFAULT false,
+  personnalisation  text DEFAULT 'Aucune',           -- 'Aucune', 'Nom', 'Numero', 'Nom + Numero'
+  min_quantite      integer DEFAULT 0,
+  max_quantite      integer DEFAULT 0,
+  groupe_stock      text DEFAULT '',                 -- ex: 'CAGOULE-01'
+  stock_groupe      integer DEFAULT 0,
+  expire            boolean DEFAULT false,
+
+  -- Suivi
+  cout_fini         boolean DEFAULT false,
+  ajout_termine     boolean DEFAULT false,
+  ajout_vestiaire   boolean DEFAULT false,
+
   created_at      timestamptz DEFAULT now()
 );
 

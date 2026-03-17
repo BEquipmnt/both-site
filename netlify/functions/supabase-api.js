@@ -493,19 +493,32 @@ async function adminCreateProduit(payload) {
     }
     const result = await sbPost('produits', {
       nom: payload.nom || '',
-      image_url: payload.imageUrl || '',
-      prix_vente_club: parseFloat(payload.prix) || 0,
-      tailles,
-      personnalisation: payload.personnalisation || 'Aucune',
+      club: payload.club || '',
       type: payload.type || '',
+      gamme: payload.gamme || '',
+      couleur: payload.couleur || '',
+      matiere: payload.matiere || '',
+      genre: payload.genre || '',
+      tailles,
       description: payload.description || '',
+      lien_fournisseur: payload.lienFournisseur || '',
+      impression: payload.impression || '',
+      produit_asie: payload.produitAsie || false,
+      prix_ht_textile: parseFloat(payload.prixHtTextile) || 0,
+      cout_impression: parseFloat(payload.coutImpression) || 0,
+      prix_vente_club: parseFloat(payload.prixVenteClub) || 0,
+      taux_impots: parseFloat(payload.tauxImpots) || 0.20,
+      image_url: payload.imageUrl || '',
+      visible_vestiaire: payload.visibleVestiaire !== false,
+      personnalisation: payload.personnalisation || 'Aucune',
       min_quantite: parseInt(payload.minQuantite) || 0,
       max_quantite: parseInt(payload.maxQuantite) || 0,
       groupe_stock: payload.groupeStock || '',
       stock_groupe: parseInt(payload.stockGroupe) || 0,
-      club: payload.club || '',
-      visible_vestiaire: payload.visibleVestiaire !== false,
-      expire: payload.expire || false
+      expire: payload.expire || false,
+      cout_fini: payload.coutFini || false,
+      ajout_termine: payload.ajoutTermine || false,
+      ajout_vestiaire: payload.ajoutVestiaire || false
     });
     return { success: true, produit: result[0] };
   } catch (error) {
@@ -517,23 +530,36 @@ async function adminUpdateProduit(payload) {
   try {
     const data = {};
     if (payload.nom !== undefined) data.nom = payload.nom;
-    if (payload.imageUrl !== undefined) data.image_url = payload.imageUrl;
-    if (payload.prix !== undefined) data.prix_vente_club = parseFloat(payload.prix) || 0;
+    if (payload.club !== undefined) data.club = payload.club;
+    if (payload.type !== undefined) data.type = payload.type;
+    if (payload.gamme !== undefined) data.gamme = payload.gamme;
+    if (payload.couleur !== undefined) data.couleur = payload.couleur;
+    if (payload.matiere !== undefined) data.matiere = payload.matiere;
+    if (payload.genre !== undefined) data.genre = payload.genre;
     if (payload.tailles !== undefined) {
       let t = payload.tailles;
       if (typeof t === 'string') t = t.split(',').map(s => s.trim()).filter(Boolean);
       data.tailles = t;
     }
-    if (payload.personnalisation !== undefined) data.personnalisation = payload.personnalisation;
-    if (payload.type !== undefined) data.type = payload.type;
     if (payload.description !== undefined) data.description = payload.description;
+    if (payload.lienFournisseur !== undefined) data.lien_fournisseur = payload.lienFournisseur;
+    if (payload.impression !== undefined) data.impression = payload.impression;
+    if (payload.produitAsie !== undefined) data.produit_asie = payload.produitAsie;
+    if (payload.prixHtTextile !== undefined) data.prix_ht_textile = parseFloat(payload.prixHtTextile) || 0;
+    if (payload.coutImpression !== undefined) data.cout_impression = parseFloat(payload.coutImpression) || 0;
+    if (payload.prixVenteClub !== undefined) data.prix_vente_club = parseFloat(payload.prixVenteClub) || 0;
+    if (payload.tauxImpots !== undefined) data.taux_impots = parseFloat(payload.tauxImpots) || 0.20;
+    if (payload.imageUrl !== undefined) data.image_url = payload.imageUrl;
+    if (payload.visibleVestiaire !== undefined) data.visible_vestiaire = payload.visibleVestiaire;
+    if (payload.personnalisation !== undefined) data.personnalisation = payload.personnalisation;
     if (payload.minQuantite !== undefined) data.min_quantite = parseInt(payload.minQuantite) || 0;
     if (payload.maxQuantite !== undefined) data.max_quantite = parseInt(payload.maxQuantite) || 0;
     if (payload.groupeStock !== undefined) data.groupe_stock = payload.groupeStock;
     if (payload.stockGroupe !== undefined) data.stock_groupe = parseInt(payload.stockGroupe) || 0;
-    if (payload.club !== undefined) data.club = payload.club;
-    if (payload.visibleVestiaire !== undefined) data.visible_vestiaire = payload.visibleVestiaire;
     if (payload.expire !== undefined) data.expire = payload.expire;
+    if (payload.coutFini !== undefined) data.cout_fini = payload.coutFini;
+    if (payload.ajoutTermine !== undefined) data.ajout_termine = payload.ajoutTermine;
+    if (payload.ajoutVestiaire !== undefined) data.ajout_vestiaire = payload.ajoutVestiaire;
 
     await sbPatch('produits', `id=eq.${payload.id}`, data);
     return { success: true };
