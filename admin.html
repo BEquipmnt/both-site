@@ -251,7 +251,7 @@ tbody tr.clickable:hover{background:#e8e8e8}
           <select onchange="filterProduitsClub(this.value)" id="produits-club-filter">
             <option value="">Tous les clubs</option>
           </select>
-          <button class="btn btn-primary" onclick="openProduitModal()">+ Nouveau produit</button>
+          <button class="btn btn-primary" onclick="newProduit()">+ Nouveau produit</button>
         </div>
         <div style="overflow-x:auto">
           <table>
@@ -573,7 +573,11 @@ function loadSuivi(commandeId) {
 }
 
 function addSuiviForm(commandeId) {
+  // Éviter les doublons
+  var existing = document.getElementById('suivi-form');
+  if (existing) existing.remove();
   var el = document.getElementById('suivi-list');
+  if (!el) return;
   var form = '<div style="background:var(--grey-100);padding:1rem;border-radius:var(--radius);margin-top:.5rem" id="suivi-form">' +
     '<div class="form-grid">' +
     '<div class="form-row"><label>Étape</label><input id="suivi-etape" placeholder="Ex: Impression"></div>' +
@@ -581,8 +585,10 @@ function addSuiviForm(commandeId) {
     '<div class="form-row"><label>Date</label><input type="date" id="suivi-date" value="' + new Date().toISOString().slice(0, 10) + '"></div>' +
     '<div class="form-row"><label>Notes</label><input id="suivi-notes" placeholder="Optionnel"></div>' +
     '</div>' +
+    '<div style="display:flex;gap:.5rem;margin-top:.5rem">' +
     '<button class="btn btn-primary btn-sm" onclick="saveSuivi(\'' + commandeId + '\')">Ajouter</button>' +
-    '</div>';
+    '<button class="btn btn-outline btn-sm" onclick="document.getElementById(\'suivi-form\').remove()">Annuler</button>' +
+    '</div></div>';
   el.insertAdjacentHTML('afterend', form);
 }
 
@@ -762,9 +768,117 @@ function recalcPrix() {
   document.getElementById('f-marge-ap').value = margeAp.toFixed(2);
 }
 
-function openProduitModal(id) {
-  var p = id ? G.produits.find(function(x) { return x.id === id; }) : null;
-  var title = p ? 'Modifier le produit' : 'Nouveau produit';
+// ============================================================
+// TEMPLATES PRODUIT (bases réutilisables)
+// ============================================================
+function getTemplates() {
+  try { return JSON.parse(localStorage.getItem('produit_templates') || '[]'); } catch(e) { return []; }
+}
+function saveTemplates(arr) {
+  localStorage.setItem('produit_templates', JSON.stringify(arr));
+}
+function saveAsTemplate(id) {
+  var p = G.produits.find(function(x) { return x.id === id; });
+  if (!p) return;
+  var name = prompt('Nom de la base (ex: Hoodie coton standard) :');
+  if (!name) return;
+  var tpl = {
+    name: name,
+    type: p.type || '',
+    gamme: p.gamme || '',
+    couleur: p.couleur || '',
+    matiere: p.matiere || '',
+    genre: p.genre || '',
+    tailles: p.tailles || [],
+    description: p.description || '',
+    lienFournisseur: p.lien_fournisseur || '',
+    impression: p.impression || '',
+    produitAsie: !!p.produit_asie,
+    prixHtTextile: p.prix_ht_textile || 0,
+    coutImpression: p.cout_impression || 0,
+    prixVenteClub: p.prix_vente_club || 0,
+    tauxImpots: p.taux_impots || 0.20,
+    personnalisation: p.personnalisation || 'Aucune',
+    minQuantite: p.min_quantite || 0,
+    maxQuantite: p.max_quantite || 0
+  };
+  var templates = getTemplates();
+  templates.push(tpl);
+  saveTemplates(templates);
+  toast('Base "' + name + '" sauvegardée');
+}
+function deleteTemplate(idx) {
+  var templates = getTemplates();
+  templates.splice(idx, 1);
+  saveTemplates(templates);
+  toast('Base supprimée');
+  showTemplateChooser();
+}
+function showTemplateChooser() {
+  var templates = getTemplates();
+  var html = '<p style="margin-bottom:1rem;font-size:.9rem;color:var(--grey-600)">Choisissez une base pour pré-remplir le formulaire, ou partez de zéro.</p>';
+  html += '<div style="display:flex;flex-direction:column;gap:.5rem">';
+  html += '<button class="btn btn-primary" onclick="closeModal();openProduitModal(null,null)" style="width:100%;text-align:left;padding:.8rem 1rem">Partir de zéro</button>';
+  templates.forEach(function(t, i) {
+    html += '<div style="display:flex;gap:.5rem;align-items:center">' +
+      '<button class="btn btn-outline" onclick="closeModal();openProduitFromTemplate(' + i + ')" style="flex:1;text-align:left;padding:.8rem 1rem">' +
+      '<strong>' + t.name + '</strong> <span style="font-size:.75rem;color:var(--grey-400)">' + [t.type, t.gamme, t.matiere].filter(Boolean).join(' · ') + '</span>' +
+      '</button>' +
+      '<button class="btn-icon danger" onclick="deleteTemplate(' + i + ')" title="Supprimer la base">🗑️</button>' +
+      '</div>';
+  });
+  html += '</div>';
+  openModal('Nouveau produit', html, '<button class="btn btn-outline" onclick="closeModal()">Annuler</button>');
+}
+function openProduitFromTemplate(idx) {
+  var templates = getTemplates();
+  var t = templates[idx];
+  if (!t) return;
+  // Créer un faux objet produit pour pré-remplir le formulaire
+  var fake = {
+    nom: '',
+    club: '',
+    type: t.type,
+    gamme: t.gamme,
+    couleur: t.couleur,
+    matiere: t.matiere,
+    genre: t.genre,
+    tailles: t.tailles,
+    description: t.description,
+    lien_fournisseur: t.lienFournisseur,
+    impression: t.impression,
+    produit_asie: t.produitAsie,
+    prix_ht_textile: t.prixHtTextile,
+    cout_impression: t.coutImpression,
+    prix_vente_club: t.prixVenteClub,
+    taux_impots: t.tauxImpots,
+    personnalisation: t.personnalisation,
+    min_quantite: t.minQuantite,
+    max_quantite: t.maxQuantite,
+    image_url: '',
+    visible_vestiaire: true,
+    groupe_stock: '',
+    stock_groupe: 0,
+    expire: false,
+    cout_fini: false,
+    ajout_termine: false,
+    ajout_vestiaire: false
+  };
+  openProduitModal(null, fake);
+}
+function newProduit() {
+  var templates = getTemplates();
+  if (templates.length) {
+    showTemplateChooser();
+  } else {
+    openProduitModal(null, null);
+  }
+}
+
+function openProduitModal(id, templateData) {
+  var p = id ? G.produits.find(function(x) { return x.id === id; }) : templateData;
+  var isEdit = !!id;
+  var title = isEdit ? 'Modifier le produit' : 'Nouveau produit';
 
   // Club options
   var clubOptions = '<option value="">—</option>';
@@ -857,10 +971,12 @@ function openProduitModal(id) {
     '<div class="form-row"><div class="form-check"><input type="checkbox" id="f-ajout-vest"' + (p && p.ajout_vestiaire ? ' checked' : '') + '><label style="margin:0">Ajout vestiaire</label></div></div>' +
     '</div>';
 
-  openModal(title, html,
-    '<button class="btn btn-outline" onclick="closeModal()">Annuler</button>' +
-    '<button class="btn btn-primary" onclick="saveProduit(' + (p ? "'" + p.id + "'" : 'null') + ')">' + (p ? 'Enregistrer' : 'Créer') + '</button>'
-  );
+  var footer = '<button class="btn btn-outline" onclick="closeModal()">Annuler</button>';
+  if (isEdit) {
+    footer += '<button class="btn btn-outline" style="margin-left:.5rem" onclick="saveAsTemplate(\'' + id + '\')">Créer une base</button>';
+  }
+  footer += '<button class="btn btn-primary" onclick="saveProduit(' + (isEdit ? "'" + id + "'" : 'null') + ')">' + (isEdit ? 'Enregistrer' : 'Créer') + '</button>';
+  openModal(title, html, footer);
 }
 
 function saveProduit(id) {
