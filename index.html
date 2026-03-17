@@ -89,8 +89,8 @@ nav.scrolled{
   box-shadow:0 1px 0 rgba(255,255,255,.1);
 }
 .nav-logo{ z-index:2; }
-.nav-logo img{ height:55px; transition:filter var(--ease); }
-.nav-logo:hover img{ filter:brightness(.85); }
+.nav-logo img{ height:55px; filter:brightness(0) invert(1); transition:filter var(--ease); }
+.nav-logo:hover img{ filter:brightness(0) invert(.85); }
 
 .nav-center{
   position:absolute; left:50%; transform:translateX(-50%);
@@ -622,10 +622,12 @@ footer{ background:#1a1a1a; color:var(--white); padding:3rem 3.5rem 2rem; border
   <section id="vision" class="section">
     <div class="section-inner">
       <div class="vision-content" style="grid-template-columns:1fr;">
-        <div class="vision-text" id="vision-content" style="text-align:center;max-width:800px;margin:0 auto;">
+        <div class="vision-text" style="text-align:center;max-width:800px;margin:0 auto;">
           <h2>LOOK GOOD, PLAY GOOD</h2>
-          <p>Votre club mérite plus qu'un simple maillot. Nous concevons des collections complètes — match, entraînement, lifestyle — qui reflètent l'identité et les ambitions de votre club. Une image forte attire des talents, fédère vos membres et renforce vos partenariats.</p>
-          <p>Être bien équipé n'est pas un détail — c'est un levier de croissance pour votre club.</p>
+          <div id="vision-body">
+            <p>Votre club mérite plus qu'un simple maillot. Nous concevons des collections complètes — match, entraînement, lifestyle — qui reflètent l'identité et les ambitions de votre club. Une image forte attire des talents, fédère vos membres et renforce vos partenariats.</p>
+            <p>Être bien équipé n'est pas un détail — c'est un levier de croissance pour votre club.</p>
+          </div>
           <a href="/vision.html" class="btn-vision">En savoir plus</a>
         </div>
       </div>
@@ -777,25 +779,20 @@ function scrollTop(){ window.scrollTo({ top:0, behavior:'smooth' }); }
 // PUBLIC CONTENT — News, Portfolio, Partners
 // ============================================================
 async function loadVision(){
-  const container = document.getElementById('vision-content');
+  const body = document.getElementById('vision-body');
   try {
     const res = await fetch(NOTION_API + '?action=getVision');
     const data = await res.json();
     if(!data.vision || !data.vision.blocks || !data.vision.blocks.length) return;
-    const v = data.vision;
     let html = '';
-    if(v.titre) html += `<h2>${v.titre}</h2>`;
-    v.blocks.forEach(b => {
+    data.vision.blocks.forEach(b => {
       if(b.type === 'paragraph' && b.text) html += `<p>${b.text}</p>`;
-      else if(b.type === 'heading_2' && b.text) html += `<h2>${b.text}</h2>`;
       else if(b.type === 'heading_3' && b.text) html += `<h3 style="font-family:var(--display);font-size:1.3rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin:1.5rem 0 .8rem;">${b.text}</h3>`;
       else if(b.type === 'image' && b.url) html += `<img src="${b.url}" alt="${b.caption || ''}" style="max-width:100%;margin:1.5rem auto;border-radius:4px;">`;
     });
-    html += '<a href="/vision.html" class="btn-vision">En savoir plus</a>';
-    container.innerHTML = html;
+    if(html) body.innerHTML = html;
   } catch(e){
     console.error(e);
-    // Le contenu statique reste en place
   }
 }
 
