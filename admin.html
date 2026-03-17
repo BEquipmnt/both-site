@@ -47,18 +47,26 @@ input,select,textarea{font-family:var(--body);font-size:.85rem}
 .sidebar-bottom a{font-size:.7rem;color:var(--grey-400);letter-spacing:.08em;text-transform:uppercase;transition:color .2s}
 .sidebar-bottom a:hover{color:var(--white)}
 
-.main{margin-left:var(--sidebar);padding:2rem 2.5rem;min-height:100vh}
+.main{margin-left:var(--sidebar);padding:1.5rem 2rem;min-height:100vh}
 .page-title{font-family:var(--display);font-size:1.6rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin-bottom:1.5rem}
+
+/* CARD PLEINE LARGEUR (commandes) */
+.card-full{background:var(--white);border-radius:var(--radius);padding:1.5rem;margin-bottom:1.5rem;box-shadow:0 1px 3px rgba(0,0,0,.06);overflow-x:auto}
+.card-full table{font-size:.92rem}
+.card-full thead th{padding:.8rem 1rem;font-size:.74rem}
+.card-full tbody td{padding:.8rem 1rem}
 
 /* CARDS / TABLES */
 .card{background:var(--white);border-radius:var(--radius);padding:1.5rem;margin-bottom:1.5rem;box-shadow:0 1px 3px rgba(0,0,0,.06)}
 .card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem}
 .card-header h3{font-family:var(--display);font-size:1rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
 
-table{width:100%;border-collapse:collapse;font-size:.82rem}
-thead th{text-align:left;padding:.6rem .8rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--grey-400);border-bottom:2px solid var(--grey-200);font-weight:600}
-tbody td{padding:.6rem .8rem;border-bottom:1px solid var(--grey-100);vertical-align:middle}
+table{width:100%;border-collapse:collapse;font-size:.88rem}
+thead th{text-align:left;padding:.7rem 1rem;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--grey-400);border-bottom:2px solid var(--grey-200);font-weight:600}
+tbody td{padding:.7rem 1rem;border-bottom:1px solid var(--grey-100);vertical-align:middle}
 tbody tr:hover{background:var(--grey-100)}
+tbody tr.clickable{cursor:pointer}
+tbody tr.clickable:hover{background:#e8e8e8}
 
 /* BADGES */
 .badge{display:inline-block;padding:.15rem .6rem;border-radius:20px;font-size:.7rem;font-weight:600;letter-spacing:.03em}
@@ -93,6 +101,7 @@ tbody tr:hover{background:var(--grey-100)}
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;align-items:center;justify-content:center;padding:2rem}
 .modal-overlay.active{display:flex}
 .modal{background:var(--white);border-radius:8px;width:100%;max-width:720px;max-height:90vh;overflow-y:auto;position:relative}
+.modal.modal-lg{max-width:900px}
 .modal-header{display:flex;justify-content:space-between;align-items:center;padding:1.2rem 1.5rem;border-bottom:1px solid var(--grey-200)}
 .modal-header h3{font-family:var(--display);font-size:1.1rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
 .modal-body{padding:1.5rem}
@@ -210,7 +219,7 @@ tbody tr:hover{background:var(--grey-100)}
     <div class="section active" id="sec-commandes">
       <h1 class="page-title">Commandes</h1>
       <div class="stats" id="commandes-stats"></div>
-      <div class="card">
+      <div class="card-full">
         <div class="toolbar">
           <input class="search" type="text" placeholder="Rechercher (ref, club...)" oninput="filterCommandes(this.value)">
           <select onchange="filterCommandesStatut(this.value)">
@@ -394,10 +403,12 @@ function loadAll() {
 // ============================================================
 // MODAL
 // ============================================================
-function openModal(title, bodyHtml, footerHtml) {
+function openModal(title, bodyHtml, footerHtml, large) {
   document.getElementById('modal-title').textContent = title;
   document.getElementById('modal-body').innerHTML = bodyHtml;
   document.getElementById('modal-footer').innerHTML = footerHtml || '';
+  var m = document.querySelector('#modal .modal');
+  if (large) m.classList.add('modal-lg'); else m.classList.remove('modal-lg');
   document.getElementById('modal').classList.add('active');
 }
 function closeModal() {
@@ -437,7 +448,7 @@ function renderCommandes() {
   var html = '';
   filtered.forEach(function(o) {
     var vu = (o.statut || '').includes('ATTENTE') ? '<span style="color:var(--red);font-size:1.1rem">●</span>' : '<span style="color:var(--green);font-size:1.1rem">●</span>';
-    html += '<tr>' +
+    html += '<tr class="clickable" onclick="openCommandeDetail(\'' + o.id + '\')">' +
       '<td>' + vu + '</td>' +
       '<td><strong>' + (o.ref || '—') + '</strong></td>' +
       '<td>' + (o.clubNom || '—') + '</td>' +
@@ -445,8 +456,7 @@ function renderCommandes() {
       '<td>' + (o.nbArticles || 0) + '</td>' +
       '<td>' + fmt(o.total) + '</td>' +
       '<td>' + statutBadge(o.statut) + '</td>' +
-      '<td><button class="btn-icon" onclick="openCommandeDetail(\'' + o.id + '\')" title="Voir">👁️</button>' +
-      '<button class="btn-icon danger" onclick="confirmDeleteOrder(\'' + o.id + '\',\'' + (o.ref || '') + '\')" title="Supprimer">🗑️</button></td>' +
+      '<td><button class="btn-icon danger" onclick="event.stopPropagation();confirmDeleteOrder(\'' + o.id + '\',\'' + (o.ref || '') + '\')" title="Supprimer">🗑️</button></td>' +
       '</tr>';
   });
   document.getElementById('commandes-table').innerHTML = html || '<tr><td colspan="8" style="text-align:center;color:var(--grey-400);padding:2rem">Aucune commande</td></tr>';
@@ -472,7 +482,7 @@ function openCommandeDetail(id) {
     var lignes = res.lignes || [];
 
     var html = '<div style="margin-bottom:1.5rem">' +
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem;font-size:.85rem">' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;font-size:.95rem">' +
       '<div><strong>Réf :</strong> ' + o.ref + '</div>' +
       '<div><strong>Date :</strong> ' + o.date + '</div>' +
       '<div><strong>Club :</strong> ' + o.clubNom + '</div>' +
@@ -482,7 +492,7 @@ function openCommandeDetail(id) {
       '</div></div>';
 
     // Statut modifiable
-    html += '<div class="form-row"><label>Statut</label><select id="cmd-statut" style="width:100%;padding:.5rem">' +
+    html += '<div class="form-row"><label>Statut</label><select id="cmd-statut" style="width:100%;padding:.6rem;font-size:.9rem">' +
       '<option' + (o.statut.includes('ATTENTE') ? ' selected' : '') + ' value="🟡 EN ATTENTE DE PAIEMENT">🟡 En attente de paiement</option>' +
       '<option' + (o.statut.includes('PAYÉE') || o.statut.includes('PAYEE') ? ' selected' : '') + ' value="🔵 PAYÉE">🔵 Payée</option>' +
       '<option' + (o.statut.includes('PRODUCTION') ? ' selected' : '') + ' value="🟠 EN PRODUCTION">🟠 En production</option>' +
@@ -491,26 +501,28 @@ function openCommandeDetail(id) {
       '</select></div>';
 
     // Lignes
-    html += '<div style="margin-top:1rem"><strong style="font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;color:var(--grey-400)">Lignes de commande</strong>' +
-      '<table style="margin-top:.5rem"><thead><tr><th>Produit</th><th>Taille</th><th>Qté</th><th>Prix unit.</th><th>Perso</th></tr></thead><tbody>';
+    html += '<div style="margin-top:1.5rem"><strong style="font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;color:var(--grey-400)">Lignes de commande</strong>' +
+      '<table style="margin-top:.8rem;font-size:.95rem"><thead><tr><th style="padding:.8rem 1rem">Produit</th><th style="padding:.8rem 1rem">Taille</th><th style="padding:.8rem 1rem">Qté</th><th style="padding:.8rem 1rem">Prix unit.</th><th style="padding:.8rem 1rem">Sous-total</th><th style="padding:.8rem 1rem">Perso</th></tr></thead><tbody>';
     lignes.forEach(function(l) {
       var perso = '';
       if (l.nomPerso) perso += l.nomPerso;
       if (l.numPerso) perso += (perso ? ' #' : '#') + l.numPerso;
-      html += '<tr><td>' + l.produit + '</td><td>' + l.taille + '</td><td>' + l.quantite + '</td><td>' + fmt(l.prixUnitaire) + '</td><td>' + (perso || '—') + '</td></tr>';
+      var sousTotal = (l.prixUnitaire || 0) * (l.quantite || 0);
+      html += '<tr><td style="padding:.7rem 1rem"><strong>' + l.produit + '</strong></td><td style="padding:.7rem 1rem">' + l.taille + '</td><td style="padding:.7rem 1rem">' + l.quantite + '</td><td style="padding:.7rem 1rem">' + fmt(l.prixUnitaire) + '</td><td style="padding:.7rem 1rem">' + fmt(sousTotal) + '</td><td style="padding:.7rem 1rem">' + (perso || '—') + '</td></tr>';
     });
     html += '</tbody></table></div>';
 
     // Suivi production
-    html += '<div style="margin-top:1.5rem"><strong style="font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;color:var(--grey-400)">Suivi production</strong>' +
-      '<div id="suivi-list" style="margin-top:.5rem"><em style="color:var(--grey-400);font-size:.8rem">Chargement...</em></div>' +
-      '<button class="btn btn-outline btn-sm" style="margin-top:.5rem" onclick="addSuiviForm(\'' + id + '\')">+ Ajouter une étape</button></div>';
+    html += '<div style="margin-top:2rem"><strong style="font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;color:var(--grey-400)">Suivi production</strong>' +
+      '<div id="suivi-list" style="margin-top:.5rem"><em style="color:var(--grey-400);font-size:.85rem">Chargement...</em></div>' +
+      '<button class="btn btn-outline btn-sm" style="margin-top:.8rem" onclick="addSuiviForm(\'' + id + '\')">+ Ajouter une étape</button></div>';
 
-    html += '<div style="margin-top:1.5rem;padding-top:1rem;border-top:1px solid var(--grey-200);font-size:1.1rem;font-weight:600;text-align:right">Total : ' + fmt(o.total) + '</div>';
+    html += '<div style="margin-top:2rem;padding-top:1rem;border-top:2px solid var(--grey-200);font-size:1.2rem;font-weight:700;text-align:right">Total : ' + fmt(o.total) + '</div>';
 
     openModal('Commande ' + o.ref, html,
       '<button class="btn btn-outline" onclick="closeModal()">Fermer</button>' +
-      '<button class="btn btn-primary" onclick="saveCommandeStatut(\'' + id + '\')">Enregistrer le statut</button>'
+      '<button class="btn btn-primary" onclick="saveCommandeStatut(\'' + id + '\')">Enregistrer le statut</button>',
+      true
     );
 
     // Charger le suivi
@@ -627,7 +639,7 @@ function renderProduits() {
     var stock = p.groupe_stock ? p.groupe_stock + ' (' + p.stock_groupe + ')' : '—';
     var visible = p.visible_vestiaire ? '<span style="color:var(--green)">Oui</span>' : '<span style="color:var(--red)">Non</span>';
     if (p.expire) visible = '<span style="color:var(--grey-400)">Expiré</span>';
-    html += '<tr>' +
+    html += '<tr class="clickable" onclick="openProduitModal(\'' + p.id + '\')">' +
       '<td>' + img + '</td>' +
       '<td><strong>' + p.nom + '</strong><br><span style="font-size:.75rem;color:var(--grey-400)">' + (p.type || '') + '</span></td>' +
       '<td>' + (p.club || '—') + '</td>' +
@@ -635,8 +647,7 @@ function renderProduits() {
       '<td style="font-size:.78rem">' + tailles + '</td>' +
       '<td style="font-size:.78rem">' + stock + '</td>' +
       '<td>' + visible + '</td>' +
-      '<td><button class="btn-icon" onclick="openProduitModal(\'' + p.id + '\')" title="Modifier">✏️</button>' +
-      '<button class="btn-icon danger" onclick="confirmDeleteProduit(\'' + p.id + '\',\'' + (p.nom || '').replace(/'/g, "\\'") + '\')" title="Supprimer">🗑️</button></td>' +
+      '<td><button class="btn-icon danger" onclick="event.stopPropagation();confirmDeleteProduit(\'' + p.id + '\',\'' + (p.nom || '').replace(/'/g, "\\'") + '\')" title="Supprimer">🗑️</button></td>' +
       '</tr>';
   });
   document.getElementById('produits-table').innerHTML = html || '<tr><td colspan="8" style="text-align:center;color:var(--grey-400);padding:2rem">Aucun produit</td></tr>';
@@ -929,15 +940,14 @@ function renderClubs() {
   var html = '';
   filtered.forEach(function(c) {
     var lastConn = c.derniere_connexion ? new Date(c.derniere_connexion).toLocaleDateString('fr-FR') : '—';
-    html += '<tr>' +
+    html += '<tr class="clickable" onclick="openClubModal(\'' + c.id + '\')">' +
       '<td><strong>' + c.nom + '</strong></td>' +
       '<td>' + (c.email || '—') + '</td>' +
       '<td>' + fmt(c.frais_livraison) + '</td>' +
       '<td>' + (c.active_minimum ? fmt(c.minimum_commande) : '<span style="color:var(--grey-400)">Inactif</span>') + '</td>' +
       '<td>' + (c.admin ? '<span style="color:var(--green)">Oui</span>' : 'Non') + '</td>' +
       '<td>' + lastConn + '</td>' +
-      '<td><button class="btn-icon" onclick="openClubModal(\'' + c.id + '\')" title="Modifier">✏️</button>' +
-      '<button class="btn-icon danger" onclick="confirmDeleteClub(\'' + c.id + '\',\'' + (c.nom || '').replace(/'/g, "\\'") + '\')" title="Supprimer">🗑️</button></td>' +
+      '<td><button class="btn-icon danger" onclick="event.stopPropagation();confirmDeleteClub(\'' + c.id + '\',\'' + (c.nom || '').replace(/'/g, "\\'") + '\')" title="Supprimer">🗑️</button></td>' +
       '</tr>';
   });
   document.getElementById('clubs-table').innerHTML = html || '<tr><td colspan="7" style="text-align:center;color:var(--grey-400);padding:2rem">Aucun club</td></tr>';
@@ -1031,13 +1041,12 @@ function renderDemandes() {
   var html = '';
   filtered.forEach(function(d) {
     var badge = d.statut === 'Nouvelle' ? 'badge-red' : d.statut === 'En cours' ? 'badge-yellow' : 'badge-green';
-    html += '<tr>' +
+    html += '<tr class="clickable" onclick="openDemandeDetail(\'' + d.id + '\')">' +
       '<td>' + (d.clubNom || '—') + '</td>' +
       '<td><strong>' + (d.objet || '—') + '</strong></td>' +
       '<td>' + (d.date || '—') + '</td>' +
       '<td><span class="badge ' + badge + '">' + d.statut + '</span></td>' +
-      '<td><button class="btn-icon" onclick="openDemandeDetail(\'' + d.id + '\')" title="Voir">👁️</button>' +
-      '<button class="btn-icon danger" onclick="confirmDeleteDemande(\'' + d.id + '\')" title="Supprimer">🗑️</button></td>' +
+      '<td><button class="btn-icon danger" onclick="event.stopPropagation();confirmDeleteDemande(\'' + d.id + '\')" title="Supprimer">🗑️</button></td>' +
       '</tr>';
   });
   document.getElementById('demandes-table').innerHTML = html || '<tr><td colspan="5" style="text-align:center;color:var(--grey-400);padding:2rem">Aucune demande</td></tr>';
