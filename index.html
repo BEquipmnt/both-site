@@ -783,6 +783,7 @@ async function loadVision(){
   try {
     const res = await fetch(NOTION_API + '?action=getVision');
     const data = await res.json();
+    console.log('Vision API:', JSON.stringify(data).slice(0, 500));
     if(!data.vision || !data.vision.blocks || !data.vision.blocks.length) return;
     let html = '';
     data.vision.blocks.forEach(b => {
