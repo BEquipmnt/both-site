@@ -586,7 +586,6 @@ footer{ background:#1a1a1a; color:var(--white); padding:3rem 3.5rem 2rem; border
   </a>
   <div class="nav-center">
     <a href="#vision" class="nav-link">À Propos</a>
-    <a href="#actualites" class="nav-link">Actualités</a>
     <a href="#portfolio" class="nav-link">Projets</a>
     <a href="#contact" class="nav-link">Contact</a>
   </div>
@@ -619,34 +618,13 @@ footer{ background:#1a1a1a; color:var(--white); padding:3rem 3.5rem 2rem; border
     </div>
   </section>
 
-  <!-- VISION / PRÉSENTATION -->
+  <!-- VISION / PRÉSENTATION (contenu chargé depuis Notion) -->
   <section id="vision" class="section">
     <div class="section-inner">
       <div class="vision-content" style="grid-template-columns:1fr;">
-        <div class="vision-text" style="text-align:center;max-width:800px;margin:0 auto;">
-          <h2>LOOK GOOD, PLAY GOOD</h2>
-          <p>Votre club mérite plus qu'un simple maillot. Nous concevons des collections complètes — match, entraînement, lifestyle — qui reflètent l'identité et les ambitions de votre club. Une image forte attire des talents, fédère vos membres et renforce vos partenariats.</p>
-          <p>Être bien équipé n'est pas un détail — c'est un levier de croissance pour votre club.</p>
-          <a href="/vision.html" class="btn-vision">En savoir plus</a>
+        <div class="vision-text" id="vision-content" style="text-align:center;max-width:800px;margin:0 auto;">
+          <div class="spinner"></div>
         </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ACTUALITÉS -->
-  <section id="actualites" class="section">
-    <div class="news-wrapper">
-      <div class="section-header">
-        <div class="section-label">Latest</div>
-        <h2 class="section-title">Actualités</h2>
-      </div>
-      <div class="news-scroll-container">
-        <div class="news-grid" id="news-grid">
-          <!-- Chargement dynamique depuis Google Sheets -->
-        </div>
-      </div>
-      <div class="news-view-more">
-        <a href="/news.html" class="btn-view-more">View More</a>
       </div>
     </div>
   </section>
@@ -735,7 +713,6 @@ footer{ background:#1a1a1a; color:var(--white); padding:3rem 3.5rem 2rem; border
       </div>
       <div class="footer-links">
         <a href="#vision">À Propos</a>
-        <a href="#actualites">Actualités</a>
         <a href="#portfolio">Projets</a>
         <a href="#contact">Contact</a>
         <a href="https://www.instagram.com/bothequipmnt" target="_blank">Instagram</a>
@@ -766,7 +743,6 @@ const NOTION_API = "/.netlify/functions/notion-api";
 // STATE
 // ============================================================
 const S = {
-  news: [],
   portfolio: [],
   partners: []
 };
@@ -787,7 +763,7 @@ window.addEventListener('scroll', () => {
 window.addEventListener('load', () => {
   setTimeout(() => document.getElementById('loader').classList.add('out'), 1100);
   // Charger le contenu dynamique
-  loadNews();
+  loadVision();
   loadPortfolio();
   loadPartners();
 });
@@ -797,33 +773,31 @@ function scrollTop(){ window.scrollTo({ top:0, behavior:'smooth' }); }
 // ============================================================
 // PUBLIC CONTENT — News, Portfolio, Partners
 // ============================================================
-async function loadNews(){
-  const grid = document.getElementById('news-grid');
+async function loadVision(){
+  const container = document.getElementById('vision-content');
   try {
-    const res = await fetch(NOTION_API + '?action=getNews');
+    const res = await fetch(NOTION_API + '?action=getVision');
     const data = await res.json();
-    S.news = data.news || [];
-    
-    if(!S.news.length){
-      grid.innerHTML = '<p style="color:var(--grey-400);text-align:center;padding:3rem;">Aucune actualité pour le moment.</p>';
+    if(!data.vision) {
+      container.innerHTML = '<h2>LOOK GOOD, PLAY GOOD</h2><p>Contenu en cours de chargement.</p>';
       return;
     }
-    
-    // Afficher toutes les actualités en scroll horizontal
-    grid.innerHTML = S.news.map(n => `
-      <div class="news-card" onclick="window.location='${n.lien_externe || '/actualite-detail.html?id=' + n.id}'">
-        <div class="news-card-img">
-          ${n.image ? `<img src="${n.image}" alt="${n.titre}" loading="lazy">` : ''}
-        </div>
-        <div class="news-date">${n.date}</div>
-        <div class="news-title">${n.titre}</div>
-        <p class="news-excerpt">${n.texte_court || ''}</p>
-      </div>
-    `).join('');
-    
+    const v = data.vision;
+    let html = '';
+    if(v.titre) html += `<h2>${v.titre}</h2>`;
+    if(v.blocks && v.blocks.length) {
+      v.blocks.forEach(b => {
+        if(b.type === 'paragraph' && b.text) html += `<p>${b.text}</p>`;
+        else if(b.type === 'heading_2' && b.text) html += `<h2>${b.text}</h2>`;
+        else if(b.type === 'heading_3' && b.text) html += `<h3 style="font-family:var(--display);font-size:1.3rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin:1.5rem 0 .8rem;">${b.text}</h3>`;
+        else if(b.type === 'image' && b.url) html += `<img src="${b.url}" alt="${b.caption || ''}" style="max-width:100%;margin:1.5rem auto;border-radius:4px;">`;
+      });
+    }
+    html += '<a href="/vision.html" class="btn-vision">En savoir plus</a>';
+    container.innerHTML = html;
   } catch(e){
     console.error(e);
-    grid.innerHTML = '<p style="color:var(--grey-400);text-align:center;">Chargement des actualités...</p>';
+    container.innerHTML = '<h2>LOOK GOOD, PLAY GOOD</h2><p>Contenu en cours de chargement.</p>';
   }
 }
 
