@@ -406,6 +406,284 @@ async function createDemande(payload) {
 }
 
 // ============================================================
+// ADMIN: DELETE helper
+// ============================================================
+async function sbDelete(table, query) {
+  return sb(`${table}?${query}`, {
+    method: 'DELETE',
+    prefer: 'return=representation'
+  });
+}
+
+// ============================================================
+// ADMIN: CLUBS
+// ============================================================
+async function adminGetClubs() {
+  try {
+    const clubs = await sbGet('clubs', 'select=*&order=nom.asc');
+    return { clubs };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function adminCreateClub(payload) {
+  try {
+    const result = await sbPost('clubs', {
+      nom: payload.nom || '',
+      email: payload.email || '',
+      emails: payload.emails || '',
+      logo_url: payload.logoUrl || '',
+      minimum_commande: parseFloat(payload.minimumCommande) || 0,
+      active_minimum: payload.activeMinimum || false,
+      frais_livraison: parseFloat(payload.fraisLivraison) || 0,
+      admin: payload.admin || false
+    });
+    return { success: true, club: result[0] };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+async function adminUpdateClub(payload) {
+  try {
+    const data = {};
+    if (payload.nom !== undefined) data.nom = payload.nom;
+    if (payload.email !== undefined) data.email = payload.email;
+    if (payload.emails !== undefined) data.emails = payload.emails;
+    if (payload.logoUrl !== undefined) data.logo_url = payload.logoUrl;
+    if (payload.minimumCommande !== undefined) data.minimum_commande = parseFloat(payload.minimumCommande) || 0;
+    if (payload.activeMinimum !== undefined) data.active_minimum = payload.activeMinimum;
+    if (payload.fraisLivraison !== undefined) data.frais_livraison = parseFloat(payload.fraisLivraison) || 0;
+    if (payload.admin !== undefined) data.admin = payload.admin;
+
+    await sbPatch('clubs', `id=eq.${payload.id}`, data);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+async function adminDeleteClub(payload) {
+  try {
+    await sbDelete('clubs', `id=eq.${payload.id}`);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+// ============================================================
+// ADMIN: PRODUITS
+// ============================================================
+async function adminGetProduits() {
+  try {
+    const produits = await sbGet('produits', 'select=*&order=nom.asc');
+    return { produits };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function adminCreateProduit(payload) {
+  try {
+    let tailles = payload.tailles || [];
+    if (typeof tailles === 'string') {
+      tailles = tailles.split(',').map(t => t.trim()).filter(Boolean);
+    }
+    const result = await sbPost('produits', {
+      nom: payload.nom || '',
+      image_url: payload.imageUrl || '',
+      prix_vente_club: parseFloat(payload.prix) || 0,
+      tailles,
+      personnalisation: payload.personnalisation || 'Aucune',
+      type: payload.type || '',
+      description: payload.description || '',
+      min_quantite: parseInt(payload.minQuantite) || 0,
+      max_quantite: parseInt(payload.maxQuantite) || 0,
+      groupe_stock: payload.groupeStock || '',
+      stock_groupe: parseInt(payload.stockGroupe) || 0,
+      club: payload.club || '',
+      visible_vestiaire: payload.visibleVestiaire !== false,
+      expire: payload.expire || false
+    });
+    return { success: true, produit: result[0] };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+async function adminUpdateProduit(payload) {
+  try {
+    const data = {};
+    if (payload.nom !== undefined) data.nom = payload.nom;
+    if (payload.imageUrl !== undefined) data.image_url = payload.imageUrl;
+    if (payload.prix !== undefined) data.prix_vente_club = parseFloat(payload.prix) || 0;
+    if (payload.tailles !== undefined) {
+      let t = payload.tailles;
+      if (typeof t === 'string') t = t.split(',').map(s => s.trim()).filter(Boolean);
+      data.tailles = t;
+    }
+    if (payload.personnalisation !== undefined) data.personnalisation = payload.personnalisation;
+    if (payload.type !== undefined) data.type = payload.type;
+    if (payload.description !== undefined) data.description = payload.description;
+    if (payload.minQuantite !== undefined) data.min_quantite = parseInt(payload.minQuantite) || 0;
+    if (payload.maxQuantite !== undefined) data.max_quantite = parseInt(payload.maxQuantite) || 0;
+    if (payload.groupeStock !== undefined) data.groupe_stock = payload.groupeStock;
+    if (payload.stockGroupe !== undefined) data.stock_groupe = parseInt(payload.stockGroupe) || 0;
+    if (payload.club !== undefined) data.club = payload.club;
+    if (payload.visibleVestiaire !== undefined) data.visible_vestiaire = payload.visibleVestiaire;
+    if (payload.expire !== undefined) data.expire = payload.expire;
+
+    await sbPatch('produits', `id=eq.${payload.id}`, data);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+async function adminDeleteProduit(payload) {
+  try {
+    await sbDelete('produits', `id=eq.${payload.id}`);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+// ============================================================
+// ADMIN: COMMANDES (update statut, vu, delete)
+// ============================================================
+async function adminUpdateOrder(payload) {
+  try {
+    const data = {};
+    if (payload.statut !== undefined) data.statut = payload.statut;
+    if (payload.vu !== undefined) data.vu = payload.vu;
+    if (payload.fraisLivraison !== undefined) data.frais_livraison = parseFloat(payload.fraisLivraison) || 0;
+    if (payload.total !== undefined) data.total = parseFloat(payload.total) || 0;
+
+    await sbPatch('commandes', `id=eq.${payload.id}`, data);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+async function adminDeleteOrder(payload) {
+  try {
+    // Les lignes sont supprimées en cascade (ON DELETE CASCADE)
+    await sbDelete('commandes', `id=eq.${payload.id}`);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+// ============================================================
+// ADMIN: SUIVI PRODUCTION
+// ============================================================
+async function adminGetSuivi(commandeId) {
+  try {
+    const suivi = await sbGet('suivi_production',
+      `select=*&commande_id=eq.${commandeId}&order=date_etape.asc`
+    );
+    return { suivi };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function adminCreateSuivi(payload) {
+  try {
+    const result = await sbPost('suivi_production', {
+      commande_id: payload.commandeId,
+      etape: payload.etape || '',
+      statut: payload.statut || '',
+      date_etape: payload.dateEtape || new Date().toISOString(),
+      notes: payload.notes || ''
+    });
+    return { success: true, suivi: result[0] };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+async function adminUpdateSuivi(payload) {
+  try {
+    const data = {};
+    if (payload.etape !== undefined) data.etape = payload.etape;
+    if (payload.statut !== undefined) data.statut = payload.statut;
+    if (payload.dateEtape !== undefined) data.date_etape = payload.dateEtape;
+    if (payload.notes !== undefined) data.notes = payload.notes;
+
+    await sbPatch('suivi_production', `id=eq.${payload.id}`, data);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+async function adminDeleteSuivi(payload) {
+  try {
+    await sbDelete('suivi_production', `id=eq.${payload.id}`);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+// ============================================================
+// ADMIN: DEMANDES
+// ============================================================
+async function adminGetAllDemandes() {
+  try {
+    const [demandes, clubs] = await Promise.all([
+      sbGet('demandes', 'select=*&order=date.desc'),
+      sbGet('clubs', 'select=id,nom')
+    ]);
+    const clubsMap = {};
+    clubs.forEach(c => { clubsMap[c.id] = c.nom; });
+
+    return {
+      demandes: demandes.map(d => ({
+        id: d.id,
+        clubNom: d.club_id ? (clubsMap[d.club_id] || '—') : '—',
+        clubId: d.club_id,
+        objet: d.objet || '',
+        message: d.message || '',
+        date: d.date ? new Date(d.date).toLocaleDateString('fr-FR') : '',
+        statut: d.statut || 'Nouvelle',
+        reponse: d.reponse || ''
+      }))
+    };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function adminUpdateDemande(payload) {
+  try {
+    const data = {};
+    if (payload.statut !== undefined) data.statut = payload.statut;
+    if (payload.reponse !== undefined) data.reponse = payload.reponse;
+
+    await sbPatch('demandes', `id=eq.${payload.id}`, data);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+async function adminDeleteDemande(payload) {
+  try {
+    await sbDelete('demandes', `id=eq.${payload.id}`);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+// ============================================================
 // HANDLER PRINCIPAL
 // ============================================================
 exports.handler = async (event) => {
@@ -445,6 +723,19 @@ exports.handler = async (event) => {
         case 'getDemandes':
           result = await getDemandes(params.clubId);
           break;
+        // Admin GET
+        case 'adminGetClubs':
+          result = await adminGetClubs();
+          break;
+        case 'adminGetProduits':
+          result = await adminGetProduits();
+          break;
+        case 'adminGetSuivi':
+          result = await adminGetSuivi(params.commandeId);
+          break;
+        case 'adminGetAllDemandes':
+          result = await adminGetAllDemandes();
+          break;
         default:
           result = { error: 'Action inconnue' };
       }
@@ -463,6 +754,46 @@ exports.handler = async (event) => {
           break;
         case 'createDemande':
           result = await createDemande(payload);
+          break;
+        // Admin POST
+        case 'adminCreateClub':
+          result = await adminCreateClub(payload);
+          break;
+        case 'adminUpdateClub':
+          result = await adminUpdateClub(payload);
+          break;
+        case 'adminDeleteClub':
+          result = await adminDeleteClub(payload);
+          break;
+        case 'adminCreateProduit':
+          result = await adminCreateProduit(payload);
+          break;
+        case 'adminUpdateProduit':
+          result = await adminUpdateProduit(payload);
+          break;
+        case 'adminDeleteProduit':
+          result = await adminDeleteProduit(payload);
+          break;
+        case 'adminUpdateOrder':
+          result = await adminUpdateOrder(payload);
+          break;
+        case 'adminDeleteOrder':
+          result = await adminDeleteOrder(payload);
+          break;
+        case 'adminCreateSuivi':
+          result = await adminCreateSuivi(payload);
+          break;
+        case 'adminUpdateSuivi':
+          result = await adminUpdateSuivi(payload);
+          break;
+        case 'adminDeleteSuivi':
+          result = await adminDeleteSuivi(payload);
+          break;
+        case 'adminUpdateDemande':
+          result = await adminUpdateDemande(payload);
+          break;
+        case 'adminDeleteDemande':
+          result = await adminDeleteDemande(payload);
           break;
         default:
           result = { error: 'Action POST inconnue' };
