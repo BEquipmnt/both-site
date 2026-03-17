@@ -10,11 +10,18 @@ Clubs de sport se connectent au "Vestiaire" pour commander des tenues personnali
 - **Hosting** : Netlify (static site + serverless functions)
 - **Backend** : 2 Netlify Functions (Node.js, esbuild)
 - **Bases de donnees** :
-  - **Airtable** : donnees transactionnelles (clubs, produits, commandes, lignes, demandes)
+  - **Supabase** (PostgreSQL) : donnees transactionnelles (clubs, produits, commandes, lignes, suivi production, demandes)
   - **Notion** : contenu editorial (actualites, portfolio, partenaires, page vision/a propos)
+  - ~~**Airtable**~~ : ancienne base, conservee en backup (`airtable-api-backup.js`)
 - **Frontend** : HTML/CSS/JS vanilla (pas de framework, pas de build)
 - **Fonts** : Google Fonts (Oswald + Work Sans)
-- **Images** : hebergees sur Imgur, Google Drive, Airtable CDN
+- **Images** : hebergees sur Imgur, Google Drive
+
+## Plan de migration (3 phases)
+
+- **Phase 1** (actuel) : Migration Airtable → Supabase, le vestiaire fonctionne pareil cote clubs
+- **Phase 2** : Back-office admin custom sur /admin (gestion produits, commandes, suivi production)
+- **Phase 3** : Pre-generation des pages vitrine depuis Notion (temps de chargement instantanes)
 
 ## Architecture des fichiers
 
@@ -30,32 +37,76 @@ Clubs de sport se connectent au "Vestiaire" pour commander des tenues personnali
 ├── mentions-legales.html      # Mentions legales & CGV
 ├── robots.txt / sitemap.xml   # SEO
 ├── netlify.toml               # Config Netlify (functions path, esbuild)
+├── supabase/
+│   ├── schema.sql             # Schema PostgreSQL (tables, FK, index, RLS)
+│   └── migrate.js             # Script de migration Airtable → Supabase
 └── netlify/functions/
-    ├── airtable-api.js        # API Airtable (clubs, produits, commandes, demandes)
+    ├── supabase-api.js        # API Supabase (clubs, produits, commandes, demandes)
+    ├── airtable-api-backup.js # Ancien API Airtable (backup, ne pas supprimer)
     └── notion-api.js          # API Notion (actus, portfolio, partenaires, blocks)
 ```
 
 ## Variables d'environnement (Netlify Dashboard)
 
 ```
-AIRTABLE_TOKEN          # Bearer token Airtable
-AIRTABLE_BASE_ID        # ID de la base Airtable
-AIRTABLE_TABLE_DEMANDES # (optionnel) ID table Demandes
+SUPABASE_URL            # URL du projet Supabase (https://xxx.supabase.co)
+SUPABASE_ANON_KEY       # Cle anon Supabase (pour les appels cote client/function)
 NOTION_KEY              # Bearer token Notion (ntn_...)
 NOTION_DB_ACTUALITES    # ID database Notion actualites
 NOTION_DB_PORTFOLIO     # ID database Notion portfolio
 NOTION_DB_PARTNERS      # ID database Notion partenaires
 ```
 
+Variables de migration (temporaires, pas besoin en production) :
+```
+AIRTABLE_TOKEN          # Bearer token Airtable (pour migrate.js uniquement)
+AIRTABLE_BASE_ID        # ID de la base Airtable
+SUPABASE_SERVICE_KEY    # Cle service Supabase (bypass RLS, pour migrate.js)
+```
+
+## Base de donnees Supabase
+
+### Schema (6 tables)
+
+```
+clubs
+  id (uuid PK), nom, email, emails, logo_url, minimum_commande, active_minimum,
+  frais_livraison, admin, derniere_connexion, dernier_email_connexion, airtable_id
+
+produits
+  id (uuid PK), nom, image_url, prix_vente_club, tailles (text[]), personnalisation,
+  type, description, min_quantite, max_quantite, groupe_stock, stock_groupe,
+  club, visible_vestiaire, expire, airtable_id
+
+commandes
+  id (uuid PK), reference, club_id (FK → clubs), statut, vu, total, nb_articles,
+  frais_livraison, date, airtable_id
+
+lignes
+  id (uuid PK), commande_id (FK → commandes), produit_id (FK → produits),
+  taille, quantite, nom_perso, numero_perso, airtable_id
+
+suivi_production
+  id (uuid PK), commande_id (FK → commandes), etape, statut, date_etape, notes, airtable_id
+
+demandes
+  id (uuid PK), club_id (FK → clubs), objet, message, statut, reponse, date, airtable_id
+```
+
+### Relations
+- `commandes.club_id` → `clubs.id`
+- `lignes.commande_id` → `commandes.id` (CASCADE)
+- `lignes.produit_id` → `produits.id`
+- `suivi_production.commande_id` → `commandes.id` (CASCADE)
+- `demandes.club_id` → `clubs.id`
+
+### RLS
+Toutes les tables ont RLS active avec policy permissive "anon_all" (phase 1).
+Sera restreint en phase 2 avec auth admin.
+
 ## Netlify Functions — Endpoints
 
-### airtable-api.js (`/.netlify/functions/airtable-api`)
-
-Tables Airtable (IDs hardcodes) :
-- `tblsBiicwKqdFe7h5` — Clubs
-- `tbl8ri4tUfg1TH659` — Produits
-- `tbloz7JkktaBoHWie` — Commandes
-- `tblWuqefKcUPd4I22` — Lignes
+### supabase-api.js (`/.netlify/functions/supabase-api`)
 
 **GET :**
 | Action | Params | Description |
@@ -70,11 +121,13 @@ Tables Airtable (IDs hardcodes) :
 **POST :**
 | Action | Body | Description |
 |--------|------|-------------|
-| `createOrder` | `{ clubId, clubNom, lignes, total }` | Cree commande + lignes dans Airtable |
+| `createOrder` | `{ clubId, clubNom, lignes, total }` | Cree commande + lignes |
+| `createLignes` | `{ commandeId, lignes }` | Ajoute des lignes a une commande existante |
 | `createDemande` | `{ clubId, objet, message }` | Cree une demande |
 
-Helpers :
-- `airtableRequestAll(table, filterFormula?)` : pagination automatique (offset) pour recuperer tous les records, avec filtre optionnel `filterByFormula`
+Helpers internes :
+- `sb(path, options)` : requete Supabase REST generique
+- `sbGet(table, query)`, `sbPost(table, data)`, `sbPatch(table, query, data)` : shorthands
 - `getDejaCommande(clubId)` : somme des quantites deja commandees par produit
 
 ### notion-api.js (`/.netlify/functions/notion-api`)
@@ -94,13 +147,13 @@ Helper `mapBlock()` : convertit les blocks Notion en JSON simplifie (heading, pa
 ## Vestiaire — Concepts cles
 
 ### Authentification
-Login par email (pas de mot de passe). L'email est cherche dans la table Clubs (champ `Email` unique + champ `Emails` multi-valeur separe par virgules).
+Login par email (pas de mot de passe). L'email est cherche dans la table Clubs (champ `email` unique + champ `emails` multi-valeur separe par virgules).
 
 ### State global `S`
 ```js
 const S = {
   club: null,           // { id, nom, email, logoClub, minCommande, activeMin, admin, fraisLivraison }
-  products: [],         // catalogue charge depuis Airtable
+  products: [],         // catalogue charge depuis Supabase
   cart: [],             // items du panier en cours
   orders: [],           // historique commandes
   currentProduct: null, // produit ouvert dans le modal
@@ -138,14 +191,14 @@ Au panier : chaque piece personnalisee = 1 ligne panier separee (quantite 1).
 2. Catalogue → `getCatalogue` (inclut `dejaCommande`)
 3. Modal produit → choix tailles/quantites + perso optionnelle
 4. Ajout panier → validation min/max
-5. Validation commande → `createOrder` (cree Commande + Lignes Airtable)
+5. Validation commande → `createOrder` (cree Commande + Lignes dans Supabase)
 6. Confirmation → affiche ref + coordonnees bancaires (IBAN/BIC) pour virement
 
 ### Frais de livraison
-Champ `Frais Livraison` sur la table Clubs. Ajoutes automatiquement au total de la commande si > 0.
+Champ `frais_livraison` sur la table Clubs. Ajoutes automatiquement au total de la commande si > 0.
 
 ### Facturation (admin)
-Onglet visible uniquement pour les clubs avec le flag `Admin`. Affiche toutes les commandes de tous les clubs. Bouton "Facture" genere un PDF cote client avec jsPDF (v3.x, CDN cdnjs). Le PDF inclut : en-tete BOTH EQUIPMNT, detail des lignes, sous-total, frais de livraison, total, coordonnees bancaires.
+Onglet visible uniquement pour les clubs avec le flag `admin`. Affiche toutes les commandes de tous les clubs. Bouton "Facture" genere un PDF cote client avec jsPDF (v3.x, CDN cdnjs). Le PDF inclut : en-tete BOTH EQUIPMNT, detail des lignes, sous-total, frais de livraison, total, coordonnees bancaires.
 
 ## Site vitrine (index.html)
 
@@ -199,15 +252,20 @@ npx netlify-cli dev
 
 # Les functions sont dans netlify/functions/
 # Les variables d'env doivent etre dans le dashboard Netlify ou un .env local
+
+# Migration Airtable → Supabase (a executer une seule fois) :
+# 1. Executer supabase/schema.sql dans le SQL Editor de Supabase
+# 2. Puis :
+AIRTABLE_TOKEN=pat... AIRTABLE_BASE_ID=app... SUPABASE_URL=https://xxx.supabase.co SUPABASE_SERVICE_KEY=eyJ... node supabase/migrate.js
 ```
 
 ## Points d'attention
 
-- Les IDs de tables Airtable sont hardcodes dans `airtable-api.js`
 - La variable CSS `--red` est en realite du jaune/or (#ffd700), pas du rouge
-- Le champ `personnalisable` dans le JS correspond au champ Airtable `Personnalisation`
+- Le champ `personnalisable` dans le JS correspond au champ `personnalisation` en base
 - Les images produits peuvent etre une URL unique ou une liste separee par virgules
-- `airtableRequestAll()` gere la pagination Airtable (max 100 records par requete, utilise `offset`), supporte `filterByFormula` optionnel
 - jsPDF est charge depuis cdnjs (v3.x) — si le CDN retire la version, mettre a jour le lien dans `vestiaire.html`
 - Le formulaire contact est un Netlify Form (soumis en POST sur `/`)
-- Pas de base de donnees propre — tout est dans Airtable et Notion
+- `airtable-api-backup.js` est conserve comme reference — ne pas supprimer tant que Supabase n'est pas valide en prod
+- Les IDs Supabase sont des UUID (pas des strings Airtable type `recXXX`). Le champ `airtable_id` dans chaque table permet de retrouver la correspondance
+- Le champ `tailles` est un `text[]` PostgreSQL (array natif), pas une string CSV
