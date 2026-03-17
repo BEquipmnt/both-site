@@ -793,7 +793,7 @@ async function loadVision(){
         else if(b.type === 'image' && b.url) html += `<img src="${b.url}" alt="${b.caption || ''}" style="max-width:100%;margin:1.5rem auto;border-radius:4px;">`;
       });
     }
-    if(v.bouton) html += `<a href="/vision.html" class="btn-vision">${v.bouton}</a>`;
+    html += '<a href="/vision.html" class="btn-vision">En savoir plus</a>';
     container.innerHTML = html;
   } catch(e){
     console.error(e);
