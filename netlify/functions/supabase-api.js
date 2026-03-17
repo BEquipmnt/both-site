@@ -619,17 +619,6 @@ async function adminGetSuivi(commandeId) {
   }
 }
 
-async function adminGetAllSuivi() {
-  try {
-    const suivi = await sbGet('suivi_production',
-      `select=*&order=date_etape.desc`
-    );
-    return { suivi };
-  } catch (error) {
-    return { error: error.message };
-  }
-}
-
 async function adminCreateSuivi(payload) {
   try {
     const result = await sbPost('suivi_production', {
@@ -769,9 +758,6 @@ exports.handler = async (event) => {
           break;
         case 'adminGetSuivi':
           result = await adminGetSuivi(params.commandeId);
-          break;
-        case 'adminGetAllSuivi':
-          result = await adminGetAllSuivi();
           break;
         case 'adminGetAllDemandes':
           result = await adminGetAllDemandes();
