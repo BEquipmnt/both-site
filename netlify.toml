@@ -5,10 +5,12 @@
   node_bundler = "esbuild"
   external_node_modules = []
 
-[functions."airtable-api"]
+[functions."supabase-api"]
   timeout = 26
 
 # Variables d'environnement (à configurer dans Netlify Dashboard > Site settings > Environment variables)
+# SUPABASE_URL = https://eltvigeatxqcpsskdxfi.supabase.co
+# SUPABASE_ANON_KEY = eyJhbG...
 # NOTION_KEY = ntn_...
 # NOTION_DB_ACTUALITES = 2ff8e783876080b1aafee8dd76bf6bbc
 # NOTION_DB_PORTFOLIO = 2ff8e78387608067ad89e768ea0259e8
