@@ -11,7 +11,7 @@ Clubs de sport se connectent au "Vestiaire" pour commander des tenues personnali
 - **Backend** : 2 Netlify Functions (Node.js, esbuild)
 - **Bases de donnees** :
   - **Airtable** : donnees transactionnelles (clubs, produits, commandes, lignes, demandes)
-  - **Notion** : contenu editorial (actualites, portfolio, partenaires)
+  - **Notion** : contenu editorial (actualites, portfolio, partenaires, page vision/a propos)
 - **Frontend** : HTML/CSS/JS vanilla (pas de framework, pas de build)
 - **Fonts** : Google Fonts (Oswald + Work Sans)
 - **Images** : hebergees sur Imgur, Google Drive, Airtable CDN
@@ -22,7 +22,7 @@ Clubs de sport se connectent au "Vestiaire" pour commander des tenues personnali
 /
 ├── index.html                 # Page vitrine principale (hero, vision, actus, portfolio, contact, partenaires)
 ├── vestiaire.html             # Portail B2B club (login, catalogue, panier, commandes, demandes)
-├── vision.html                # Page "A propos"
+├── vision.html                # Page "A propos" (100% dynamique depuis Notion)
 ├── portfolio.html             # Liste de tous les projets
 ├── news.html                  # Liste de toutes les actualites
 ├── projet-detail.html         # Detail d'un projet (rendu blocks Notion)
@@ -85,6 +85,7 @@ Helpers :
 | `getNews` | `id` (opt) | Toutes les actus publiees, ou une seule par ID |
 | `getPortfolio` | `id` (opt), `all` (opt) | Projets "mis en avant" ou tous, ou un seul par ID |
 | `getProjectBlocks` | `id` | Projet + blocks Notion (paragraphes, images, colonnes...) |
+| `getVision` | — | Page "A propos" : blocks Notion (paragraphes, titres, images, colonnes, etc.) |
 | `getPartners` | — | Logos partenaires |
 
 Helper `richTextToHtml()` : convertit le rich text Notion en HTML (bold, italic, underline, liens, couleurs).
@@ -149,12 +150,21 @@ Onglet visible uniquement pour les clubs avec le flag `Admin`. Affiche toutes le
 ## Site vitrine (index.html)
 
 Charge le contenu dynamique depuis Notion au load :
+- `loadVision()` → teaser "A propos" (premiers paragraphes de la page Notion, avant le 1er heading)
 - `loadNews()` → section actualites (scroll horizontal)
 - `loadPortfolio()` → grille masonry (4 projets mis en avant)
 - `loadPartners()` → logos partenaires
 
 Le bouton "Mon Vestiaire" redirige vers `/vestiaire.html`.
 Le formulaire contact utilise Netlify Forms (`data-netlify="true"`).
+
+## Page Vision (vision.html)
+
+100% dynamique depuis Notion via `getVision`. Meme logique que projet-detail.html :
+- Spinner pendant le chargement
+- Rendu complet de tous les blocks Notion (paragraphes, titres, images, colonnes, citations, listes, videos, callouts)
+- Pas de contenu statique en fallback — tout vient de Notion
+- Le titre hero "LOOK GOOD, PLAY GOOD" est le seul element statique
 
 ## Pages detail (projet-detail, actualite-detail)
 
