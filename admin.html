@@ -206,6 +206,9 @@ tbody tr.clickable:hover{background:#e8e8e8}
       <a class="sidebar-link" onclick="showSection('demandes')" data-section="demandes">
         <span class="icon">💬</span><span>Demandes</span>
       </a>
+      <a class="sidebar-link" onclick="showSection('suivi')" data-section="suivi">
+        <span class="icon">🏭</span><span>Suivi Production</span>
+      </a>
     </div>
     <div class="sidebar-bottom">
       <a href="/vestiaire.html">← Vestiaire</a>
@@ -307,6 +310,31 @@ tbody tr.clickable:hover{background:#e8e8e8}
       </div>
     </div>
 
+    <!-- ========== SUIVI PRODUCTION ========== -->
+    <div class="section" id="sec-suivi">
+      <h1 class="page-title">Suivi Production</h1>
+      <div class="stats" id="suivi-stats"></div>
+      <div class="card-full">
+        <div class="toolbar">
+          <input class="search" type="text" placeholder="Rechercher (réf, club, étape...)" oninput="filterSuiviGlobal(this.value)">
+          <select onchange="filterSuiviStatut(this.value)">
+            <option value="">Tous les statuts</option>
+            <option value="En cours">En cours</option>
+            <option value="Terminé">Terminé</option>
+            <option value="En attente">En attente</option>
+          </select>
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr>
+              <th>Réf. Commande</th><th>Club</th><th>Étape</th><th>Statut</th><th>Date</th><th>Notes</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="suivi-global-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
   </div><!-- /main -->
 </div><!-- /app -->
 
@@ -330,7 +358,7 @@ tbody tr.clickable:hover{background:#e8e8e8}
 // GLOBALS
 // ============================================================
 var API = '/.netlify/functions/supabase-api';
-var G = { club: null, commandes: [], produits: [], clubs: [], demandes: [] };
+var G = { club: null, commandes: [], produits: [], clubs: [], demandes: [], suiviGlobal: [] };
 var _searchCommandes = '', _statutCommandes = '';
 var _searchProduits = '', _clubProduits = '';
 var _searchClubs = '';
@@ -398,6 +426,7 @@ function loadAll() {
   loadProduits();
   loadClubs();
   loadDemandes();
+  loadSuiviGlobal();
 }
 
 // ============================================================
@@ -599,13 +628,93 @@ function saveSuivi(commandeId) {
       var f = document.getElementById('suivi-form');
       if (f) f.remove();
       loadSuivi(commandeId);
+      loadSuiviGlobal();
     } else toast('Erreur', true);
   });
 }
 
 function deleteSuivi(id, commandeId) {
   apiPost('adminDeleteSuivi', { id: id }).then(function(res) {
-    if (res.success) { toast('Étape supprimée'); loadSuivi(commandeId); }
+    if (res.success) { toast('Étape supprimée'); loadSuivi(commandeId); loadSuiviGlobal(); }
+    else toast('Erreur', true);
+  });
+}
+
+// ============================================================
+// SUIVI PRODUCTION — VUE GLOBALE
+// ============================================================
+var _suiviFilter = '';
+var _suiviStatutFilter = '';
+
+function loadSuiviGlobal() {
+  apiGet('adminGetAllSuivi').then(function(res) {
+    G.suiviGlobal = res.suivi || [];
+    // Enrichir chaque étape avec les infos commande
+    G.suiviGlobal.forEach(function(s) {
+      var cmd = G.commandes.find(function(c) { return c.id === s.commande_id; });
+      s._ref = cmd ? cmd.ref : '—';
+      s._club = cmd ? cmd.clubNom : '—';
+      s._cmdId = s.commande_id;
+    });
+    renderSuiviGlobal();
+  });
+}
+
+function renderSuiviGlobal() {
+  var list = G.suiviGlobal;
+  var search = _suiviFilter.toLowerCase();
+  var statut = _suiviStatutFilter;
+
+  if (search) {
+    list = list.filter(function(s) {
+      return (s._ref || '').toLowerCase().includes(search) ||
+        (s._club || '').toLowerCase().includes(search) ||
+        (s.etape || '').toLowerCase().includes(search) ||
+        (s.notes || '').toLowerCase().includes(search);
+    });
+  }
+  if (statut) {
+    list = list.filter(function(s) { return s.statut === statut; });
+  }
+
+  // Stats
+  var total = G.suiviGlobal.length;
+  var enCours = G.suiviGlobal.filter(function(s) { return s.statut === 'En cours'; }).length;
+  var enAttente = G.suiviGlobal.filter(function(s) { return s.statut === 'En attente'; }).length;
+  var termine = G.suiviGlobal.filter(function(s) { return s.statut === 'Terminé'; }).length;
+  document.getElementById('suivi-stats').innerHTML =
+    '<div class="stat-card"><div class="stat-value">' + total + '</div><div class="stat-label">Total étapes</div></div>' +
+    '<div class="stat-card"><div class="stat-value" style="color:var(--blue)">' + enCours + '</div><div class="stat-label">En cours</div></div>' +
+    '<div class="stat-card"><div class="stat-value" style="color:#f59e0b">' + enAttente + '</div><div class="stat-label">En attente</div></div>' +
+    '<div class="stat-card"><div class="stat-value" style="color:var(--green)">' + termine + '</div><div class="stat-label">Terminé</div></div>';
+
+  // Table
+  var tbody = document.getElementById('suivi-global-table');
+  if (!list.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--grey-400);padding:2rem">Aucune étape de suivi</td></tr>'; return; }
+
+  var html = '';
+  list.forEach(function(s) {
+    var badge = s.statut === 'En cours' ? 'badge-blue' : s.statut === 'Terminé' ? 'badge-green' : 'badge-yellow';
+    var dateStr = s.date_etape ? new Date(s.date_etape).toLocaleDateString('fr-FR') : '—';
+    html += '<tr class="clickable" onclick="openCommandeDetail(\'' + s._cmdId + '\')">' +
+      '<td><strong>' + s._ref + '</strong></td>' +
+      '<td>' + s._club + '</td>' +
+      '<td>' + (s.etape || '—') + '</td>' +
+      '<td><span class="badge ' + badge + '">' + (s.statut || '—') + '</span></td>' +
+      '<td>' + dateStr + '</td>' +
+      '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (s.notes || '—') + '</td>' +
+      '<td><button class="btn-icon danger" onclick="event.stopPropagation();deleteSuiviGlobal(\'' + s.id + '\')" title="Supprimer">🗑️</button></td>' +
+      '</tr>';
+  });
+  tbody.innerHTML = html;
+}
+
+function filterSuiviGlobal(val) { _suiviFilter = val; renderSuiviGlobal(); }
+function filterSuiviStatut(val) { _suiviStatutFilter = val; renderSuiviGlobal(); }
+
+function deleteSuiviGlobal(id) {
+  apiPost('adminDeleteSuivi', { id: id }).then(function(res) {
+    if (res.success) { toast('Étape supprimée'); loadSuiviGlobal(); }
     else toast('Erreur', true);
   });
 }
@@ -647,7 +756,8 @@ function renderProduits() {
       '<td style="font-size:.78rem">' + tailles + '</td>' +
       '<td style="font-size:.78rem">' + stock + '</td>' +
       '<td>' + visible + '</td>' +
-      '<td><button class="btn-icon danger" onclick="event.stopPropagation();confirmDeleteProduit(\'' + p.id + '\',\'' + (p.nom || '').replace(/'/g, "\\'") + '\')" title="Supprimer">🗑️</button></td>' +
+      '<td><button class="btn-icon" onclick="event.stopPropagation();duplicateProduit(\'' + p.id + '\')" title="Dupliquer">📋</button>' +
+      '<button class="btn-icon danger" onclick="event.stopPropagation();confirmDeleteProduit(\'' + p.id + '\',\'' + (p.nom || '').replace(/'/g, "\\'") + '\')" title="Supprimer">🗑️</button></td>' +
       '</tr>';
   });
   document.getElementById('produits-table').innerHTML = html || '<tr><td colspan="8" style="text-align:center;color:var(--grey-400);padding:2rem">Aucun produit</td></tr>';
@@ -762,9 +872,13 @@ function recalcPrix() {
   document.getElementById('f-marge-ap').value = margeAp.toFixed(2);
 }
 
-function openProduitModal(id) {
+function duplicateProduit(id) {
+  openProduitModal(id, true);
+}
+
+function openProduitModal(id, duplicate) {
   var p = id ? G.produits.find(function(x) { return x.id === id; }) : null;
-  var title = p ? 'Modifier le produit' : 'Nouveau produit';
+  var title = duplicate ? 'Dupliquer le produit' : (p ? 'Modifier le produit' : 'Nouveau produit');
 
   // Club options
   var clubOptions = '<option value="">—</option>';
@@ -857,9 +971,13 @@ function openProduitModal(id) {
     '<div class="form-row"><div class="form-check"><input type="checkbox" id="f-ajout-vest"' + (p && p.ajout_vestiaire ? ' checked' : '') + '><label style="margin:0">Ajout vestiaire</label></div></div>' +
     '</div>';
 
+  var saveId = (p && !duplicate) ? "'" + p.id + "'" : 'null';
+  var saveLabel = (p && !duplicate) ? 'Enregistrer' : 'Créer';
+
   openModal(title, html,
     '<button class="btn btn-outline" onclick="closeModal()">Annuler</button>' +
-    '<button class="btn btn-primary" onclick="saveProduit(' + (p ? "'" + p.id + "'" : 'null') + ')">' + (p ? 'Enregistrer' : 'Créer') + '</button>'
+    (p && !duplicate ? '<button class="btn btn-outline" style="margin-left:.5rem" onclick="closeModal();duplicateProduit(\'' + p.id + '\')">Dupliquer</button>' : '') +
+    '<button class="btn btn-primary" onclick="saveProduit(' + saveId + ')">' + saveLabel + '</button>'
   );
 }
 
