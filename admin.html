@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — BOTH EQUIPMNT</title>
+<meta name="robots" content="noindex, nofollow">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f5f5;--white:#fff;--black:#0a0a0a;--yellow:#ffd700;
+  --grey-100:#f0f0f0;--grey-200:#e0e0e0;--grey-400:#999;--grey-600:#666;
+  --green:#22c55e;--red:#ef4444;--blue:#3b82f6;--orange:#f59e0b;
+  --sidebar:240px;--display:'Oswald',sans-serif;--body:'Work Sans',sans-serif;
+  --radius:6px;
+}
+html{-webkit-font-smoothing:antialiased}
+body{font-family:var(--body);background:var(--bg);color:var(--black);font-size:.9rem;line-height:1.5}
+a{text-decoration:none;color:inherit}
+button{cursor:pointer;font-family:var(--body)}
+input,select,textarea{font-family:var(--body);font-size:.85rem}
+
+/* LOGIN */
+.login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--black)}
+.login-box{background:var(--white);padding:3rem;border-radius:8px;width:360px;text-align:center}
+.login-box img{height:40px;margin-bottom:2rem}
+.login-box h2{font-family:var(--display);font-size:1.4rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin-bottom:.5rem}
+.login-box p{color:var(--grey-600);font-size:.8rem;margin-bottom:1.5rem}
+.login-box input{width:100%;padding:.7rem 1rem;border:2px solid var(--grey-200);border-radius:var(--radius);outline:none;margin-bottom:1rem;transition:border .2s}
+.login-box input:focus{border-color:var(--yellow)}
+.login-box button{width:100%;padding:.7rem;background:var(--black);color:var(--white);border:none;border-radius:var(--radius);font-weight:600;font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;transition:background .2s}
+.login-box button:hover{background:#333}
+.login-error{color:var(--red);font-size:.8rem;margin-top:.5rem;display:none}
+
+/* LAYOUT */
+.app{display:none}
+.sidebar{position:fixed;top:0;left:0;bottom:0;width:var(--sidebar);background:var(--black);color:var(--white);padding:1.5rem 0;overflow-y:auto;z-index:50}
+.sidebar-logo{padding:0 1.5rem .5rem;margin-bottom:1.5rem;border-bottom:1px solid rgba(255,255,255,.1)}
+.sidebar-logo img{height:30px;filter:brightness(0) invert(1)}
+.sidebar-nav{display:flex;flex-direction:column;gap:.2rem}
+.sidebar-link{display:flex;align-items:center;gap:.8rem;padding:.7rem 1.5rem;font-size:.78rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--grey-400);transition:all .2s;border-left:3px solid transparent}
+.sidebar-link:hover{color:var(--white);background:rgba(255,255,255,.05)}
+.sidebar-link.active{color:var(--yellow);border-left-color:var(--yellow);background:rgba(255,215,0,.05)}
+.sidebar-link .icon{font-size:1.1rem;width:20px;text-align:center}
+.sidebar-bottom{position:absolute;bottom:0;left:0;right:0;padding:1rem 1.5rem;border-top:1px solid rgba(255,255,255,.1)}
+.sidebar-bottom a{font-size:.7rem;color:var(--grey-400);letter-spacing:.08em;text-transform:uppercase;transition:color .2s}
+.sidebar-bottom a:hover{color:var(--white)}
+
+.main{margin-left:var(--sidebar);padding:2rem 2.5rem;min-height:100vh}
+.page-title{font-family:var(--display);font-size:1.6rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin-bottom:1.5rem}
+
+/* CARDS / TABLES */
+.card{background:var(--white);border-radius:var(--radius);padding:1.5rem;margin-bottom:1.5rem;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem}
+.card-header h3{font-family:var(--display);font-size:1rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+
+table{width:100%;border-collapse:collapse;font-size:.82rem}
+thead th{text-align:left;padding:.6rem .8rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--grey-400);border-bottom:2px solid var(--grey-200);font-weight:600}
+tbody td{padding:.6rem .8rem;border-bottom:1px solid var(--grey-100);vertical-align:middle}
+tbody tr:hover{background:var(--grey-100)}
+
+/* BADGES */
+.badge{display:inline-block;padding:.15rem .6rem;border-radius:20px;font-size:.7rem;font-weight:600;letter-spacing:.03em}
+.badge-yellow{background:#fef3c7;color:#92400e}
+.badge-green{background:#dcfce7;color:#166534}
+.badge-red{background:#fee2e2;color:#991b1b}
+.badge-blue{background:#dbeafe;color:#1e40af}
+.badge-grey{background:var(--grey-100);color:var(--grey-600)}
+
+/* BUTTONS */
+.btn{padding:.45rem 1rem;border:none;border-radius:var(--radius);font-size:.75rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;transition:all .2s}
+.btn-primary{background:var(--black);color:var(--white)}
+.btn-primary:hover{background:#333}
+.btn-yellow{background:var(--yellow);color:var(--black)}
+.btn-yellow:hover{background:#e6c200}
+.btn-danger{background:var(--red);color:var(--white)}
+.btn-danger:hover{background:#dc2626}
+.btn-outline{background:transparent;border:1.5px solid var(--grey-200);color:var(--grey-600)}
+.btn-outline:hover{border-color:var(--black);color:var(--black)}
+.btn-sm{padding:.3rem .7rem;font-size:.7rem}
+.btn-icon{background:none;border:none;padding:.3rem;font-size:1rem;color:var(--grey-400);transition:color .2s}
+.btn-icon:hover{color:var(--black)}
+.btn-icon.danger:hover{color:var(--red)}
+
+/* TOOLBAR */
+.toolbar{display:flex;gap:.8rem;align-items:center;margin-bottom:1rem;flex-wrap:wrap}
+.toolbar input,.toolbar select{padding:.5rem .8rem;border:1.5px solid var(--grey-200);border-radius:var(--radius);outline:none;transition:border .2s}
+.toolbar input:focus,.toolbar select:focus{border-color:var(--yellow)}
+.toolbar .search{flex:1;min-width:200px;max-width:350px}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;align-items:center;justify-content:center;padding:2rem}
+.modal-overlay.active{display:flex}
+.modal{background:var(--white);border-radius:8px;width:100%;max-width:600px;max-height:90vh;overflow-y:auto;position:relative}
+.modal-header{display:flex;justify-content:space-between;align-items:center;padding:1.2rem 1.5rem;border-bottom:1px solid var(--grey-200)}
+.modal-header h3{font-family:var(--display);font-size:1.1rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.modal-body{padding:1.5rem}
+.modal-footer{padding:1rem 1.5rem;border-top:1px solid var(--grey-200);display:flex;justify-content:flex-end;gap:.8rem}
+.modal-close{background:none;border:none;font-size:1.3rem;color:var(--grey-400);padding:.3rem}
+.modal-close:hover{color:var(--black)}
+
+/* FORM */
+.form-row{margin-bottom:1rem}
+.form-row label{display:block;font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--grey-600);margin-bottom:.3rem;font-weight:600}
+.form-row input,.form-row select,.form-row textarea{width:100%;padding:.6rem .8rem;border:1.5px solid var(--grey-200);border-radius:var(--radius);outline:none;transition:border .2s}
+.form-row input:focus,.form-row select:focus,.form-row textarea:focus{border-color:var(--yellow)}
+.form-row textarea{resize:vertical;min-height:80px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 1rem}
+.form-check{display:flex;align-items:center;gap:.5rem}
+.form-check input[type=checkbox]{width:auto}
+
+/* TOAST */
+.toast{position:fixed;bottom:2rem;right:2rem;padding:.8rem 1.5rem;background:var(--black);color:var(--white);border-radius:var(--radius);font-size:.82rem;font-weight:500;transform:translateY(100px);opacity:0;transition:all .3s;z-index:200}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.error{background:var(--red)}
+
+/* STATS ROW */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-bottom:1.5rem}
+.stat-card{background:var(--white);border-radius:var(--radius);padding:1.2rem 1.5rem;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.stat-card .stat-value{font-family:var(--display);font-size:1.8rem;font-weight:700}
+.stat-card .stat-label{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--grey-400);font-weight:600}
+
+/* SECTION VISIBILITY */
+.section{display:none}
+.section.active{display:block}
+
+/* RESPONSIVE */
+@media(max-width:768px){
+  .sidebar{width:60px;overflow:hidden}
+  .sidebar-link span{display:none}
+  .sidebar-logo img{height:20px}
+  .sidebar-bottom{display:none}
+  .main{margin-left:60px;padding:1rem}
+  .form-grid{grid-template-columns:1fr}
+  .stats{grid-template-columns:1fr 1fr}
+  .toolbar{flex-direction:column}
+  .toolbar .search{max-width:100%}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-screen" id="login-screen">
+  <div class="login-box">
+    <img src="https://i.imgur.com/e68bB0X.png" alt="BOTH">
+    <h2>Back Office</h2>
+    <p>Accès réservé aux administrateurs</p>
+    <input type="email" id="login-email" placeholder="Email admin" onkeydown="if(event.key==='Enter')doLogin()">
+    <button onclick="doLogin()">Connexion</button>
+    <div class="login-error" id="login-error">Email non reconnu ou accès non autorisé</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="app" id="app">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <img src="https://i.imgur.com/e68bB0X.png" alt="BOTH">
+    </div>
+    <div class="sidebar-nav">
+      <a class="sidebar-link active" onclick="showSection('commandes')" data-section="commandes">
+        <span class="icon">📦</span><span>Commandes</span>
+      </a>
+      <a class="sidebar-link" onclick="showSection('produits')" data-section="produits">
+        <span class="icon">👕</span><span>Produits</span>
+      </a>
+      <a class="sidebar-link" onclick="showSection('clubs')" data-section="clubs">
+        <span class="icon">🏟️</span><span>Clubs</span>
+      </a>
+      <a class="sidebar-link" onclick="showSection('demandes')" data-section="demandes">
+        <span class="icon">💬</span><span>Demandes</span>
+      </a>
+    </div>
+    <div class="sidebar-bottom">
+      <a href="/vestiaire.html">← Vestiaire</a>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <div class="main">
+
+    <!-- ========== COMMANDES ========== -->
+    <div class="section active" id="sec-commandes">
+      <h1 class="page-title">Commandes</h1>
+      <div class="stats" id="commandes-stats"></div>
+      <div class="card">
+        <div class="toolbar">
+          <input class="search" type="text" placeholder="Rechercher (ref, club...)" oninput="filterCommandes(this.value)">
+          <select onchange="filterCommandesStatut(this.value)">
+            <option value="">Tous les statuts</option>
+            <option value="EN ATTENTE">En attente de paiement</option>
+            <option value="PAYÉE">Payée</option>
+            <option value="PRODUCTION">En production</option>
+            <option value="EXPÉDIÉE">Expédiée</option>
+            <option value="LIVRÉE">Livrée</option>
+          </select>
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr>
+              <th>Vu</th><th>Réf</th><th>Club</th><th>Date</th><th>Articles</th><th>Total</th><th>Statut</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="commandes-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== PRODUITS ========== -->
+    <div class="section" id="sec-produits">
+      <h1 class="page-title">Produits</h1>
+      <div class="card">
+        <div class="toolbar">
+          <input class="search" type="text" placeholder="Rechercher un produit..." oninput="filterProduits(this.value)">
+          <select onchange="filterProduitsClub(this.value)" id="produits-club-filter">
+            <option value="">Tous les clubs</option>
+          </select>
+          <button class="btn btn-primary" onclick="openProduitModal()">+ Nouveau produit</button>
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr>
+              <th></th><th>Nom</th><th>Club</th><th>Prix</th><th>Tailles</th><th>Stock</th><th>Visible</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="produits-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== CLUBS ========== -->
+    <div class="section" id="sec-clubs">
+      <h1 class="page-title">Clubs</h1>
+      <div class="card">
+        <div class="toolbar">
+          <input class="search" type="text" placeholder="Rechercher un club..." oninput="filterClubs(this.value)">
+          <button class="btn btn-primary" onclick="openClubModal()">+ Nouveau club</button>
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr>
+              <th>Nom</th><th>Email</th><th>Frais livraison</th><th>Min commande</th><th>Admin</th><th>Dernière connexion</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="clubs-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== DEMANDES ========== -->
+    <div class="section" id="sec-demandes">
+      <h1 class="page-title">Demandes</h1>
+      <div class="card">
+        <div class="toolbar">
+          <input class="search" type="text" placeholder="Rechercher..." oninput="filterDemandes(this.value)">
+          <select onchange="filterDemandesStatut(this.value)">
+            <option value="">Tous les statuts</option>
+            <option value="Nouvelle">Nouvelle</option>
+            <option value="En cours">En cours</option>
+            <option value="Résolue">Résolue</option>
+          </select>
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr>
+              <th>Club</th><th>Objet</th><th>Date</th><th>Statut</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="demandes-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- MODAL GENERIQUE -->
+<div class="modal-overlay" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-title">Titre</h3>
+      <button class="modal-close" onclick="closeModal()">&#x2715;</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-footer" id="modal-footer"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// GLOBALS
+// ============================================================
+var API = '/.netlify/functions/supabase-api';
+var G = { club: null, commandes: [], produits: [], clubs: [], demandes: [] };
+var _searchCommandes = '', _statutCommandes = '';
+var _searchProduits = '', _clubProduits = '';
+var _searchClubs = '';
+var _searchDemandes = '', _statutDemandes = '';
+
+function fmt(n) { return parseFloat(n || 0).toFixed(2).replace('.', ',') + ' \u20AC'; }
+function toast(msg, err) {
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show' + (err ? ' error' : '');
+  setTimeout(function() { el.className = 'toast'; }, 3000);
+}
+
+function apiGet(action, params) {
+  var url = API + '?' + new URLSearchParams(Object.assign({ action: action }, params || {}));
+  return fetch(url).then(function(r) { return r.json(); });
+}
+function apiPost(action, body) {
+  return fetch(API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(Object.assign({ action: action }, body || {}))
+  }).then(function(r) { return r.json(); });
+}
+
+// ============================================================
+// AUTH
+// ============================================================
+function doLogin() {
+  var email = document.getElementById('login-email').value.trim();
+  if (!email) return;
+  document.getElementById('login-error').style.display = 'none';
+  apiGet('getClub', { email: email }).then(function(res) {
+    if (!res.club) {
+      document.getElementById('login-error').style.display = 'block';
+      return;
+    }
+    if (!res.club.admin) {
+      document.getElementById('login-error').textContent = 'Ce compte n\'a pas les droits administrateur';
+      document.getElementById('login-error').style.display = 'block';
+      return;
+    }
+    G.club = res.club;
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    loadAll();
+  });
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function showSection(name) {
+  document.querySelectorAll('.section').forEach(function(s) { s.classList.remove('active'); });
+  document.querySelectorAll('.sidebar-link').forEach(function(l) { l.classList.remove('active'); });
+  document.getElementById('sec-' + name).classList.add('active');
+  document.querySelector('[data-section="' + name + '"]').classList.add('active');
+}
+
+// ============================================================
+// LOAD ALL DATA
+// ============================================================
+function loadAll() {
+  loadCommandes();
+  loadProduits();
+  loadClubs();
+  loadDemandes();
+}
+
+// ============================================================
+// MODAL
+// ============================================================
+function openModal(title, bodyHtml, footerHtml) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').innerHTML = bodyHtml;
+  document.getElementById('modal-footer').innerHTML = footerHtml || '';
+  document.getElementById('modal').classList.add('active');
+}
+function closeModal() {
+  document.getElementById('modal').classList.remove('active');
+}
+
+// ============================================================
+// COMMANDES
+// ============================================================
+function loadCommandes() {
+  apiGet('getAllOrders').then(function(res) {
+    G.commandes = res.orders || [];
+    renderCommandesStats();
+    renderCommandes();
+  });
+}
+
+function renderCommandesStats() {
+  var total = G.commandes.length;
+  var enAttente = G.commandes.filter(function(o) { return o.statut.includes('ATTENTE'); }).length;
+  var ca = G.commandes.reduce(function(s, o) { return s + (parseFloat(o.total) || 0); }, 0);
+  document.getElementById('commandes-stats').innerHTML =
+    '<div class="stat-card"><div class="stat-value">' + total + '</div><div class="stat-label">Commandes</div></div>' +
+    '<div class="stat-card"><div class="stat-value">' + enAttente + '</div><div class="stat-label">En attente</div></div>' +
+    '<div class="stat-card"><div class="stat-value">' + fmt(ca) + '</div><div class="stat-label">CA total</div></div>';
+}
+
+function renderCommandes() {
+  var filtered = G.commandes.filter(function(o) {
+    if (_searchCommandes) {
+      var s = _searchCommandes.toLowerCase();
+      if (!(o.ref || '').toLowerCase().includes(s) && !(o.clubNom || '').toLowerCase().includes(s)) return false;
+    }
+    if (_statutCommandes && !(o.statut || '').toUpperCase().includes(_statutCommandes)) return false;
+    return true;
+  });
+  var html = '';
+  filtered.forEach(function(o) {
+    var vu = (o.statut || '').includes('ATTENTE') ? '<span style="color:var(--red);font-size:1.1rem">●</span>' : '<span style="color:var(--green);font-size:1.1rem">●</span>';
+    html += '<tr>' +
+      '<td>' + vu + '</td>' +
+      '<td><strong>' + (o.ref || '—') + '</strong></td>' +
+      '<td>' + (o.clubNom || '—') + '</td>' +
+      '<td>' + (o.date || '—') + '</td>' +
+      '<td>' + (o.nbArticles || 0) + '</td>' +
+      '<td>' + fmt(o.total) + '</td>' +
+      '<td>' + statutBadge(o.statut) + '</td>' +
+      '<td><button class="btn-icon" onclick="openCommandeDetail(\'' + o.id + '\')" title="Voir">👁️</button>' +
+      '<button class="btn-icon danger" onclick="confirmDeleteOrder(\'' + o.id + '\',\'' + (o.ref || '') + '\')" title="Supprimer">🗑️</button></td>' +
+      '</tr>';
+  });
+  document.getElementById('commandes-table').innerHTML = html || '<tr><td colspan="8" style="text-align:center;color:var(--grey-400);padding:2rem">Aucune commande</td></tr>';
+}
+
+function statutBadge(s) {
+  if (!s) return '<span class="badge badge-grey">—</span>';
+  if (s.includes('ATTENTE')) return '<span class="badge badge-yellow">En attente</span>';
+  if (s.includes('PAYÉE') || s.includes('PAYEE')) return '<span class="badge badge-blue">Payée</span>';
+  if (s.includes('PRODUCTION')) return '<span class="badge badge-orange">Production</span>';
+  if (s.includes('EXPÉDIÉE') || s.includes('EXPEDIEE')) return '<span class="badge badge-green">Expédiée</span>';
+  if (s.includes('LIVRÉE') || s.includes('LIVREE')) return '<span class="badge badge-green">Livrée</span>';
+  return '<span class="badge badge-grey">' + s.replace(/[\u{1F534}\u{1F7E1}\u{1F7E2}\u{2705}\u{274C}]/gu, '').trim() + '</span>';
+}
+
+function filterCommandes(v) { _searchCommandes = v; renderCommandes(); }
+function filterCommandesStatut(v) { _statutCommandes = v; renderCommandes(); }
+
+function openCommandeDetail(id) {
+  apiGet('getOrderDetail', { orderId: id }).then(function(res) {
+    if (res.error) { toast(res.error, true); return; }
+    var o = res.order;
+    var lignes = res.lignes || [];
+
+    var html = '<div style="margin-bottom:1.5rem">' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem;font-size:.85rem">' +
+      '<div><strong>Réf :</strong> ' + o.ref + '</div>' +
+      '<div><strong>Date :</strong> ' + o.date + '</div>' +
+      '<div><strong>Club :</strong> ' + o.clubNom + '</div>' +
+      '<div><strong>Email :</strong> ' + (o.clubEmail || '—') + '</div>' +
+      '<div><strong>Articles :</strong> ' + o.nbArticles + '</div>' +
+      '<div><strong>Frais livraison :</strong> ' + fmt(o.fraisLivraison) + '</div>' +
+      '</div></div>';
+
+    // Statut modifiable
+    html += '<div class="form-row"><label>Statut</label><select id="cmd-statut" style="width:100%;padding:.5rem">' +
+      '<option' + (o.statut.includes('ATTENTE') ? ' selected' : '') + ' value="🟡 EN ATTENTE DE PAIEMENT">🟡 En attente de paiement</option>' +
+      '<option' + (o.statut.includes('PAYÉE') || o.statut.includes('PAYEE') ? ' selected' : '') + ' value="🔵 PAYÉE">🔵 Payée</option>' +
+      '<option' + (o.statut.includes('PRODUCTION') ? ' selected' : '') + ' value="🟠 EN PRODUCTION">🟠 En production</option>' +
+      '<option' + (o.statut.includes('EXPÉDIÉE') || o.statut.includes('EXPEDIEE') ? ' selected' : '') + ' value="🟢 EXPÉDIÉE">🟢 Expédiée</option>' +
+      '<option' + (o.statut.includes('LIVRÉE') || o.statut.includes('LIVREE') ? ' selected' : '') + ' value="✅ LIVRÉE">✅ Livrée</option>' +
+      '</select></div>';
+
+    // Lignes
+    html += '<div style="margin-top:1rem"><strong style="font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;color:var(--grey-400)">Lignes de commande</strong>' +
+      '<table style="margin-top:.5rem"><thead><tr><th>Produit</th><th>Taille</th><th>Qté</th><th>Prix unit.</th><th>Perso</th></tr></thead><tbody>';
+    lignes.forEach(function(l) {
+      var perso = '';
+      if (l.nomPerso) perso += l.nomPerso;
+      if (l.numPerso) perso += (perso ? ' #' : '#') + l.numPerso;
+      html += '<tr><td>' + l.produit + '</td><td>' + l.taille + '</td><td>' + l.quantite + '</td><td>' + fmt(l.prixUnitaire) + '</td><td>' + (perso || '—') + '</td></tr>';
+    });
+    html += '</tbody></table></div>';
+
+    // Suivi production
+    html += '<div style="margin-top:1.5rem"><strong style="font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;color:var(--grey-400)">Suivi production</strong>' +
+      '<div id="suivi-list" style="margin-top:.5rem"><em style="color:var(--grey-400);font-size:.8rem">Chargement...</em></div>' +
+      '<button class="btn btn-outline btn-sm" style="margin-top:.5rem" onclick="addSuiviForm(\'' + id + '\')">+ Ajouter une étape</button></div>';
+
+    html += '<div style="margin-top:1.5rem;padding-top:1rem;border-top:1px solid var(--grey-200);font-size:1.1rem;font-weight:600;text-align:right">Total : ' + fmt(o.total) + '</div>';
+
+    openModal('Commande ' + o.ref, html,
+      '<button class="btn btn-outline" onclick="closeModal()">Fermer</button>' +
+      '<button class="btn btn-primary" onclick="saveCommandeStatut(\'' + id + '\')">Enregistrer le statut</button>'
+    );
+
+    // Charger le suivi
+    loadSuivi(id);
+  });
+}
+
+function saveCommandeStatut(id) {
+  var statut = document.getElementById('cmd-statut').value;
+  apiPost('adminUpdateOrder', { id: id, statut: statut }).then(function(res) {
+    if (res.success) { toast('Statut mis à jour'); closeModal(); loadCommandes(); }
+    else toast('Erreur: ' + res.error, true);
+  });
+}
+
+function confirmDeleteOrder(id, ref) {
+  openModal('Supprimer la commande', '<p>Supprimer la commande <strong>' + ref + '</strong> et toutes ses lignes ?</p><p style="color:var(--red);font-size:.85rem;margin-top:.5rem">Cette action est irréversible.</p>',
+    '<button class="btn btn-outline" onclick="closeModal()">Annuler</button>' +
+    '<button class="btn btn-danger" onclick="deleteOrder(\'' + id + '\')">Supprimer</button>'
+  );
+}
+function deleteOrder(id) {
+  apiPost('adminDeleteOrder', { id: id }).then(function(res) {
+    if (res.success) { toast('Commande supprimée'); closeModal(); loadCommandes(); }
+    else toast('Erreur: ' + res.error, true);
+  });
+}
+
+// ============================================================
+// SUIVI PRODUCTION
+// ============================================================
+function loadSuivi(commandeId) {
+  apiGet('adminGetSuivi', { commandeId: commandeId }).then(function(res) {
+    var list = res.suivi || [];
+    var el = document.getElementById('suivi-list');
+    if (!el) return;
+    if (!list.length) { el.innerHTML = '<em style="color:var(--grey-400);font-size:.8rem">Aucune étape</em>'; return; }
+    var html = '<table><thead><tr><th>Étape</th><th>Statut</th><th>Date</th><th>Notes</th><th></th></tr></thead><tbody>';
+    list.forEach(function(s) {
+      html += '<tr><td>' + (s.etape || '—') + '</td><td>' + (s.statut || '—') + '</td>' +
+        '<td>' + (s.date_etape ? new Date(s.date_etape).toLocaleDateString('fr-FR') : '—') + '</td>' +
+        '<td style="max-width:150px;overflow:hidden;text-overflow:ellipsis">' + (s.notes || '') + '</td>' +
+        '<td><button class="btn-icon danger" onclick="deleteSuivi(\'' + s.id + '\',\'' + commandeId + '\')">🗑️</button></td></tr>';
+    });
+    html += '</tbody></table>';
+    el.innerHTML = html;
+  });
+}
+
+function addSuiviForm(commandeId) {
+  var el = document.getElementById('suivi-list');
+  var form = '<div style="background:var(--grey-100);padding:1rem;border-radius:var(--radius);margin-top:.5rem" id="suivi-form">' +
+    '<div class="form-grid">' +
+    '<div class="form-row"><label>Étape</label><input id="suivi-etape" placeholder="Ex: Impression"></div>' +
+    '<div class="form-row"><label>Statut</label><select id="suivi-statut"><option>En cours</option><option>Terminé</option><option>En attente</option></select></div>' +
+    '<div class="form-row"><label>Date</label><input type="date" id="suivi-date" value="' + new Date().toISOString().slice(0, 10) + '"></div>' +
+    '<div class="form-row"><label>Notes</label><input id="suivi-notes" placeholder="Optionnel"></div>' +
+    '</div>' +
+    '<button class="btn btn-primary btn-sm" onclick="saveSuivi(\'' + commandeId + '\')">Ajouter</button>' +
+    '</div>';
+  el.insertAdjacentHTML('afterend', form);
+}
+
+function saveSuivi(commandeId) {
+  apiPost('adminCreateSuivi', {
+    commandeId: commandeId,
+    etape: document.getElementById('suivi-etape').value,
+    statut: document.getElementById('suivi-statut').value,
+    dateEtape: document.getElementById('suivi-date').value,
+    notes: document.getElementById('suivi-notes').value
+  }).then(function(res) {
+    if (res.success) {
+      toast('Étape ajoutée');
+      var f = document.getElementById('suivi-form');
+      if (f) f.remove();
+      loadSuivi(commandeId);
+    } else toast('Erreur', true);
+  });
+}
+
+function deleteSuivi(id, commandeId) {
+  apiPost('adminDeleteSuivi', { id: id }).then(function(res) {
+    if (res.success) { toast('Étape supprimée'); loadSuivi(commandeId); }
+    else toast('Erreur', true);
+  });
+}
+
+// ============================================================
+// PRODUITS
+// ============================================================
+function loadProduits() {
+  apiGet('adminGetProduits').then(function(res) {
+    G.produits = res.produits || [];
+    renderProduits();
+    // Mettre à jour le filtre clubs
+    var clubNames = [];
+    G.produits.forEach(function(p) { if (p.club && clubNames.indexOf(p.club) === -1) clubNames.push(p.club); });
+    clubNames.sort();
+    var sel = document.getElementById('produits-club-filter');
+    sel.innerHTML = '<option value="">Tous les clubs</option>' + clubNames.map(function(c) { return '<option>' + c + '</option>'; }).join('');
+  });
+}
+
+function renderProduits() {
+  var filtered = G.produits.filter(function(p) {
+    if (_searchProduits && !(p.nom || '').toLowerCase().includes(_searchProduits.toLowerCase())) return false;
+    if (_clubProduits && p.club !== _clubProduits) return false;
+    return true;
+  });
+  var html = '';
+  filtered.forEach(function(p) {
+    var img = p.image_url ? '<img src="' + p.image_url.split(',')[0].trim() + '" style="width:36px;height:36px;object-fit:cover;border-radius:4px">' : '<div style="width:36px;height:36px;background:var(--grey-200);border-radius:4px"></div>';
+    var tailles = (p.tailles || []).join(', ') || '—';
+    var stock = p.groupe_stock ? p.groupe_stock + ' (' + p.stock_groupe + ')' : '—';
+    var visible = p.visible_vestiaire ? '<span style="color:var(--green)">Oui</span>' : '<span style="color:var(--red)">Non</span>';
+    if (p.expire) visible = '<span style="color:var(--grey-400)">Expiré</span>';
+    html += '<tr>' +
+      '<td>' + img + '</td>' +
+      '<td><strong>' + p.nom + '</strong><br><span style="font-size:.75rem;color:var(--grey-400)">' + (p.type || '') + '</span></td>' +
+      '<td>' + (p.club || '—') + '</td>' +
+      '<td>' + fmt(p.prix_vente_club) + '</td>' +
+      '<td style="font-size:.78rem">' + tailles + '</td>' +
+      '<td style="font-size:.78rem">' + stock + '</td>' +
+      '<td>' + visible + '</td>' +
+      '<td><button class="btn-icon" onclick="openProduitModal(\'' + p.id + '\')" title="Modifier">✏️</button>' +
+      '<button class="btn-icon danger" onclick="confirmDeleteProduit(\'' + p.id + '\',\'' + (p.nom || '').replace(/'/g, "\\'") + '\')" title="Supprimer">🗑️</button></td>' +
+      '</tr>';
+  });
+  document.getElementById('produits-table').innerHTML = html || '<tr><td colspan="8" style="text-align:center;color:var(--grey-400);padding:2rem">Aucun produit</td></tr>';
+}
+
+function filterProduits(v) { _searchProduits = v; renderProduits(); }
+function filterProduitsClub(v) { _clubProduits = v; renderProduits(); }
+
+function openProduitModal(id) {
+  var p = id ? G.produits.find(function(x) { return x.id === id; }) : null;
+  var title = p ? 'Modifier le produit' : 'Nouveau produit';
+  // Charger la liste des clubs pour le dropdown
+  var clubOptions = '<option value="">—</option>';
+  var clubNames = [];
+  G.clubs.forEach(function(c) { if (clubNames.indexOf(c.nom) === -1) clubNames.push(c.nom); });
+  clubNames.sort();
+  clubNames.forEach(function(c) { clubOptions += '<option' + (p && p.club === c ? ' selected' : '') + '>' + c + '</option>'; });
+
+  var html =
+    '<div class="form-row"><label>Nom</label><input id="f-nom" value="' + (p ? p.nom : '') + '"></div>' +
+    '<div class="form-grid">' +
+    '<div class="form-row"><label>Prix vente club</label><input id="f-prix" type="number" step="0.01" value="' + (p ? p.prix_vente_club : '') + '"></div>' +
+    '<div class="form-row"><label>Club</label><select id="f-club">' + clubOptions + '</select></div>' +
+    '</div>' +
+    '<div class="form-row"><label>Image URL(s)</label><input id="f-image" value="' + (p ? p.image_url : '') + '"></div>' +
+    '<div class="form-row"><label>Tailles (séparées par virgule)</label><input id="f-tailles" value="' + (p ? (p.tailles || []).join(', ') : '') + '"></div>' +
+    '<div class="form-grid">' +
+    '<div class="form-row"><label>Type / Catégorie</label><input id="f-type" value="' + (p ? p.type : '') + '"></div>' +
+    '<div class="form-row"><label>Personnalisation</label><select id="f-perso">' +
+      ['Aucune', 'Nom', 'Numero', 'Nom + Numero'].map(function(v) { return '<option' + (p && p.personnalisation === v ? ' selected' : '') + '>' + v + '</option>'; }).join('') +
+    '</select></div>' +
+    '</div>' +
+    '<div class="form-row"><label>Description</label><textarea id="f-desc">' + (p ? p.description : '') + '</textarea></div>' +
+    '<div class="form-grid">' +
+    '<div class="form-row"><label>Min quantité</label><input id="f-min" type="number" value="' + (p ? p.min_quantite : 0) + '"></div>' +
+    '<div class="form-row"><label>Max quantité</label><input id="f-max" type="number" value="' + (p ? p.max_quantite : 0) + '"></div>' +
+    '<div class="form-row"><label>Groupe stock</label><input id="f-grp" value="' + (p ? p.groupe_stock : '') + '"></div>' +
+    '<div class="form-row"><label>Stock groupe</label><input id="f-stk" type="number" value="' + (p ? p.stock_groupe : 0) + '"></div>' +
+    '</div>' +
+    '<div class="form-grid">' +
+    '<div class="form-row"><div class="form-check"><input type="checkbox" id="f-visible"' + (!p || p.visible_vestiaire ? ' checked' : '') + '><label style="margin:0">Visible vestiaire</label></div></div>' +
+    '<div class="form-row"><div class="form-check"><input type="checkbox" id="f-expire"' + (p && p.expire ? ' checked' : '') + '><label style="margin:0">Expiré</label></div></div>' +
+    '</div>';
+
+  openModal(title, html,
+    '<button class="btn btn-outline" onclick="closeModal()">Annuler</button>' +
+    '<button class="btn btn-primary" onclick="saveProduit(' + (p ? "'" + p.id + "'" : 'null') + ')">' + (p ? 'Enregistrer' : 'Créer') + '</button>'
+  );
+}
+
+function saveProduit(id) {
+  var data = {
+    nom: document.getElementById('f-nom').value,
+    prix: document.getElementById('f-prix').value,
+    club: document.getElementById('f-club').value,
+    imageUrl: document.getElementById('f-image').value,
+    tailles: document.getElementById('f-tailles').value,
+    type: document.getElementById('f-type').value,
+    personnalisation: document.getElementById('f-perso').value,
+    description: document.getElementById('f-desc').value,
+    minQuantite: document.getElementById('f-min').value,
+    maxQuantite: document.getElementById('f-max').value,
+    groupeStock: document.getElementById('f-grp').value,
+    stockGroupe: document.getElementById('f-stk').value,
+    visibleVestiaire: document.getElementById('f-visible').checked,
+    expire: document.getElementById('f-expire').checked
+  };
+  if (!data.nom) { toast('Le nom est requis', true); return; }
+
+  if (id) {
+    data.id = id;
+    apiPost('adminUpdateProduit', data).then(function(res) {
+      if (res.success) { toast('Produit mis à jour'); closeModal(); loadProduits(); }
+      else toast('Erreur: ' + res.error, true);
+    });
+  } else {
+    apiPost('adminCreateProduit', data).then(function(res) {
+      if (res.success) { toast('Produit créé'); closeModal(); loadProduits(); }
+      else toast('Erreur: ' + res.error, true);
+    });
+  }
+}
+
+function confirmDeleteProduit(id, nom) {
+  openModal('Supprimer le produit', '<p>Supprimer le produit <strong>' + nom + '</strong> ?</p>',
+    '<button class="btn btn-outline" onclick="closeModal()">Annuler</button>' +
+    '<button class="btn btn-danger" onclick="deleteProduit(\'' + id + '\')">Supprimer</button>'
+  );
+}
+function deleteProduit(id) {
+  apiPost('adminDeleteProduit', { id: id }).then(function(res) {
+    if (res.success) { toast('Produit supprimé'); closeModal(); loadProduits(); }
+    else toast('Erreur: ' + res.error, true);
+  });
+}
+
+// ============================================================
+// CLUBS
+// ============================================================
+function loadClubs() {
+  apiGet('adminGetClubs').then(function(res) {
+    G.clubs = res.clubs || [];
+    renderClubs();
+  });
+}
+
+function renderClubs() {
+  var filtered = G.clubs.filter(function(c) {
+    if (_searchClubs && !(c.nom || '').toLowerCase().includes(_searchClubs.toLowerCase()) && !(c.email || '').toLowerCase().includes(_searchClubs.toLowerCase())) return false;
+    return true;
+  });
+  var html = '';
+  filtered.forEach(function(c) {
+    var lastConn = c.derniere_connexion ? new Date(c.derniere_connexion).toLocaleDateString('fr-FR') : '—';
+    html += '<tr>' +
+      '<td><strong>' + c.nom + '</strong></td>' +
+      '<td>' + (c.email || '—') + '</td>' +
+      '<td>' + fmt(c.frais_livraison) + '</td>' +
+      '<td>' + (c.active_minimum ? fmt(c.minimum_commande) : '<span style="color:var(--grey-400)">Inactif</span>') + '</td>' +
+      '<td>' + (c.admin ? '<span style="color:var(--green)">Oui</span>' : 'Non') + '</td>' +
+      '<td>' + lastConn + '</td>' +
+      '<td><button class="btn-icon" onclick="openClubModal(\'' + c.id + '\')" title="Modifier">✏️</button>' +
+      '<button class="btn-icon danger" onclick="confirmDeleteClub(\'' + c.id + '\',\'' + (c.nom || '').replace(/'/g, "\\'") + '\')" title="Supprimer">🗑️</button></td>' +
+      '</tr>';
+  });
+  document.getElementById('clubs-table').innerHTML = html || '<tr><td colspan="7" style="text-align:center;color:var(--grey-400);padding:2rem">Aucun club</td></tr>';
+}
+
+function filterClubs(v) { _searchClubs = v; renderClubs(); }
+
+function openClubModal(id) {
+  var c = id ? G.clubs.find(function(x) { return x.id === id; }) : null;
+  var title = c ? 'Modifier le club' : 'Nouveau club';
+
+  var html =
+    '<div class="form-row"><label>Nom</label><input id="fc-nom" value="' + (c ? c.nom : '') + '"></div>' +
+    '<div class="form-row"><label>Email principal</label><input id="fc-email" type="email" value="' + (c ? c.email : '') + '"></div>' +
+    '<div class="form-row"><label>Emails secondaires (séparés par virgule)</label><input id="fc-emails" value="' + (c ? c.emails || '' : '') + '"></div>' +
+    '<div class="form-row"><label>Logo URL</label><input id="fc-logo" value="' + (c ? c.logo_url : '') + '"></div>' +
+    '<div class="form-grid">' +
+    '<div class="form-row"><label>Frais livraison</label><input id="fc-frais" type="number" step="0.01" value="' + (c ? c.frais_livraison : 0) + '"></div>' +
+    '<div class="form-row"><label>Minimum commande</label><input id="fc-min" type="number" step="0.01" value="' + (c ? c.minimum_commande : 0) + '"></div>' +
+    '</div>' +
+    '<div class="form-grid">' +
+    '<div class="form-row"><div class="form-check"><input type="checkbox" id="fc-activemin"' + (c && c.active_minimum ? ' checked' : '') + '><label style="margin:0">Activer minimum commande</label></div></div>' +
+    '<div class="form-row"><div class="form-check"><input type="checkbox" id="fc-admin"' + (c && c.admin ? ' checked' : '') + '><label style="margin:0">Administrateur</label></div></div>' +
+    '</div>';
+
+  openModal(title, html,
+    '<button class="btn btn-outline" onclick="closeModal()">Annuler</button>' +
+    '<button class="btn btn-primary" onclick="saveClub(' + (c ? "'" + c.id + "'" : 'null') + ')">' + (c ? 'Enregistrer' : 'Créer') + '</button>'
+  );
+}
+
+function saveClub(id) {
+  var data = {
+    nom: document.getElementById('fc-nom').value,
+    email: document.getElementById('fc-email').value,
+    emails: document.getElementById('fc-emails').value,
+    logoUrl: document.getElementById('fc-logo').value,
+    fraisLivraison: document.getElementById('fc-frais').value,
+    minimumCommande: document.getElementById('fc-min').value,
+    activeMinimum: document.getElementById('fc-activemin').checked,
+    admin: document.getElementById('fc-admin').checked
+  };
+  if (!data.nom) { toast('Le nom est requis', true); return; }
+
+  if (id) {
+    data.id = id;
+    apiPost('adminUpdateClub', data).then(function(res) {
+      if (res.success) { toast('Club mis à jour'); closeModal(); loadClubs(); }
+      else toast('Erreur: ' + res.error, true);
+    });
+  } else {
+    apiPost('adminCreateClub', data).then(function(res) {
+      if (res.success) { toast('Club créé'); closeModal(); loadClubs(); }
+      else toast('Erreur: ' + res.error, true);
+    });
+  }
+}
+
+function confirmDeleteClub(id, nom) {
+  openModal('Supprimer le club', '<p>Supprimer le club <strong>' + nom + '</strong> ?</p><p style="color:var(--red);font-size:.85rem;margin-top:.5rem">Les commandes liées ne seront pas supprimées.</p>',
+    '<button class="btn btn-outline" onclick="closeModal()">Annuler</button>' +
+    '<button class="btn btn-danger" onclick="deleteClub(\'' + id + '\')">Supprimer</button>'
+  );
+}
+function deleteClub(id) {
+  apiPost('adminDeleteClub', { id: id }).then(function(res) {
+    if (res.success) { toast('Club supprimé'); closeModal(); loadClubs(); }
+    else toast('Erreur: ' + res.error, true);
+  });
+}
+
+// ============================================================
+// DEMANDES
+// ============================================================
+function loadDemandes() {
+  apiGet('adminGetAllDemandes').then(function(res) {
+    G.demandes = res.demandes || [];
+    renderDemandes();
+  });
+}
+
+function renderDemandes() {
+  var filtered = G.demandes.filter(function(d) {
+    if (_searchDemandes) {
+      var s = _searchDemandes.toLowerCase();
+      if (!(d.clubNom || '').toLowerCase().includes(s) && !(d.objet || '').toLowerCase().includes(s)) return false;
+    }
+    if (_statutDemandes && d.statut !== _statutDemandes) return false;
+    return true;
+  });
+  var html = '';
+  filtered.forEach(function(d) {
+    var badge = d.statut === 'Nouvelle' ? 'badge-red' : d.statut === 'En cours' ? 'badge-yellow' : 'badge-green';
+    html += '<tr>' +
+      '<td>' + (d.clubNom || '—') + '</td>' +
+      '<td><strong>' + (d.objet || '—') + '</strong></td>' +
+      '<td>' + (d.date || '—') + '</td>' +
+      '<td><span class="badge ' + badge + '">' + d.statut + '</span></td>' +
+      '<td><button class="btn-icon" onclick="openDemandeDetail(\'' + d.id + '\')" title="Voir">👁️</button>' +
+      '<button class="btn-icon danger" onclick="confirmDeleteDemande(\'' + d.id + '\')" title="Supprimer">🗑️</button></td>' +
+      '</tr>';
+  });
+  document.getElementById('demandes-table').innerHTML = html || '<tr><td colspan="5" style="text-align:center;color:var(--grey-400);padding:2rem">Aucune demande</td></tr>';
+}
+
+function filterDemandes(v) { _searchDemandes = v; renderDemandes(); }
+function filterDemandesStatut(v) { _statutDemandes = v; renderDemandes(); }
+
+function openDemandeDetail(id) {
+  var d = G.demandes.find(function(x) { return x.id === id; });
+  if (!d) return;
+
+  var html =
+    '<div style="margin-bottom:1rem"><strong>Club :</strong> ' + d.clubNom + '</div>' +
+    '<div style="margin-bottom:1rem"><strong>Date :</strong> ' + d.date + '</div>' +
+    '<div style="margin-bottom:1rem"><strong>Objet :</strong> ' + d.objet + '</div>' +
+    '<div style="margin-bottom:1rem;padding:1rem;background:var(--grey-100);border-radius:var(--radius)">' + (d.message || '—') + '</div>' +
+    '<div class="form-row"><label>Statut</label><select id="dem-statut">' +
+    ['Nouvelle', 'En cours', 'Résolue'].map(function(s) { return '<option' + (d.statut === s ? ' selected' : '') + '>' + s + '</option>'; }).join('') +
+    '</select></div>' +
+    '<div class="form-row"><label>Réponse</label><textarea id="dem-reponse" rows="4">' + (d.reponse || '') + '</textarea></div>';
+
+  openModal('Demande — ' + d.objet, html,
+    '<button class="btn btn-outline" onclick="closeModal()">Fermer</button>' +
+    '<button class="btn btn-primary" onclick="saveDemande(\'' + id + '\')">Enregistrer</button>'
+  );
+}
+
+function saveDemande(id) {
+  apiPost('adminUpdateDemande', {
+    id: id,
+    statut: document.getElementById('dem-statut').value,
+    reponse: document.getElementById('dem-reponse').value
+  }).then(function(res) {
+    if (res.success) { toast('Demande mise à jour'); closeModal(); loadDemandes(); }
+    else toast('Erreur', true);
+  });
+}
+
+function confirmDeleteDemande(id) {
+  openModal('Supprimer la demande', '<p>Supprimer cette demande ?</p>',
+    '<button class="btn btn-outline" onclick="closeModal()">Annuler</button>' +
+    '<button class="btn btn-danger" onclick="deleteDemande(\'' + id + '\')">Supprimer</button>'
+  );
+}
+function deleteDemande(id) {
+  apiPost('adminDeleteDemande', { id: id }).then(function(res) {
+    if (res.success) { toast('Demande supprimée'); closeModal(); loadDemandes(); }
+    else toast('Erreur', true);
+  });
+}
+</script>
+</body>
+</html>

@@ -20,7 +20,7 @@ Clubs de sport se connectent au "Vestiaire" pour commander des tenues personnali
 ## Plan de migration (3 phases)
 
 - **Phase 1** (actuel) : Migration Airtable → Supabase, le vestiaire fonctionne pareil cote clubs
-- **Phase 2** : Back-office admin custom sur /admin (gestion produits, commandes, suivi production)
+- **Phase 2** (actuel) : Back-office admin custom sur /admin (gestion produits, commandes, suivi production)
 - **Phase 3** : Pre-generation des pages vitrine depuis Notion (temps de chargement instantanes)
 
 ## Architecture des fichiers
@@ -28,6 +28,7 @@ Clubs de sport se connectent au "Vestiaire" pour commander des tenues personnali
 ```
 /
 ├── index.html                 # Page vitrine principale (hero, vision, actus, portfolio, contact, partenaires)
+├── admin.html                 # Back-office admin (commandes, produits, clubs, suivi, demandes)
 ├── vestiaire.html             # Portail B2B club (login, catalogue, panier, commandes, demandes)
 ├── vision.html                # Page "A propos" (100% dynamique depuis Notion)
 ├── portfolio.html             # Liste de tous les projets
@@ -117,6 +118,10 @@ Sera restreint en phase 2 avec auth admin.
 | `getAllOrders` | — | Toutes les commandes (admin only) |
 | `getOrderDetail` | `orderId` | Detail commande + lignes (admin, pour facture PDF) |
 | `getDemandes` | `clubId` | Demandes/reclamations du club |
+| `adminGetClubs` | — | Tous les clubs (admin) |
+| `adminGetProduits` | — | Tous les produits (admin) |
+| `adminGetSuivi` | `commandeId` | Etapes de suivi d'une commande |
+| `adminGetAllDemandes` | — | Toutes les demandes de tous les clubs |
 
 **POST :**
 | Action | Body | Description |
@@ -124,10 +129,23 @@ Sera restreint en phase 2 avec auth admin.
 | `createOrder` | `{ clubId, clubNom, lignes, total }` | Cree commande + lignes |
 | `createLignes` | `{ commandeId, lignes }` | Ajoute des lignes a une commande existante |
 | `createDemande` | `{ clubId, objet, message }` | Cree une demande |
+| `adminCreateClub` | `{ nom, email, ... }` | Cree un club |
+| `adminUpdateClub` | `{ id, ... }` | Modifie un club |
+| `adminDeleteClub` | `{ id }` | Supprime un club |
+| `adminCreateProduit` | `{ nom, prix, ... }` | Cree un produit |
+| `adminUpdateProduit` | `{ id, ... }` | Modifie un produit |
+| `adminDeleteProduit` | `{ id }` | Supprime un produit |
+| `adminUpdateOrder` | `{ id, statut, vu }` | Modifie statut commande |
+| `adminDeleteOrder` | `{ id }` | Supprime commande + lignes (cascade) |
+| `adminCreateSuivi` | `{ commandeId, etape, statut, ... }` | Ajoute etape suivi |
+| `adminUpdateSuivi` | `{ id, ... }` | Modifie etape suivi |
+| `adminDeleteSuivi` | `{ id }` | Supprime etape suivi |
+| `adminUpdateDemande` | `{ id, statut, reponse }` | Repond a une demande |
+| `adminDeleteDemande` | `{ id }` | Supprime une demande |
 
 Helpers internes :
 - `sb(path, options)` : requete Supabase REST generique
-- `sbGet(table, query)`, `sbPost(table, data)`, `sbPatch(table, query, data)` : shorthands
+- `sbGet(table, query)`, `sbPost(table, data)`, `sbPatch(table, query, data)`, `sbDelete(table, query)` : shorthands
 - `getDejaCommande(clubId)` : somme des quantites deja commandees par produit
 
 ### notion-api.js (`/.netlify/functions/notion-api`)
@@ -199,6 +217,23 @@ Champ `frais_livraison` sur la table Clubs. Ajoutes automatiquement au total de 
 
 ### Facturation (admin)
 Onglet visible uniquement pour les clubs avec le flag `admin`. Affiche toutes les commandes de tous les clubs. Bouton "Facture" genere un PDF cote client avec jsPDF (v3.x, CDN cdnjs). Le PDF inclut : en-tete BOTH EQUIPMNT, detail des lignes, sous-total, frais de livraison, total, coordonnees bancaires.
+
+## Back-office Admin (admin.html)
+
+Interface d'administration accessible sur `/admin.html`. Login par email admin (meme mecanisme que le vestiaire, mais verifie le flag `admin` sur le club).
+
+### Sections
+- **Commandes** : liste toutes les commandes, stats (total, en attente, CA), recherche/filtre par statut. Detail avec lignes, changement de statut, suivi production (ajouter/supprimer des etapes)
+- **Produits** : CRUD complet. Filtre par club. Formulaire avec tous les champs (nom, prix, tailles, perso, stock, visible, expire)
+- **Clubs** : CRUD complet. Gestion email, frais livraison, minimum commande, flag admin
+- **Demandes** : liste toutes les demandes, changer statut, repondre
+
+### Design
+- Sidebar noire avec navigation par section
+- Zone principale fond clair avec cards/tables
+- Modales pour creer/modifier
+- Toasts pour feedback
+- `noindex, nofollow` pour ne pas indexer
 
 ## Site vitrine (index.html)
 
