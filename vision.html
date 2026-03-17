@@ -32,7 +32,7 @@ nav{
   backdrop-filter:blur(16px); border-bottom:1px solid rgba(255,255,255,.1);
   display:flex; align-items:center; justify-content:space-between;
 }
-.nav-logo img{ height:55px; }
+.nav-logo img{ height:55px; filter:brightness(0) invert(1); }
 .nav-center{
   position:absolute; left:50%; transform:translateX(-50%);
   display:flex; gap:2.8rem;
@@ -232,11 +232,10 @@ footer{
 
 <nav>
   <a href="/" class="nav-logo">
-    <img src="https://bothequipmnt.com/cdn/shop/files/Plan_de_travail_14.png?v=1762357332&width=400" alt="BOTH EQUIPMNT">
+    <img src="https://i.imgur.com/e68bB0X.png" alt="BOTH EQUIPMNT">
   </a>
   <div class="nav-center">
     <a href="/#vision" class="nav-link">À Propos</a>
-    <a href="/#actualites" class="nav-link">Actualités</a>
     <a href="/#portfolio" class="nav-link">Projets</a>
     <a href="/#contact" class="nav-link">Contact</a>
   </div>
@@ -246,41 +245,44 @@ footer{
 <section class="hero-intro">
   <div>
     <h1>LOOK GOOD, PLAY GOOD</h1>
-    <p>Chaque club a une histoire, une culture, une énergie. Notre rôle, c'est de les traduire en équipements qui vous ressemblent. On ne vend pas du textile — on construit l'image de votre club.</p>
-    <br>
-    <p>Être bien équipé n'est pas un détail — c'est un levier de croissance pour votre club.</p>
-  </div>
-</section>
-
-<!-- SECTION 1 : Collections complètes -->
-<section class="content-section">
-  <div class="content-inner">
-    <div class="content-image">
-      <!-- Image placeholder - remplacer par votre image -->
-      <img src="https://via.placeholder.com/800x600/1a1a1a/666?text=Image+1" alt="Collections">
-    </div>
-    <div class="content-text">
-      <h2>Des collections complètes</h2>
-      <p>Maillots match, tenues d'entraînement, vestes, sweats, accessoires — chaque pièce est pensée pour former un ensemble cohérent.</p>
-      <p>Laissez-vous accompagner sur la création d'une gamme complète, fidèle à votre identité.</p>
+    <div id="vision-intro">
+      <p>Chaque club a une histoire, une culture, une énergie. Notre rôle, c'est de les traduire en équipements qui vous ressemblent. On ne vend pas du textile — on construit l'image de votre club.</p>
+      <br>
+      <p>Être bien équipé n'est pas un détail — c'est un levier de croissance pour votre club.</p>
     </div>
   </div>
 </section>
 
-<!-- SECTION 2 : Accompagnement -->
-<section class="content-section">
-  <div class="content-inner">
-    <div class="content-image">
-      <!-- Image placeholder - remplacer par votre image -->
-      <img src="https://via.placeholder.com/800x600/1a1a1a/666?text=Image+2" alt="Accompagnement">
+<!-- CONTENU DYNAMIQUE (Notion) OU STATIQUE -->
+<div id="vision-sections">
+  <!-- SECTION 1 : Collections complètes -->
+  <section class="content-section">
+    <div class="content-inner">
+      <div class="content-image">
+        <img src="https://via.placeholder.com/800x600/1a1a1a/666?text=Image+1" alt="Collections">
+      </div>
+      <div class="content-text">
+        <h2>Des collections complètes</h2>
+        <p>Maillots match, tenues d'entraînement, vestes, sweats, accessoires — chaque pièce est pensée pour former un ensemble cohérent.</p>
+        <p>Laissez-vous accompagner sur la création d'une gamme complète, fidèle à votre identité.</p>
+      </div>
     </div>
-    <div class="content-text">
-      <h2>Un accompagnement sur-mesure</h2>
-      <p>Chaque club est accompagné avec la même exigence. Nous commençons par comprendre vos besoins, votre culture et vos ambitions, puis nous créons une collection qui vous ressemble vraiment.</p>
-      <p>Un process simple, clair, efficace, pensé pour les clubs qui veulent aller plus loin.</p>
+  </section>
+
+  <!-- SECTION 2 : Accompagnement -->
+  <section class="content-section">
+    <div class="content-inner">
+      <div class="content-image">
+        <img src="https://via.placeholder.com/800x600/1a1a1a/666?text=Image+2" alt="Accompagnement">
+      </div>
+      <div class="content-text">
+        <h2>Un accompagnement sur-mesure</h2>
+        <p>Chaque club est accompagné avec la même exigence. Nous commençons par comprendre vos besoins, votre culture et vos ambitions, puis nous créons une collection qui vous ressemble vraiment.</p>
+        <p>Un process simple, clair, efficace, pensé pour les clubs qui veulent aller plus loin.</p>
+      </div>
     </div>
-  </div>
-</section>
+  </section>
+</div>
 
 <!-- SECTION CONTACT -->
 <section class="contact-section">
@@ -296,11 +298,10 @@ footer{
 <footer>
   <div class="footer-inner">
     <div class="footer-logo">
-      <img src="https://bothequipmnt.com/cdn/shop/files/Plan_de_travail_14.png?v=1762357332&width=400" alt="BOTH">
+      <img src="https://i.imgur.com/e68bB0X.png" alt="BOTH">
     </div>
     <div class="footer-links">
       <a href="/#vision">À Propos</a>
-      <a href="/#actualites">Actualités</a>
       <a href="/#portfolio">Projets</a>
       <a href="/#contact">Contact</a>
       <a href="https://www.instagram.com/bothequipmnt" target="_blank">Instagram</a>
@@ -340,6 +341,61 @@ footer{
 </div>
 
 <script>
+var NOTION_API = '/.netlify/functions/notion-api';
+
+function renderBlock(b) {
+  if(b.type === 'paragraph' && b.text) return '<p>' + b.text + '</p>';
+  if(b.type === 'heading_1' && b.text) return '<h2>' + b.text + '</h2>';
+  if(b.type === 'heading_2' && b.text) return '<h2>' + b.text + '</h2>';
+  if(b.type === 'heading_3' && b.text) return '<h3>' + b.text + '</h3>';
+  if(b.type === 'image' && b.url) return '<figure style="margin:2rem 0;"><img src="' + b.url + '" alt="' + (b.caption || '') + '" style="width:100%;border-radius:4px;" loading="lazy">' + (b.caption ? '<figcaption style="font-size:.85rem;color:var(--grey-600);margin-top:.5rem;text-align:center;">' + b.caption + '</figcaption>' : '') + '</figure>';
+  if(b.type === 'quote' && b.text) return '<blockquote style="border-left:3px solid var(--yellow);padding-left:1.5rem;margin:2rem 0;font-style:italic;color:var(--grey-600);">' + b.text + '</blockquote>';
+  if(b.type === 'bulleted_list_item' && b.text) return '<ul style="margin:.5rem 0;padding-left:1.5rem;color:var(--grey-600);"><li>' + b.text + '</li></ul>';
+  if(b.type === 'divider') return '<hr style="border:none;border-top:1px solid rgba(255,255,255,.1);margin:3rem 0;">';
+  if(b.type === 'column_list' && b.columns) {
+    var cols = b.columns.map(function(col) {
+      var inner = col.map(function(child) { return renderBlock(child); }).join('');
+      return '<div style="flex:1;min-width:0;">' + inner + '</div>';
+    }).join('');
+    return '<div style="display:flex;gap:3rem;margin:2rem 0;">' + cols + '</div>';
+  }
+  return '';
+}
+
+(function loadVisionPage() {
+  fetch(NOTION_API + '?action=getVision')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if(!data.vision || !data.vision.blocks || !data.vision.blocks.length) return;
+      var blocks = data.vision.blocks;
+      // Séparer intro (premiers paragraphes avant le premier heading) et contenu
+      var introBlocks = [];
+      var contentBlocks = [];
+      var pastIntro = false;
+      blocks.forEach(function(b) {
+        if(!pastIntro && (b.type === 'paragraph' || b.type === 'image')) {
+          introBlocks.push(b);
+        } else {
+          pastIntro = true;
+          contentBlocks.push(b);
+        }
+      });
+      // Remplacer l'intro si on a du contenu
+      if(introBlocks.length) {
+        var introHtml = introBlocks.map(renderBlock).join('');
+        document.getElementById('vision-intro').innerHTML = introHtml;
+      }
+      // Remplacer les sections si on a du contenu
+      if(contentBlocks.length) {
+        var html = '<section class="content-section"><div style="max-width:900px;margin:0 auto;">';
+        html += contentBlocks.map(renderBlock).join('');
+        html += '</div></section>';
+        document.getElementById('vision-sections').innerHTML = html;
+      }
+    })
+    .catch(function(e) { console.error('Vision load error:', e); });
+})();
+
 function openContactModal(){
   document.getElementById('contact-modal').classList.add('active');
 }
