@@ -223,7 +223,7 @@ nav.scrolled{
   align-items:center;
 }
 .vision-text h2{
-  font-family:var(--display); font-size:clamp(2rem,4vw,3.2rem);
+  font-family:var(--display); font-size:clamp(2.5rem,5vw,4.2rem);
   font-weight:700; letter-spacing:.04em; text-transform:uppercase;
   margin-bottom:1.5rem; line-height:1.1;
 }
@@ -577,12 +577,12 @@ footer{ background:#1a1a1a; color:var(--white); padding:3rem 3.5rem 2rem; border
 <body>
 
 <!-- ========== LOADER ========== -->
-<div id="loader"><div class="loader-logo"><img src="https://bothequipmnt.com/cdn/shop/files/Plan_de_travail_14.png?v=1762357332&width=400" alt="BOTH"></div></div>
+<div id="loader"><div class="loader-logo"><img src="https://i.imgur.com/e68bB0X.png" alt="BOTH"></div></div>
 
 <!-- ========== NAV ========== -->
 <nav id="main-nav">
   <a href="#" class="nav-logo" onclick="scrollTop()">
-    <img src="https://bothequipmnt.com/cdn/shop/files/Plan_de_travail_14.png?v=1762357332&width=400" alt="BOTH">
+    <img src="https://i.imgur.com/e68bB0X.png" alt="BOTH">
   </a>
   <div class="nav-center">
     <a href="#vision" class="nav-link">À Propos</a>
@@ -623,7 +623,10 @@ footer{ background:#1a1a1a; color:var(--white); padding:3rem 3.5rem 2rem; border
     <div class="section-inner">
       <div class="vision-content" style="grid-template-columns:1fr;">
         <div class="vision-text" id="vision-content" style="text-align:center;max-width:800px;margin:0 auto;">
-          <div class="spinner"></div>
+          <h2>LOOK GOOD, PLAY GOOD</h2>
+          <p>Votre club mérite plus qu'un simple maillot. Nous concevons des collections complètes — match, entraînement, lifestyle — qui reflètent l'identité et les ambitions de votre club. Une image forte attire des talents, fédère vos membres et renforce vos partenariats.</p>
+          <p>Être bien équipé n'est pas un détail — c'est un levier de croissance pour votre club.</p>
+          <a href="/vision.html" class="btn-vision">En savoir plus</a>
         </div>
       </div>
     </div>
@@ -709,7 +712,7 @@ footer{ background:#1a1a1a; color:var(--white); padding:3rem 3.5rem 2rem; border
   <footer>
     <div class="footer-inner">
       <div class="footer-logo">
-        <img src="https://bothequipmnt.com/cdn/shop/files/Plan_de_travail_14.png?v=1762357332&width=400" alt="BOTH">
+        <img src="https://i.imgur.com/e68bB0X.png" alt="BOTH">
       </div>
       <div class="footer-links">
         <a href="#vision">À Propos</a>
@@ -778,26 +781,21 @@ async function loadVision(){
   try {
     const res = await fetch(NOTION_API + '?action=getVision');
     const data = await res.json();
-    if(!data.vision) {
-      container.innerHTML = '<h2>LOOK GOOD, PLAY GOOD</h2><p>Contenu en cours de chargement.</p>';
-      return;
-    }
+    if(!data.vision || !data.vision.blocks || !data.vision.blocks.length) return;
     const v = data.vision;
     let html = '';
     if(v.titre) html += `<h2>${v.titre}</h2>`;
-    if(v.blocks && v.blocks.length) {
-      v.blocks.forEach(b => {
-        if(b.type === 'paragraph' && b.text) html += `<p>${b.text}</p>`;
-        else if(b.type === 'heading_2' && b.text) html += `<h2>${b.text}</h2>`;
-        else if(b.type === 'heading_3' && b.text) html += `<h3 style="font-family:var(--display);font-size:1.3rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin:1.5rem 0 .8rem;">${b.text}</h3>`;
-        else if(b.type === 'image' && b.url) html += `<img src="${b.url}" alt="${b.caption || ''}" style="max-width:100%;margin:1.5rem auto;border-radius:4px;">`;
-      });
-    }
+    v.blocks.forEach(b => {
+      if(b.type === 'paragraph' && b.text) html += `<p>${b.text}</p>`;
+      else if(b.type === 'heading_2' && b.text) html += `<h2>${b.text}</h2>`;
+      else if(b.type === 'heading_3' && b.text) html += `<h3 style="font-family:var(--display);font-size:1.3rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin:1.5rem 0 .8rem;">${b.text}</h3>`;
+      else if(b.type === 'image' && b.url) html += `<img src="${b.url}" alt="${b.caption || ''}" style="max-width:100%;margin:1.5rem auto;border-radius:4px;">`;
+    });
     html += '<a href="/vision.html" class="btn-vision">En savoir plus</a>';
     container.innerHTML = html;
   } catch(e){
     console.error(e);
-    container.innerHTML = '<h2>LOOK GOOD, PLAY GOOD</h2><p>Contenu en cours de chargement.</p>';
+    // Le contenu statique reste en place
   }
 }
 
