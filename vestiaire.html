@@ -742,6 +742,7 @@ async function loginClub(){
     const res=await apiGet('getClub',{email});
     if(!res.club){errEl.textContent='Aucun club trouvé avec cet email.';btn.disabled=false;btn.textContent='Accéder au Vestiaire';return;}
     S.club=res.club; btn.disabled=false; btn.textContent='Accéder au Vestiaire';
+    if(S.club.admin){window.location.href='/admin.html';return;}
     document.getElementById('login-screen').style.display='none';
     openPortal();
   }catch(e){console.error(e);errEl.textContent='Erreur de connexion. Réessayez.';btn.disabled=false;btn.textContent='Accéder au Vestiaire';}
