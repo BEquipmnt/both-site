@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Créez l'identité de votre club — BOTH EQUIPMNT</title>
 <meta name="description" content="Both Equipmnt accompagne les clubs de sport collectif dans la création de collections personnalisées : maillots, tenues d'entraînement et pièces lifestyle.">
-<meta name="keywords" content="maillot personnalisé club, tenue sport collectif, équipementier sportif, design maillot, both equipmnt">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700;800&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -49,7 +48,7 @@ nav{
 .nav-link:hover{ color:var(--yellow); }
 .nav-link:hover::after{ width:100%; }
 
-/* HERO INTRO */
+/* HERO */
 .hero-intro{
   min-height:50vh; display:flex; align-items:center; justify-content:center;
   padding:10rem 3.5rem 6rem; background:var(--black);
@@ -58,47 +57,75 @@ nav{
 .hero-intro h1{
   font-family:var(--display); font-size:clamp(3rem,8vw,6rem);
   font-weight:800; letter-spacing:.08em; text-transform:uppercase;
-  margin-bottom:2rem; line-height:1.1;
-}
-.hero-intro p{
-  font-size:1.1rem; max-width:800px; margin:0 auto;
-  color:var(--grey-600); line-height:1.9;
+  line-height:1.1;
 }
 
-/* CONTENT SECTIONS */
-.content-section{
-  padding:6rem 3.5rem; background:var(--black);
+/* CONTENU NOTION */
+.vision-blocks{
+  max-width:900px; margin:0 auto;
+  padding:0 3.5rem 4rem;
 }
-.content-section:nth-child(even){ background:#0f0f0f; }
-.content-inner{
-  max-width:1400px; margin:0 auto;
-  display:grid; grid-template-columns:1fr 1fr; gap:5rem;
-  align-items:center;
-}
-.content-section:nth-child(even) .content-inner{
-  direction:rtl;
-}
-.content-section:nth-child(even) .content-text{
-  direction:ltr;
-}
-.content-image{
-  aspect-ratio:4/3; background:#1a1a1a; border-radius:4px;
-  overflow:hidden;
-}
-.content-image img{
-  width:100%; height:100%; object-fit:cover;
-}
-.content-text h2{
-  font-family:var(--display); font-size:clamp(1.8rem,4vw,3rem);
-  font-weight:700; letter-spacing:.06em; text-transform:uppercase;
-  margin-bottom:1.5rem; line-height:1.15;
-}
-.content-text p{
+.vision-blocks p{
   font-size:1.05rem; color:var(--grey-600); line-height:1.9;
   margin-bottom:1.2rem;
 }
+.vision-blocks h2{
+  font-family:var(--display); font-size:clamp(1.8rem,4vw,3rem);
+  font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+  margin:3rem 0 1.5rem; line-height:1.15; color:var(--white);
+}
+.vision-blocks h3{
+  font-family:var(--display); font-size:clamp(1.3rem,3vw,2rem);
+  font-weight:700; letter-spacing:.04em; text-transform:uppercase;
+  margin:2.5rem 0 1rem; line-height:1.2; color:var(--white);
+}
+.vision-blocks h4{
+  font-family:var(--display); font-size:1.2rem;
+  font-weight:700; letter-spacing:.04em; text-transform:uppercase;
+  margin:2rem 0 .8rem; color:var(--white);
+}
+.vision-blocks figure{
+  margin:2.5rem 0;
+}
+.vision-blocks figure img{
+  width:100%; border-radius:4px;
+}
+.vision-blocks figcaption{
+  font-size:.85rem; color:var(--grey-600); margin-top:.5rem; text-align:center;
+}
+.vision-blocks blockquote{
+  border-left:3px solid var(--yellow); padding-left:1.5rem;
+  margin:2rem 0; font-style:italic; color:var(--grey-600);
+}
+.vision-blocks ul, .vision-blocks ol{
+  margin:.5rem 0; padding-left:1.5rem; color:var(--grey-600);
+}
+.vision-blocks hr{
+  border:none; border-top:1px solid rgba(255,255,255,.1); margin:3rem 0;
+}
+.vision-blocks .block-columns{
+  display:flex; gap:3rem; margin:2rem 0;
+}
+.vision-blocks .block-col{
+  flex:1; min-width:0;
+}
+.vision-blocks .block-callout{
+  display:flex; gap:1rem; padding:1.5rem; background:rgba(255,255,255,.05);
+  border-radius:4px; margin:2rem 0;
+}
 
-/* CONTACT SECTION */
+/* Notion colors */
+.notion-gray{ color:#9a9a9a; }
+.notion-brown{ color:#a5764b; }
+.notion-orange{ color:#d9730d; }
+.notion-yellow{ color:#dfab01; }
+.notion-green{ color:#0f7b6c; }
+.notion-blue{ color:#0b6e99; }
+.notion-purple{ color:#6940a5; }
+.notion-pink{ color:#ad1a72; }
+.notion-red{ color:#e03e3e; }
+
+/* CONTACT */
 .contact-section{
   padding:6rem 3.5rem; background:var(--black); text-align:center;
 }
@@ -124,7 +151,7 @@ nav{
   background:var(--yellow); color:var(--black);
 }
 
-/* MODAL FORMULAIRE */
+/* MODAL */
 .modal-backdrop{
   display:none; position:fixed; inset:0; background:rgba(10,10,10,.7);
   z-index:200; align-items:center; justify-content:center; padding:2rem;
@@ -146,38 +173,25 @@ nav{
   color:var(--black); text-transform:uppercase; margin-bottom:1.5rem;
   letter-spacing:.04em;
 }
-.form-field{
-  margin-bottom:1.2rem;
-}
+.form-field{ margin-bottom:1.2rem; }
 .form-field label{
   display:block; font-size:.7rem; letter-spacing:.2em;
-  text-transform:uppercase; color:#666; margin-bottom:.5rem;
-  font-weight:600;
+  text-transform:uppercase; color:#666; margin-bottom:.5rem; font-weight:600;
 }
-.form-field input,
-.form-field textarea{
+.form-field input, .form-field textarea{
   width:100%; padding:.9rem 1rem; border:2px solid #ddd;
   background:#fafafa; font-size:.9rem; color:var(--black);
-  font-family:var(--body); outline:none;
-  transition:border-color .3s ease;
+  font-family:var(--body); outline:none; transition:border-color .3s ease;
 }
-.form-field input:focus,
-.form-field textarea:focus{
-  border-color:var(--yellow);
-}
-.form-field textarea{
-  resize:vertical; min-height:180px;
-}
+.form-field input:focus, .form-field textarea:focus{ border-color:var(--yellow); }
+.form-field textarea{ resize:vertical; min-height:180px; }
 .btn-submit{
   width:100%; padding:1rem; border:2px solid var(--black);
   background:var(--black); color:var(--white);
   font-size:.75rem; letter-spacing:.22em; text-transform:uppercase;
   font-weight:600; cursor:pointer; transition:all .3s ease;
 }
-.btn-submit:hover{
-  background:var(--yellow); border-color:var(--yellow);
-  color:var(--black);
-}
+.btn-submit:hover{ background:var(--yellow); border-color:var(--yellow); color:var(--black); }
 
 /* FOOTER */
 footer{
@@ -203,20 +217,21 @@ footer{
   display:flex; justify-content:space-between;
 }
 
+/* SPINNER */
+.spinner{
+  width:32px; height:32px; border:2px solid #333; border-top-color:var(--white);
+  border-radius:50%; animation:spin .6s linear infinite; margin:3rem auto;
+}
+@keyframes spin{ to{transform:rotate(360deg)} }
+
 /* RESPONSIVE */
 @media (max-width:768px){
-  .content-inner{
-    grid-template-columns:1fr; gap:2rem;
-  }
-  .content-section:nth-child(even) .content-inner{
-    direction:ltr;
-  }
   nav{ padding:.8rem 1rem; }
   .nav-center{ display:none; }
   .hero-intro{ padding:8rem 1.2rem 4rem; }
   .hero-intro h1{ font-size:2.2rem; }
-  .content-section{ padding:3rem 1.2rem; }
-  .content-text h2{ font-size:1.8rem; }
+  .vision-blocks{ padding:0 1.2rem 3rem; }
+  .vision-blocks .block-columns{ flex-direction:column; gap:1.5rem; }
   .contact-section{ padding:4rem 1.2rem; }
   .contact-buttons{ flex-direction:column; align-items:stretch; gap:.8rem; }
   .contact-buttons a, .contact-buttons button{ width:100%; text-align:center; }
@@ -241,50 +256,19 @@ footer{
   </div>
 </nav>
 
-<!-- HERO INTRO -->
+<!-- HERO -->
 <section class="hero-intro">
   <div>
     <h1>LOOK GOOD, PLAY GOOD</h1>
-    <div id="vision-intro">
-      <p>Chaque club a une histoire, une culture, une énergie. Notre rôle, c'est de les traduire en équipements qui vous ressemblent. On ne vend pas du textile — on construit l'image de votre club.</p>
-      <br>
-      <p>Être bien équipé n'est pas un détail — c'est un levier de croissance pour votre club.</p>
-    </div>
   </div>
 </section>
 
-<!-- CONTENU DYNAMIQUE (Notion) OU STATIQUE -->
-<div id="vision-sections">
-  <!-- SECTION 1 : Collections complètes -->
-  <section class="content-section">
-    <div class="content-inner">
-      <div class="content-image">
-        <img src="https://via.placeholder.com/800x600/1a1a1a/666?text=Image+1" alt="Collections">
-      </div>
-      <div class="content-text">
-        <h2>Des collections complètes</h2>
-        <p>Maillots match, tenues d'entraînement, vestes, sweats, accessoires — chaque pièce est pensée pour former un ensemble cohérent.</p>
-        <p>Laissez-vous accompagner sur la création d'une gamme complète, fidèle à votre identité.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- SECTION 2 : Accompagnement -->
-  <section class="content-section">
-    <div class="content-inner">
-      <div class="content-image">
-        <img src="https://via.placeholder.com/800x600/1a1a1a/666?text=Image+2" alt="Accompagnement">
-      </div>
-      <div class="content-text">
-        <h2>Un accompagnement sur-mesure</h2>
-        <p>Chaque club est accompagné avec la même exigence. Nous commençons par comprendre vos besoins, votre culture et vos ambitions, puis nous créons une collection qui vous ressemble vraiment.</p>
-        <p>Un process simple, clair, efficace, pensé pour les clubs qui veulent aller plus loin.</p>
-      </div>
-    </div>
-  </section>
+<!-- CONTENU NOTION -->
+<div class="vision-blocks" id="vision-content">
+  <div class="spinner"></div>
 </div>
 
-<!-- SECTION CONTACT -->
+<!-- CONTACT -->
 <section class="contact-section">
   <h2>Parlez-nous de votre club</h2>
   <p>Nous travaillons avec des clubs qui veulent créer plus qu'un maillot : une signature.<br>Si vous souhaitez développer votre image et construire votre prochaine collection, rencontrons-nous.</p>
@@ -316,7 +300,7 @@ footer{
 <!-- MODAL FORMULAIRE -->
 <div class="modal-backdrop" id="contact-modal" onclick="closeModalIfBackdrop(event)">
   <div class="modal-box">
-    <button class="modal-close" onclick="closeContactModal()">✕</button>
+    <button class="modal-close" onclick="closeContactModal()">&#x2715;</button>
     <h3>Prêt à donner une nouvelle image à votre club ?</h3>
     <form onsubmit="submitContact(event)">
       <div class="form-field">
@@ -344,60 +328,67 @@ footer{
 var NOTION_API = '/.netlify/functions/notion-api';
 
 function renderBlock(b) {
-  if(b.type === 'paragraph' && b.text) return '<p>' + b.text + '</p>';
-  if(b.type === 'heading_1' && b.text) return '<h2>' + b.text + '</h2>';
-  if(b.type === 'heading_2' && b.text) return '<h2>' + b.text + '</h2>';
-  if(b.type === 'heading_3' && b.text) return '<h3>' + b.text + '</h3>';
-  if(b.type === 'image' && b.url) return '<figure style="margin:2rem 0;"><img src="' + b.url + '" alt="' + (b.caption || '') + '" style="width:100%;border-radius:4px;" loading="lazy">' + (b.caption ? '<figcaption style="font-size:.85rem;color:var(--grey-600);margin-top:.5rem;text-align:center;">' + b.caption + '</figcaption>' : '') + '</figure>';
-  if(b.type === 'quote' && b.text) return '<blockquote style="border-left:3px solid var(--yellow);padding-left:1.5rem;margin:2rem 0;font-style:italic;color:var(--grey-600);">' + b.text + '</blockquote>';
-  if(b.type === 'bulleted_list_item' && b.text) return '<ul style="margin:.5rem 0;padding-left:1.5rem;color:var(--grey-600);"><li>' + b.text + '</li></ul>';
-  if(b.type === 'divider') return '<hr style="border:none;border-top:1px solid rgba(255,255,255,.1);margin:3rem 0;">';
-  if(b.type === 'column_list' && b.columns) {
-    var cols = b.columns.map(function(col) {
-      var inner = col.map(function(child) { return renderBlock(child); }).join('');
-      return '<div style="flex:1;min-width:0;">' + inner + '</div>';
-    }).join('');
-    return '<div style="display:flex;gap:3rem;margin:2rem 0;">' + cols + '</div>';
+  switch(b.type) {
+    case 'paragraph':
+      return b.text ? '<p>' + b.text + '</p>' : '';
+    case 'heading_1':
+      return '<h2>' + b.text + '</h2>';
+    case 'heading_2':
+      return '<h3>' + b.text + '</h3>';
+    case 'heading_3':
+      return '<h4>' + b.text + '</h4>';
+    case 'image':
+      return '<figure><img src="' + b.url + '" alt="' + (b.caption||'') + '" loading="lazy">' +
+        (b.caption ? '<figcaption>' + b.caption + '</figcaption>' : '') + '</figure>';
+    case 'quote':
+      return '<blockquote>' + b.text + '</blockquote>';
+    case 'callout':
+      return '<div class="block-callout"><div>' + (b.icon||'') + '</div><div><p>' + b.text + '</p></div></div>';
+    case 'bulleted_list_item':
+      return '<ul><li>' + b.text + '</li></ul>';
+    case 'numbered_list_item':
+      return '<ol><li>' + b.text + '</li></ol>';
+    case 'divider':
+      return '<hr>';
+    case 'column_list':
+      if(!b.columns) return '';
+      var cols = b.columns.map(function(col) {
+        return '<div class="block-col">' + col.map(renderBlock).join('') + '</div>';
+      }).join('');
+      return '<div class="block-columns">' + cols + '</div>';
+    case 'video':
+      var id = '';
+      if(b.url.includes('youtu.be/')) id = b.url.split('youtu.be/')[1].split('?')[0];
+      else if(b.url.includes('v=')) id = b.url.split('v=')[1].split('&')[0];
+      if(!id) return '';
+      return '<div style="position:relative;padding-bottom:56.25%;margin:2rem 0;"><iframe src="https://www.youtube.com/embed/' + id + '" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;" allowfullscreen loading="lazy"></iframe></div>';
+    default:
+      return '';
   }
-  return '';
 }
 
-(function loadVisionPage() {
+function mergeListItems(html) {
+  html = html.replace(/<\/ul>\s*<ul>/g, '');
+  html = html.replace(/<\/ol>\s*<ol>/g, '');
+  return html;
+}
+
+(function loadVision() {
+  var container = document.getElementById('vision-content');
   fetch(NOTION_API + '?action=getVision')
     .then(function(r) { return r.json(); })
     .then(function(data) {
-      console.log('Vision API response:', JSON.stringify(data).slice(0, 500));
       if(!data.vision || !data.vision.blocks || !data.vision.blocks.length) {
-        console.warn('Vision: pas de contenu Notion', data.debug || '');
+        container.innerHTML = '<p style="color:var(--grey-600);text-align:center;">Contenu en cours de chargement.</p>';
         return;
       }
-      var blocks = data.vision.blocks;
-      // Séparer intro (premiers paragraphes avant le premier heading) et contenu
-      var introBlocks = [];
-      var contentBlocks = [];
-      var pastIntro = false;
-      blocks.forEach(function(b) {
-        if(!pastIntro && (b.type === 'paragraph' || b.type === 'image')) {
-          introBlocks.push(b);
-        } else {
-          pastIntro = true;
-          contentBlocks.push(b);
-        }
-      });
-      // Remplacer l'intro si on a du contenu
-      if(introBlocks.length) {
-        var introHtml = introBlocks.map(renderBlock).join('');
-        document.getElementById('vision-intro').innerHTML = introHtml;
-      }
-      // Remplacer les sections si on a du contenu
-      if(contentBlocks.length) {
-        var html = '<section class="content-section"><div style="max-width:900px;margin:0 auto;">';
-        html += contentBlocks.map(renderBlock).join('');
-        html += '</div></section>';
-        document.getElementById('vision-sections').innerHTML = html;
-      }
+      var html = data.vision.blocks.map(renderBlock).join('');
+      container.innerHTML = mergeListItems(html);
     })
-    .catch(function(e) { console.error('Vision load error:', e); });
+    .catch(function(e) {
+      console.error('Vision error:', e);
+      container.innerHTML = '<p style="color:var(--grey-600);text-align:center;">Contenu en cours de chargement.</p>';
+    });
 })();
 
 function openContactModal(){
@@ -407,21 +398,17 @@ function closeContactModal(){
   document.getElementById('contact-modal').classList.remove('active');
 }
 function closeModalIfBackdrop(e){
-  if(e.target === document.getElementById('contact-modal')){
-    closeContactModal();
-  }
+  if(e.target === document.getElementById('contact-modal')) closeContactModal();
 }
 function submitContact(e){
   e.preventDefault();
-  const name = document.getElementById('contact-name').value;
-  const email = document.getElementById('contact-email').value;
-  const club = document.getElementById('contact-club').value;
-  const message = document.getElementById('contact-message').value;
-  
-  const subject = encodeURIComponent(`Contact depuis ${club}`);
-  const body = encodeURIComponent(`Nom : ${name}\nEmail : ${email}\nClub : ${club}\n\nMessage :\n${message}`);
-  
-  window.location.href = `mailto:contact@bothequipmnt.com?subject=${subject}&body=${body}`;
+  var name = document.getElementById('contact-name').value;
+  var email = document.getElementById('contact-email').value;
+  var club = document.getElementById('contact-club').value;
+  var message = document.getElementById('contact-message').value;
+  var subject = encodeURIComponent('Contact depuis ' + club);
+  var body = encodeURIComponent('Nom : ' + name + '\nEmail : ' + email + '\nClub : ' + club + '\n\nMessage :\n' + message);
+  window.location.href = 'mailto:contact@bothequipmnt.com?subject=' + subject + '&body=' + body;
   closeContactModal();
 }
 </script>
