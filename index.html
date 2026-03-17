@@ -779,17 +779,18 @@ function scrollTop(){ window.scrollTo({ top:0, behavior:'smooth' }); }
 // PUBLIC CONTENT — News, Portfolio, Partners
 // ============================================================
 async function loadVision(){
+  // Charge les premiers paragraphes depuis Notion pour le teaser accueil
   const body = document.getElementById('vision-body');
   try {
     const res = await fetch(NOTION_API + '?action=getVision');
     const data = await res.json();
     if(!data.vision || !data.vision.blocks || !data.vision.blocks.length) return;
+    // On prend seulement les paragraphes du début (avant le premier heading)
     let html = '';
-    data.vision.blocks.forEach(b => {
+    for(const b of data.vision.blocks){
       if(b.type === 'paragraph' && b.text) html += `<p>${b.text}</p>`;
-      else if(b.type === 'heading_3' && b.text) html += `<h3 style="font-family:var(--display);font-size:1.3rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin:1.5rem 0 .8rem;">${b.text}</h3>`;
-      else if(b.type === 'image' && b.url) html += `<img src="${b.url}" alt="${b.caption || ''}" style="max-width:100%;margin:1.5rem auto;border-radius:4px;">`;
-    });
+      else break;
+    }
     if(html) body.innerHTML = html;
   } catch(e){
     console.error(e);

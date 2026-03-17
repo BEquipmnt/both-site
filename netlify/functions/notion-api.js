@@ -244,9 +244,16 @@ function richTextToHtml(richText) {
 }
 
 async function getVision() {
-  if (!PAGE_VISION) return { vision: null };
+  if (!PAGE_VISION) {
+    console.log('getVision: NOTION_PAGE_VISION non configuré');
+    return { vision: null, debug: 'NOTION_PAGE_VISION env var not set' };
+  }
+  console.log('getVision: fetching page', PAGE_VISION);
   const page = await notionFetch(`/pages/${PAGE_VISION}`);
-  if (page.object === 'error') return { vision: null };
+  if (page.object === 'error') {
+    console.log('getVision: Notion error', page.message);
+    return { vision: null, debug: 'Notion error: ' + (page.message || 'unknown') };
+  }
 
   // Récupérer les blocs de la page
   let allBlocks = [];
@@ -258,12 +265,18 @@ async function getVision() {
     cursor = data.has_more ? data.next_cursor : undefined;
   } while (cursor);
 
+  console.log('getVision: got', allBlocks.length, 'blocks');
   const blocks = allBlocks.map(block => mapBlock(block)).filter(Boolean);
+
+  // Titre : essayer plusieurs noms de propriété (database page vs standalone page)
+  const titre = getProp(page, 'Titre', 'title')
+    || getProp(page, 'Name', 'title')
+    || getProp(page, 'title', 'title')
+    || '';
 
   return {
     vision: {
-      titre: getProp(page, 'Titre', 'title') || getProp(page, 'Name', 'title'),
-      bouton: getProp(page, 'Bouton', 'rich_text') || '',
+      titre,
       blocks
     }
   };
