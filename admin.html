@@ -92,7 +92,7 @@ tbody tr:hover{background:var(--grey-100)}
 /* MODAL */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;align-items:center;justify-content:center;padding:2rem}
 .modal-overlay.active{display:flex}
-.modal{background:var(--white);border-radius:8px;width:100%;max-width:600px;max-height:90vh;overflow-y:auto;position:relative}
+.modal{background:var(--white);border-radius:8px;width:100%;max-width:720px;max-height:90vh;overflow-y:auto;position:relative}
 .modal-header{display:flex;justify-content:space-between;align-items:center;padding:1.2rem 1.5rem;border-bottom:1px solid var(--grey-200)}
 .modal-header h3{font-family:var(--display);font-size:1.1rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
 .modal-body{padding:1.5rem}
@@ -106,9 +106,32 @@ tbody tr:hover{background:var(--grey-100)}
 .form-row input,.form-row select,.form-row textarea{width:100%;padding:.6rem .8rem;border:1.5px solid var(--grey-200);border-radius:var(--radius);outline:none;transition:border .2s}
 .form-row input:focus,.form-row select:focus,.form-row textarea:focus{border-color:var(--yellow)}
 .form-row textarea{resize:vertical;min-height:80px}
+.form-row input[readonly]{background:var(--grey-100);color:var(--grey-600);cursor:default}
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 1rem}
+.form-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 1rem}
 .form-check{display:flex;align-items:center;gap:.5rem}
 .form-check input[type=checkbox]{width:auto}
+.form-section{font-family:var(--display);font-size:.85rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--black);margin:1.5rem 0 .8rem;padding-bottom:.4rem;border-bottom:2px solid var(--yellow)}
+.form-section:first-child{margin-top:0}
+
+/* MULTI-SELECT TAILLES */
+.ms-wrap{position:relative}
+.ms-tags{display:flex;flex-wrap:wrap;gap:4px;padding:.4rem .6rem;border:1.5px solid var(--grey-200);border-radius:var(--radius);min-height:38px;cursor:text;transition:border .2s;align-items:center}
+.ms-tags:focus-within{border-color:var(--yellow)}
+.ms-tags .tag{display:inline-flex;align-items:center;gap:3px;background:var(--black);color:var(--white);padding:2px 8px;border-radius:3px;font-size:.72rem;font-weight:600;letter-spacing:.03em}
+.ms-tags .tag .tag-x{cursor:pointer;opacity:.6;font-size:.8rem;line-height:1}
+.ms-tags .tag .tag-x:hover{opacity:1}
+.ms-tags input{border:none;outline:none;flex:1;min-width:60px;font-size:.82rem;padding:2px 0}
+.ms-dd{display:none;position:absolute;top:100%;left:0;right:0;max-height:280px;overflow-y:auto;background:var(--white);border:1.5px solid var(--grey-200);border-top:none;border-radius:0 0 var(--radius) var(--radius);z-index:10;box-shadow:0 4px 12px rgba(0,0,0,.1)}
+.ms-dd.open{display:block}
+.ms-dd-cat{padding:.4rem .8rem;font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;color:var(--grey-400);font-weight:700;background:var(--grey-100);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0}
+.ms-dd-cat button{background:none;border:none;font-size:.6rem;color:var(--blue);font-weight:600;text-transform:uppercase;letter-spacing:.06em;padding:2px 6px;border-radius:3px}
+.ms-dd-cat button:hover{background:var(--grey-200)}
+.ms-dd-item{padding:.35rem .8rem;font-size:.82rem;cursor:pointer;display:flex;align-items:center;gap:.5rem;transition:background .1s}
+.ms-dd-item:hover{background:var(--grey-100)}
+.ms-dd-item.selected{color:var(--grey-400)}
+.ms-dd-item.selected::before{content:'\\2713';color:var(--green);font-weight:700;font-size:.7rem}
+.ms-dd-item.hidden{display:none}
 
 /* TOAST */
 .toast{position:fixed;bottom:2rem;right:2rem;padding:.8rem 1.5rem;background:var(--black);color:var(--white);border-radius:var(--radius);font-size:.82rem;font-weight:500;transform:translateY(100px);opacity:0;transition:all .3s;z-index:200}
@@ -622,40 +645,205 @@ function renderProduits() {
 function filterProduits(v) { _searchProduits = v; renderProduits(); }
 function filterProduitsClub(v) { _clubProduits = v; renderProduits(); }
 
+// ---- MULTI-SELECT TAILLES ----
+var TAILLES_CATS = [
+  { label: 'Adulte', items: ['2XS','XS','S','M','L','XL','2XL','3XL','4XL','5XL','6XL'] },
+  { label: 'Enfant', items: ['1/2 A','3/4 A','5/6 A','7/8 A','9/11 A','12/13 A'] },
+  { label: 'Bébé', items: ['0/3M','3/6M','0/6M','6/12M','12/18M','24/36M'] },
+  { label: 'Autre', items: ['TU'] }
+];
+var _msTailles = []; // current selection
+
+function msRender() {
+  var wrap = document.getElementById('ms-tailles');
+  if (!wrap) return;
+  var tagsEl = wrap.querySelector('.ms-tags');
+  var input = wrap.querySelector('.ms-input');
+  // Render tags
+  var tags = tagsEl.querySelectorAll('.tag');
+  tags.forEach(function(t) { t.remove(); });
+  _msTailles.forEach(function(t) {
+    var tag = document.createElement('span');
+    tag.className = 'tag';
+    tag.innerHTML = t + ' <span class="tag-x" onclick="msRemove(\'' + t + '\')">&times;</span>';
+    tagsEl.insertBefore(tag, input);
+  });
+  // Update dropdown items
+  wrap.querySelectorAll('.ms-dd-item').forEach(function(el) {
+    if (_msTailles.indexOf(el.dataset.val) >= 0) el.classList.add('selected');
+    else el.classList.remove('selected');
+  });
+}
+
+function msToggle(val) {
+  var idx = _msTailles.indexOf(val);
+  if (idx >= 0) _msTailles.splice(idx, 1);
+  else _msTailles.push(val);
+  msRender();
+}
+
+function msRemove(val) {
+  var idx = _msTailles.indexOf(val);
+  if (idx >= 0) { _msTailles.splice(idx, 1); msRender(); }
+}
+
+function msSelectCat(catLabel) {
+  var cat = TAILLES_CATS.find(function(c) { return c.label === catLabel; });
+  if (!cat) return;
+  cat.items.forEach(function(t) { if (_msTailles.indexOf(t) < 0) _msTailles.push(t); });
+  msRender();
+}
+
+function msFilter(val) {
+  var wrap = document.getElementById('ms-tailles');
+  if (!wrap) return;
+  var q = val.toLowerCase();
+  wrap.querySelectorAll('.ms-dd-item').forEach(function(el) {
+    el.classList.toggle('hidden', q && el.dataset.val.toLowerCase().indexOf(q) < 0);
+  });
+}
+
+function msOpenDD() {
+  var dd = document.querySelector('#ms-tailles .ms-dd');
+  if (dd) dd.classList.add('open');
+}
+function msCloseDD() {
+  setTimeout(function() {
+    var dd = document.querySelector('#ms-tailles .ms-dd');
+    if (dd) dd.classList.remove('open');
+  }, 200);
+}
+
+function buildTaillesHtml(selected) {
+  _msTailles = selected || [];
+  var ddHtml = '';
+  TAILLES_CATS.forEach(function(cat) {
+    ddHtml += '<div class="ms-dd-cat">' + cat.label + ' <button type="button" onclick="msSelectCat(\'' + cat.label + '\')">Tout</button></div>';
+    cat.items.forEach(function(t) {
+      var sel = _msTailles.indexOf(t) >= 0 ? ' selected' : '';
+      ddHtml += '<div class="ms-dd-item' + sel + '" data-val="' + t + '" onmousedown="msToggle(\'' + t + '\')">' + t + '</div>';
+    });
+  });
+  return '<div class="ms-wrap" id="ms-tailles">' +
+    '<div class="ms-tags" onclick="this.querySelector(\'.ms-input\').focus()">' +
+    _msTailles.map(function(t) { return '<span class="tag">' + t + ' <span class="tag-x" onclick="msRemove(\'' + t + '\')">&times;</span></span>'; }).join('') +
+    '<input class="ms-input" placeholder="Ajouter..." oninput="msFilter(this.value)" onfocus="msOpenDD()" onblur="msCloseDD()">' +
+    '</div>' +
+    '<div class="ms-dd">' + ddHtml + '</div>' +
+    '</div>';
+}
+
+// ---- CALCULS PRIX AUTO ----
+function recalcPrix() {
+  var ht = parseFloat(document.getElementById('f-prix-ht').value) || 0;
+  var imp = parseFloat(document.getElementById('f-cout-imp').value) || 0;
+  var pv = parseFloat(document.getElementById('f-prix-vente').value) || 0;
+  var taux = parseFloat(document.getElementById('f-taux-imp').value) || 0.20;
+  var ttc = ht * 1.2;
+  var coutTotal = ttc + imp;
+  var margeAv = pv - coutTotal;
+  var impots = margeAv > 0 ? margeAv * taux : 0;
+  var margeAp = margeAv - impots;
+  document.getElementById('f-prix-ttc').value = ttc.toFixed(2);
+  document.getElementById('f-cout-total').value = coutTotal.toFixed(2);
+  document.getElementById('f-marge-av').value = margeAv.toFixed(2);
+  document.getElementById('f-impots').value = impots.toFixed(2);
+  document.getElementById('f-marge-ap').value = margeAp.toFixed(2);
+}
+
 function openProduitModal(id) {
   var p = id ? G.produits.find(function(x) { return x.id === id; }) : null;
   var title = p ? 'Modifier le produit' : 'Nouveau produit';
-  // Charger la liste des clubs pour le dropdown
+
+  // Club options
   var clubOptions = '<option value="">—</option>';
   var clubNames = [];
   G.clubs.forEach(function(c) { if (clubNames.indexOf(c.nom) === -1) clubNames.push(c.nom); });
   clubNames.sort();
   clubNames.forEach(function(c) { clubOptions += '<option' + (p && p.club === c ? ' selected' : '') + '>' + c + '</option>'; });
 
+  function sel(field, opts, val) {
+    return '<select id="f-' + field + '">' + opts.map(function(o) { return '<option' + (val === o ? ' selected' : '') + '>' + o + '</option>'; }).join('') + '</select>';
+  }
+
+  var ht = p ? (parseFloat(p.prix_ht_textile) || 0) : 0;
+  var imp = p ? (parseFloat(p.cout_impression) || 0) : 0;
+  var pv = p ? (parseFloat(p.prix_vente_club) || 0) : 0;
+  var taux = p ? (parseFloat(p.taux_impots) || 0.20) : 0.20;
+  var ttc = ht * 1.2;
+  var coutTotal = ttc + imp;
+  var margeAv = pv - coutTotal;
+  var impots = margeAv > 0 ? margeAv * taux : 0;
+  var margeAp = margeAv - impots;
+
   var html =
-    '<div class="form-row"><label>Nom</label><input id="f-nom" value="' + (p ? p.nom : '') + '"></div>' +
+    // --- Informations générales ---
+    '<div class="form-section">Informations générales</div>' +
+    '<div class="form-row"><label>Nom</label><input id="f-nom" value="' + (p ? (p.nom || '').replace(/"/g, '&quot;') : '') + '"></div>' +
     '<div class="form-grid">' +
-    '<div class="form-row"><label>Prix vente club</label><input id="f-prix" type="number" step="0.01" value="' + (p ? p.prix_vente_club : '') + '"></div>' +
     '<div class="form-row"><label>Club</label><select id="f-club">' + clubOptions + '</select></div>' +
-    '</div>' +
-    '<div class="form-row"><label>Image URL(s)</label><input id="f-image" value="' + (p ? p.image_url : '') + '"></div>' +
-    '<div class="form-row"><label>Tailles (séparées par virgule)</label><input id="f-tailles" value="' + (p ? (p.tailles || []).join(', ') : '') + '"></div>' +
-    '<div class="form-grid">' +
-    '<div class="form-row"><label>Type / Catégorie</label><input id="f-type" value="' + (p ? p.type : '') + '"></div>' +
-    '<div class="form-row"><label>Personnalisation</label><select id="f-perso">' +
-      ['Aucune', 'Nom', 'Numero', 'Nom + Numero'].map(function(v) { return '<option' + (p && p.personnalisation === v ? ' selected' : '') + '>' + v + '</option>'; }).join('') +
-    '</select></div>' +
-    '</div>' +
-    '<div class="form-row"><label>Description</label><textarea id="f-desc">' + (p ? p.description : '') + '</textarea></div>' +
-    '<div class="form-grid">' +
-    '<div class="form-row"><label>Min quantité</label><input id="f-min" type="number" value="' + (p ? p.min_quantite : 0) + '"></div>' +
-    '<div class="form-row"><label>Max quantité</label><input id="f-max" type="number" value="' + (p ? p.max_quantite : 0) + '"></div>' +
-    '<div class="form-row"><label>Groupe stock</label><input id="f-grp" value="' + (p ? p.groupe_stock : '') + '"></div>' +
-    '<div class="form-row"><label>Stock groupe</label><input id="f-stk" type="number" value="' + (p ? p.stock_groupe : 0) + '"></div>' +
+    '<div class="form-row"><label>Type</label>' + sel('type', ['','Performance','Lifestyle','Maillots','Enfants','Bébé','Staff','Both Equipmnt'], p ? p.type : '') + '</div>' +
     '</div>' +
     '<div class="form-grid">' +
-    '<div class="form-row"><div class="form-check"><input type="checkbox" id="f-visible"' + (!p || p.visible_vestiaire ? ' checked' : '') + '><label style="margin:0">Visible vestiaire</label></div></div>' +
+    '<div class="form-row"><label>Gamme</label>' + sel('gamme', ['','T-shirts','Hoodie','Vestes','Bas','Chasubles','Match','Accessoires','Body'], p ? p.gamme : '') + '</div>' +
+    '<div class="form-row"><label>Couleur</label><input id="f-couleur" value="' + (p ? (p.couleur || '') : '') + '"></div>' +
+    '</div>' +
+    '<div class="form-grid">' +
+    '<div class="form-row"><label>Matière</label>' + sel('matiere', ['','Coton','Polyester'], p ? p.matiere : '') + '</div>' +
+    '<div class="form-row"><label>Genre</label>' + sel('genre', ['','Unisex','Femmes','Enfants','Bébé'], p ? p.genre : '') + '</div>' +
+    '</div>' +
+    '<div class="form-row"><label>Tailles disponibles</label>' + buildTaillesHtml(p ? (p.tailles || []) : []) + '</div>' +
+    '<div class="form-row"><label>Description</label><textarea id="f-desc">' + (p ? (p.description || '') : '') + '</textarea></div>' +
+
+    // --- Fournisseur & Fabrication ---
+    '<div class="form-section">Fournisseur & Fabrication</div>' +
+    '<div class="form-row"><label>Lien Fournisseur</label><input id="f-lien-fourn" type="url" value="' + (p ? (p.lien_fournisseur || '') : '') + '"></div>' +
+    '<div class="form-grid">' +
+    '<div class="form-row"><label>Impression</label><input id="f-impression" value="' + (p ? (p.impression || '') : '') + '"></div>' +
+    '<div class="form-row"><div class="form-check" style="margin-top:1.4rem"><input type="checkbox" id="f-asie"' + (p && p.produit_asie ? ' checked' : '') + '><label style="margin:0">Produit Asie</label></div></div>' +
+    '</div>' +
+
+    // --- Prix & Coûts ---
+    '<div class="form-section">Prix & Coûts</div>' +
+    '<div class="form-grid-3">' +
+    '<div class="form-row"><label>Prix HT Textile</label><input id="f-prix-ht" type="number" step="0.01" value="' + ht.toFixed(2) + '" oninput="recalcPrix()"></div>' +
+    '<div class="form-row"><label>Prix TTC Textile</label><input id="f-prix-ttc" type="number" step="0.01" value="' + ttc.toFixed(2) + '" readonly></div>' +
+    '<div class="form-row"><label>Coût Impression</label><input id="f-cout-imp" type="number" step="0.01" value="' + imp.toFixed(2) + '" oninput="recalcPrix()"></div>' +
+    '</div>' +
+    '<div class="form-grid-3">' +
+    '<div class="form-row"><label>Coût Total</label><input id="f-cout-total" type="number" step="0.01" value="' + coutTotal.toFixed(2) + '" readonly></div>' +
+    '<div class="form-row"><label>Prix Vente Club</label><input id="f-prix-vente" type="number" step="0.01" value="' + pv.toFixed(2) + '" oninput="recalcPrix()"></div>' +
+    '<div class="form-row"><label>Marge av. impots</label><input id="f-marge-av" type="number" step="0.01" value="' + margeAv.toFixed(2) + '" readonly></div>' +
+    '</div>' +
+    '<div class="form-grid-3">' +
+    '<div class="form-row"><label>Taux Impots</label><input id="f-taux-imp" type="number" step="0.01" value="' + taux.toFixed(2) + '" oninput="recalcPrix()"></div>' +
+    '<div class="form-row"><label>Impots</label><input id="f-impots" type="number" step="0.01" value="' + impots.toFixed(2) + '" readonly></div>' +
+    '<div class="form-row"><label>Marge ap. impots</label><input id="f-marge-ap" type="number" step="0.01" value="' + margeAp.toFixed(2) + '" readonly></div>' +
+    '</div>' +
+
+    // --- Vestiaire ---
+    '<div class="form-section">Vestiaire</div>' +
+    '<div class="form-row"><label>Image URL(s)</label><input id="f-image" value="' + (p ? (p.image_url || '') : '') + '"></div>' +
+    '<div class="form-grid">' +
+    '<div class="form-row"><label>Personnalisation</label>' + sel('perso', ['Aucune','Nom','Numero','Nom + Numero'], p ? p.personnalisation : 'Aucune') + '</div>' +
+    '<div class="form-row"><div class="form-check" style="margin-top:1.4rem"><input type="checkbox" id="f-visible"' + (!p || p.visible_vestiaire ? ' checked' : '') + '><label style="margin:0">Visible vestiaire</label></div></div>' +
+    '</div>' +
+    '<div class="form-grid">' +
+    '<div class="form-row"><label>Min Quantité</label><input id="f-min" type="number" value="' + (p ? p.min_quantite : 0) + '"></div>' +
+    '<div class="form-row"><label>Max Quantité</label><input id="f-max" type="number" value="' + (p ? p.max_quantite : 0) + '"></div>' +
+    '</div>' +
+    '<div class="form-grid">' +
+    '<div class="form-row"><label>Groupe Stock</label><input id="f-grp" value="' + (p ? (p.groupe_stock || '') : '') + '"></div>' +
+    '<div class="form-row"><label>Stock Groupe</label><input id="f-stk" type="number" value="' + (p ? p.stock_groupe : 0) + '"></div>' +
+    '</div>' +
     '<div class="form-row"><div class="form-check"><input type="checkbox" id="f-expire"' + (p && p.expire ? ' checked' : '') + '><label style="margin:0">Expiré</label></div></div>' +
+
+    // --- Suivi ---
+    '<div class="form-section">Suivi</div>' +
+    '<div class="form-grid-3">' +
+    '<div class="form-row"><div class="form-check"><input type="checkbox" id="f-cout-fini"' + (p && p.cout_fini ? ' checked' : '') + '><label style="margin:0">Coût fini</label></div></div>' +
+    '<div class="form-row"><div class="form-check"><input type="checkbox" id="f-ajout-termine"' + (p && p.ajout_termine ? ' checked' : '') + '><label style="margin:0">Ajout terminé</label></div></div>' +
+    '<div class="form-row"><div class="form-check"><input type="checkbox" id="f-ajout-vest"' + (p && p.ajout_vestiaire ? ' checked' : '') + '><label style="margin:0">Ajout vestiaire</label></div></div>' +
     '</div>';
 
   openModal(title, html,
@@ -667,19 +855,32 @@ function openProduitModal(id) {
 function saveProduit(id) {
   var data = {
     nom: document.getElementById('f-nom').value,
-    prix: document.getElementById('f-prix').value,
     club: document.getElementById('f-club').value,
-    imageUrl: document.getElementById('f-image').value,
-    tailles: document.getElementById('f-tailles').value,
     type: document.getElementById('f-type').value,
-    personnalisation: document.getElementById('f-perso').value,
+    gamme: document.getElementById('f-gamme').value,
+    couleur: document.getElementById('f-couleur').value,
+    matiere: document.getElementById('f-matiere').value,
+    genre: document.getElementById('f-genre').value,
+    tailles: _msTailles,
     description: document.getElementById('f-desc').value,
+    lienFournisseur: document.getElementById('f-lien-fourn').value,
+    impression: document.getElementById('f-impression').value,
+    produitAsie: document.getElementById('f-asie').checked,
+    prixHtTextile: document.getElementById('f-prix-ht').value,
+    coutImpression: document.getElementById('f-cout-imp').value,
+    prixVenteClub: document.getElementById('f-prix-vente').value,
+    tauxImpots: document.getElementById('f-taux-imp').value,
+    imageUrl: document.getElementById('f-image').value,
+    visibleVestiaire: document.getElementById('f-visible').checked,
+    personnalisation: document.getElementById('f-perso').value,
     minQuantite: document.getElementById('f-min').value,
     maxQuantite: document.getElementById('f-max').value,
     groupeStock: document.getElementById('f-grp').value,
     stockGroupe: document.getElementById('f-stk').value,
-    visibleVestiaire: document.getElementById('f-visible').checked,
-    expire: document.getElementById('f-expire').checked
+    expire: document.getElementById('f-expire').checked,
+    coutFini: document.getElementById('f-cout-fini').checked,
+    ajoutTermine: document.getElementById('f-ajout-termine').checked,
+    ajoutVestiaire: document.getElementById('f-ajout-vest').checked
   };
   if (!data.nom) { toast('Le nom est requis', true); return; }
 
