@@ -796,11 +796,9 @@ function saveAsTemplate(id) {
     produitAsie: !!p.produit_asie,
     prixHtTextile: p.prix_ht_textile || 0,
     coutImpression: p.cout_impression || 0,
-    prixVenteClub: p.prix_vente_club || 0,
     tauxImpots: p.taux_impots || 0.20,
     personnalisation: p.personnalisation || 'Aucune',
-    minQuantite: p.min_quantite || 0,
-    maxQuantite: p.max_quantite || 0
+    minQuantite: p.min_quantite || 0
   };
   var templates = getTemplates();
   templates.push(tpl);
@@ -822,7 +820,7 @@ function showTemplateChooser() {
   templates.forEach(function(t, i) {
     html += '<div style="display:flex;gap:.5rem;align-items:center">' +
       '<button class="btn btn-outline" onclick="closeModal();openProduitFromTemplate(' + i + ')" style="flex:1;text-align:left;padding:.8rem 1rem">' +
-      '<strong>' + t.name + '</strong> <span style="font-size:.75rem;color:var(--grey-400)">' + [t.type, t.gamme, t.matiere].filter(Boolean).join(' · ') + '</span>' +
+      '<strong>' + t.name + '</strong> <span style="font-size:.75rem;color:var(--grey-400)">' + [t.type, t.gamme, t.matiere].filter(Boolean).join(' · ') + (t.tailles && t.tailles.length ? ' — ' + t.tailles.join(', ') : '') + '</span>' +
       '</button>' +
       '<button class="btn-icon danger" onclick="deleteTemplate(' + i + ')" title="Supprimer la base">🗑️</button>' +
       '</div>';
@@ -850,11 +848,11 @@ function openProduitFromTemplate(idx) {
     produit_asie: t.produitAsie,
     prix_ht_textile: t.prixHtTextile,
     cout_impression: t.coutImpression,
-    prix_vente_club: t.prixVenteClub,
+    prix_vente_club: 0,
     taux_impots: t.tauxImpots,
     personnalisation: t.personnalisation,
     min_quantite: t.minQuantite,
-    max_quantite: t.maxQuantite,
+    max_quantite: 0,
     image_url: '',
     visible_vestiaire: true,
     groupe_stock: '',
