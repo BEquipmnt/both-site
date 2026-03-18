@@ -254,6 +254,7 @@ tbody tr.clickable:hover{background:#e8e8e8}
       </a>
     </div>
     <div class="sidebar-bottom">
+      <a href="javascript:void(0)" onclick="loadAll();toast('Données rafraîchies')" style="display:block;margin-bottom:.5rem">🔄 Rafraîchir</a>
       <a href="/vestiaire.html">← Vestiaire</a>
     </div>
   </nav>
@@ -464,6 +465,19 @@ tbody tr.clickable:hover{background:#e8e8e8}
 // ============================================================
 var API = '/.netlify/functions/supabase-api';
 var G = { club: null, commandes: [], produits: [], clubs: [], demandes: [], productionLines: [], productionStats: {} };
+
+// Session persistence admin
+(function autoLoginAdmin(){
+  var email = sessionStorage.getItem('admin_email');
+  if(!email) return;
+  apiGet('getClub', { email: email }).then(function(res) {
+    if(!res.club || !res.club.admin) { sessionStorage.removeItem('admin_email'); return; }
+    G.club = res.club;
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    loadAll();
+  }).catch(function() { sessionStorage.removeItem('admin_email'); });
+})();
 var _searchCommandes = '', _statutCommandes = '';
 var _searchProduits = '', _clubProduits = '';
 var _searchClubs = '';
@@ -511,6 +525,7 @@ function doLogin() {
       return;
     }
     G.club = res.club;
+    sessionStorage.setItem('admin_email', email);
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app').style.display = 'block';
     loadAll();
