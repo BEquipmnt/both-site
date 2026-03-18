@@ -1108,6 +1108,30 @@ async function adminDeleteDemande(payload) {
 }
 
 // ============================================================
+// SETTINGS (clé/valeur)
+// ============================================================
+async function getSettings() {
+  const rows = await sbGet('settings', 'select=key,value');
+  const settings = {};
+  (rows || []).forEach(r => { settings[r.key] = r.value; });
+  return { settings };
+}
+
+async function adminUpdateSettings(payload) {
+  const entries = payload.settings; // { key: value, key2: value2, ... }
+  if (!entries || typeof entries !== 'object') throw new Error('settings requis');
+  for (const [key, value] of Object.entries(entries)) {
+    // UPSERT: try patch, if no row affected, insert
+    await sb(`settings?key=eq.${encodeURIComponent(key)}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ value: String(value) }),
+      prefer: 'return=minimal'
+    });
+  }
+  return { success: true };
+}
+
+// ============================================================
 // HANDLER PRINCIPAL
 // ============================================================
 exports.handler = async (event) => {
@@ -1195,6 +1219,9 @@ exports.handler = async (event) => {
         case 'adminGetProductionForOrder':
           result = await adminGetProductionForOrder(params.commandeId);
           break;
+        case 'getSettings':
+          result = await getSettings();
+          break;
         default:
           result = { error: 'Action inconnue' };
       }
@@ -1272,6 +1299,9 @@ exports.handler = async (event) => {
           break;
         case 'adminBulkUpdateProductionLines':
           result = await adminBulkUpdateProductionLines(payload);
+          break;
+        case 'adminUpdateSettings':
+          result = await adminUpdateSettings(payload);
           break;
         case 'adminDeleteProductionLine':
           result = await adminDeleteProductionLine(payload);

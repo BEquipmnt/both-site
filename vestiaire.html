@@ -699,7 +699,7 @@ img{ max-width:100%; display:block; }
         <h3>Coordonnées bancaires</h3>
         <p class="rib-instruction">Effectuez votre virement avec la référence de commande :</p>
         <div class="rib-info">
-          <div class="rib-row"><span class="rib-label">Bénéficiaire</span><span class="rib-value">BOTH EQUIPMNT</span></div>
+          <div class="rib-row"><span class="rib-label">Bénéficiaire</span><span class="rib-value" id="rib-beneficiaire">BOTH EQUIPMNT</span></div>
           <div class="rib-row"><span class="rib-label">IBAN</span><span class="rib-value rib-copyable" id="rib-iban" onclick="copyToClipboard('rib-iban')">FR76 1451 8292 6705 3640 9504 091<span class="copy-icon">📋</span></span></div>
           <div class="rib-row"><span class="rib-label">BIC</span><span class="rib-value rib-copyable" id="rib-bic" onclick="copyToClipboard('rib-bic')">FTNOFRP1XXX<span class="copy-icon">📋</span></span></div>
           <div class="rib-row"><span class="rib-label">Référence</span><span class="rib-value rib-copyable rib-reference" id="order-reference" onclick="copyToClipboard('order-reference')"><span class="copy-icon">📋</span></span></div>
@@ -713,7 +713,7 @@ img{ max-width:100%; display:block; }
 
 <script>
 const API = "/.netlify/functions/supabase-api";
-const S = { club:null, products:[], cart:[], orders:[], demandes:[], currentProduct:null, qty:1, persoData:{}, carouselIndex:0, carouselTotal:0 };
+const S = { club:null, products:[], cart:[], orders:[], demandes:[], currentProduct:null, qty:1, persoData:{}, carouselIndex:0, carouselTotal:0, settings:{} };
 let _orderSubmitting = false;
 
 function toast(msg, dur=2800){ const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),dur); }
@@ -782,7 +782,22 @@ async function openPortal(){
   else{logoEl.style.display='none';}
   if(S.club.admin) document.getElementById('tab-facturation').style.display='';
   else document.getElementById('tab-facturation').style.display='none';
+  loadSettings();
   await loadCatalogue();
+}
+
+async function loadSettings(){
+  try{
+    const res=await apiGet('getSettings');
+    S.settings=res.settings||{};
+    // Mettre à jour le RIB dans la confirmation
+    const b=document.getElementById('rib-beneficiaire');
+    const i=document.getElementById('rib-iban');
+    const c=document.getElementById('rib-bic');
+    if(b&&S.settings.rib_beneficiaire) b.textContent=S.settings.rib_beneficiaire;
+    if(i&&S.settings.rib_iban) i.innerHTML=S.settings.rib_iban+'<span class="copy-icon">📋</span>';
+    if(c&&S.settings.rib_bic) c.innerHTML=S.settings.rib_bic+'<span class="copy-icon">📋</span>';
+  }catch(e){console.error('loadSettings error:',e);}
 }
 
 function closePortal(){
@@ -1412,7 +1427,7 @@ function generateInvoicePDF(order, lignes){
   doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(...gris);
   doc.text('Effectuez votre virement avec la reference de commande en objet.',MG+6,y); y+=6;
   doc.setFontSize(8.5); doc.setTextColor(...noir);
-  [['Beneficiaire','BOTH EQUIPMNT'],['IBAN','FR76 1451 8292 6705 3640 9504 091'],['BIC','FTNOFRP1XXX'],['Reference',order.ref]].forEach(([label,value])=>{
+  [['Beneficiaire',S.settings.rib_beneficiaire||'BOTH EQUIPMNT'],['IBAN',S.settings.rib_iban||'FR76 1451 8292 6705 3640 9504 091'],['BIC',S.settings.rib_bic||'FTNOFRP1XXX'],['Reference',order.ref]].forEach(([label,value])=>{
     doc.setFont('helvetica','normal'); doc.setTextColor(...gris); doc.text(label,MG+6,y);
     doc.setFont('helvetica','bold'); doc.setTextColor(...noir); doc.text(value,MG+42,y); y+=5;
   });

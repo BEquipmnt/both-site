@@ -155,6 +155,18 @@ CREATE TABLE demandes (
   created_at  timestamptz DEFAULT now()
 );
 
+-- 9. SETTINGS (clé/valeur pour configuration globale)
+CREATE TABLE settings (
+  key   text PRIMARY KEY,
+  value text NOT NULL DEFAULT ''
+);
+
+-- Valeurs par défaut RIB
+INSERT INTO settings (key, value) VALUES
+  ('rib_beneficiaire', 'BOTH EQUIPMNT'),
+  ('rib_iban', 'FR76 1451 8292 6705 3640 9504 091'),
+  ('rib_bic', 'FTNOFRP1XXX');
+
 -- ============================================================
 -- INDEX
 -- ============================================================
@@ -198,5 +210,7 @@ CREATE POLICY "anon_all" ON demandes FOR ALL USING (true) WITH CHECK (true);
 
 ALTER TABLE production_lines ENABLE ROW LEVEL SECURITY;
 ALTER TABLE production_lines_commandes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "anon_all" ON production_lines FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "anon_all" ON production_lines_commandes FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "anon_all" ON settings FOR ALL USING (true) WITH CHECK (true);
