@@ -276,6 +276,9 @@ th[onclick]:hover{color:var(--yellow)}
       <a class="sidebar-link" onclick="showSection('demandes')" data-section="demandes">
         <span class="icon">💬</span><span>Demandes</span>
       </a>
+      <a class="sidebar-link" onclick="showSection('parametres')" data-section="parametres">
+        <span class="icon">⚙️</span><span>Paramètres</span>
+      </a>
     </div>
     <div class="sidebar-bottom">
       <a href="javascript:void(0)" onclick="loadAll();toast('Données rafraîchies')" style="display:block;margin-bottom:.5rem">🔄 Rafraîchir</a>
@@ -521,6 +524,30 @@ th[onclick]:hover{color:var(--yellow)}
       </div>
     </div>
 
+    <!-- ========== PARAMETRES ========== -->
+    <div class="section" id="sec-parametres">
+      <h1 class="page-title">Paramètres</h1>
+      <div class="card" style="max-width:600px">
+        <h3 style="margin-bottom:1rem;font-size:1rem;font-weight:600">Coordonnées bancaires (RIB)</h3>
+        <p style="color:#888;font-size:.82rem;margin-bottom:1.2rem">Ces informations s'affichent aux clubs après une commande et sur les factures PDF.</p>
+        <div style="display:grid;gap:.8rem">
+          <div>
+            <label style="font-size:.82rem;font-weight:600;display:block;margin-bottom:.3rem">Bénéficiaire</label>
+            <input type="text" id="setting-rib-beneficiaire" class="form-input" style="width:100%;padding:.5rem;border:1px solid #ddd;border-radius:4px">
+          </div>
+          <div>
+            <label style="font-size:.82rem;font-weight:600;display:block;margin-bottom:.3rem">IBAN</label>
+            <input type="text" id="setting-rib-iban" class="form-input" style="width:100%;padding:.5rem;border:1px solid #ddd;border-radius:4px">
+          </div>
+          <div>
+            <label style="font-size:.82rem;font-weight:600;display:block;margin-bottom:.3rem">BIC</label>
+            <input type="text" id="setting-rib-bic" class="form-input" style="width:100%;padding:.5rem;border:1px solid #ddd;border-radius:4px">
+          </div>
+        </div>
+        <button onclick="saveSettings()" style="margin-top:1.2rem;padding:.6rem 1.5rem;background:#222;color:#fff;border:none;border-radius:4px;cursor:pointer;font-weight:600">Enregistrer</button>
+      </div>
+    </div>
+
   </div><!-- /main -->
 </div><!-- /app -->
 
@@ -632,14 +659,17 @@ function _undoAction() {
   }
 }
 
+function getAuthEmail() {
+  return sessionStorage.getItem('admin_email') || '';
+}
 function apiGet(action, params) {
   var url = API + '?' + new URLSearchParams(Object.assign({ action: action }, params || {}));
-  return fetch(url).then(function(r) { return r.json(); });
+  return fetch(url, { headers: { 'X-Auth-Email': getAuthEmail() } }).then(function(r) { return r.json(); });
 }
 function apiPost(action, body) {
   return fetch(API, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'X-Auth-Email': getAuthEmail() },
     body: JSON.stringify(Object.assign({ action: action }, body || {}))
   }).then(function(r) { return r.json(); });
 }
@@ -718,6 +748,30 @@ function loadAll() {
   loadClubs();
   loadDemandes();
   loadProduction();
+  loadSettings();
+}
+
+// ============================================================
+// SETTINGS
+// ============================================================
+function loadSettings() {
+  apiGet('getSettings').then(function(res) {
+    var s = res.settings || {};
+    document.getElementById('setting-rib-beneficiaire').value = s.rib_beneficiaire || '';
+    document.getElementById('setting-rib-iban').value = s.rib_iban || '';
+    document.getElementById('setting-rib-bic').value = s.rib_bic || '';
+  });
+}
+function saveSettings() {
+  var settings = {
+    rib_beneficiaire: document.getElementById('setting-rib-beneficiaire').value.trim(),
+    rib_iban: document.getElementById('setting-rib-iban').value.trim(),
+    rib_bic: document.getElementById('setting-rib-bic').value.trim()
+  };
+  apiPost('adminUpdateSettings', { settings: settings }).then(function(res) {
+    if (res.success) toast('Paramètres enregistrés');
+    else toast('Erreur lors de la sauvegarde');
+  });
 }
 
 // ============================================================

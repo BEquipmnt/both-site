@@ -53,6 +53,43 @@ async function sbPatch(table, query, data) {
 }
 
 // ============================================================
+// AUTH HELPERS (vérification côté serveur)
+// ============================================================
+async function verifyAdmin(authEmail) {
+  if (!authEmail) return null;
+  const clubs = await sbGet('clubs', 'select=id,nom,email,emails,admin');
+  const emailLower = authEmail.toLowerCase();
+  const club = clubs.find(c => {
+    if (c.email && c.email.toLowerCase() === emailLower) return true;
+    if (c.emails) {
+      const list = c.emails.split(',').map(e => e.trim().toLowerCase());
+      if (list.includes(emailLower)) return true;
+    }
+    return false;
+  });
+  if (!club || !club.admin) return null;
+  return club;
+}
+
+async function verifyClub(authEmail, clubId) {
+  if (!authEmail) return null;
+  const clubs = await sbGet('clubs', 'select=id,nom,email,emails');
+  const emailLower = authEmail.toLowerCase();
+  const club = clubs.find(c => {
+    if (c.email && c.email.toLowerCase() === emailLower) return true;
+    if (c.emails) {
+      const list = c.emails.split(',').map(e => e.trim().toLowerCase());
+      if (list.includes(emailLower)) return true;
+    }
+    return false;
+  });
+  if (!club) return null;
+  // Un club ne peut accéder qu'à ses propres données
+  if (clubId && club.id !== clubId) return null;
+  return club;
+}
+
+// ============================================================
 // GET CLUB (login)
 // ============================================================
 async function getClub(email) {
@@ -1071,6 +1108,30 @@ async function adminDeleteDemande(payload) {
 }
 
 // ============================================================
+// SETTINGS (clé/valeur)
+// ============================================================
+async function getSettings() {
+  const rows = await sbGet('settings', 'select=key,value');
+  const settings = {};
+  (rows || []).forEach(r => { settings[r.key] = r.value; });
+  return { settings };
+}
+
+async function adminUpdateSettings(payload) {
+  const entries = payload.settings; // { key: value, key2: value2, ... }
+  if (!entries || typeof entries !== 'object') throw new Error('settings requis');
+  for (const [key, value] of Object.entries(entries)) {
+    // UPSERT: try patch, if no row affected, insert
+    await sb(`settings?key=eq.${encodeURIComponent(key)}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ value: String(value) }),
+      prefer: 'return=minimal'
+    });
+  }
+  return { success: true };
+}
+
+// ============================================================
 // HANDLER PRINCIPAL
 // ============================================================
 exports.handler = async (event) => {
@@ -1084,12 +1145,29 @@ exports.handler = async (event) => {
     return { statusCode: 200, headers, body: '' };
   }
 
+  // Extraire l'email d'auth depuis le header
+  const eventHeaders = event.headers || {};
+  const authEmail = eventHeaders['x-auth-email'] || '';
+
   try {
     let result;
+    const UNAUTHORIZED = { error: 'Non autorisé' };
 
     if (event.httpMethod === 'GET') {
       const params = event.queryStringParameters || {};
       const action = params.action;
+
+      // Endpoints admin → vérification admin obligatoire
+      if (action && action.startsWith('admin')) {
+        const admin = await verifyAdmin(authEmail);
+        if (!admin) return { statusCode: 403, headers, body: JSON.stringify(UNAUTHORIZED) };
+      }
+
+      // Endpoints club → vérification que le club accède à ses données
+      if (['getCatalogue', 'getOrders', 'getDemandes'].includes(action)) {
+        const club = await verifyClub(authEmail, params.clubId);
+        if (!club) return { statusCode: 403, headers, body: JSON.stringify(UNAUTHORIZED) };
+      }
 
       switch (action) {
         case 'getClub':
@@ -1102,9 +1180,17 @@ exports.handler = async (event) => {
           result = await getOrders(params.clubId);
           break;
         case 'getAllOrders':
+          // getAllOrders est admin-only
+          { const admin = await verifyAdmin(authEmail);
+            if (!admin) return { statusCode: 403, headers, body: JSON.stringify(UNAUTHORIZED) };
+          }
           result = await getAllOrders();
           break;
         case 'getOrderDetail':
+          // getOrderDetail est admin-only
+          { const admin = await verifyAdmin(authEmail);
+            if (!admin) return { statusCode: 403, headers, body: JSON.stringify(UNAUTHORIZED) };
+          }
           result = await getOrderDetail(params.orderId);
           break;
         case 'getDemandes':
@@ -1133,6 +1219,9 @@ exports.handler = async (event) => {
         case 'adminGetProductionForOrder':
           result = await adminGetProductionForOrder(params.commandeId);
           break;
+        case 'getSettings':
+          result = await getSettings();
+          break;
         default:
           result = { error: 'Action inconnue' };
       }
@@ -1141,6 +1230,18 @@ exports.handler = async (event) => {
     if (event.httpMethod === 'POST') {
       const payload = JSON.parse(event.body);
       const action = payload.action;
+
+      // Endpoints admin → vérification admin obligatoire
+      if (action && action.startsWith('admin')) {
+        const admin = await verifyAdmin(authEmail);
+        if (!admin) return { statusCode: 403, headers, body: JSON.stringify(UNAUTHORIZED) };
+      }
+
+      // Endpoints club (createOrder, createLignes, createDemande) → vérification club
+      if (['createOrder', 'createLignes', 'createDemande'].includes(action)) {
+        const club = await verifyClub(authEmail, payload.clubId);
+        if (!club) return { statusCode: 403, headers, body: JSON.stringify(UNAUTHORIZED) };
+      }
 
       switch (action) {
         case 'createOrder':
@@ -1198,6 +1299,9 @@ exports.handler = async (event) => {
           break;
         case 'adminBulkUpdateProductionLines':
           result = await adminBulkUpdateProductionLines(payload);
+          break;
+        case 'adminUpdateSettings':
+          result = await adminUpdateSettings(payload);
           break;
         case 'adminDeleteProductionLine':
           result = await adminDeleteProductionLine(payload);
