@@ -215,6 +215,9 @@ tbody tr.clickable:hover{background:#e8e8e8}
 .fournisseur-select:focus{border-color:var(--yellow)}
 .badge-orange{background:#fed7aa;color:#9a3412}
 
+th[onclick]{cursor:pointer;user-select:none;white-space:nowrap}
+th[onclick]:hover{color:var(--yellow)}
+
 .fournisseur-group{background:var(--white);border-radius:var(--radius);padding:1.2rem 1.5rem;margin-bottom:1rem;box-shadow:0 1px 3px rgba(0,0,0,.06)}
 .fournisseur-group-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:.8rem;padding-bottom:.5rem;border-bottom:1px solid var(--grey-200)}
 .fournisseur-group-header h4{font-family:var(--display);font-size:.9rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
@@ -380,9 +383,8 @@ tbody tr.clickable:hover{background:#e8e8e8}
         <div class="card-full">
           <div style="overflow-x:auto">
             <table>
-              <thead><tr>
-                <th>Club</th><th>Produit</th><th>Taille</th><th>Qté</th><th>Perso</th>
-                <th>Statut</th>
+              <thead id="statut-thead"><tr>
+                <th>Club</th><th>Produit</th><th>Taille</th><th>Qté</th><th>Perso</th><th>Statut</th>
               </tr></thead>
               <tbody id="statut-table"></tbody>
             </table>
@@ -403,7 +405,7 @@ tbody tr.clickable:hover{background:#e8e8e8}
                 <th>Club</th><th>Produit</th><th>Taille</th><th>Qté</th><th>Perso</th>
                 <th>Actions</th>
               </tr></thead>
-              <tbody id="production-asie-table"></tbody>
+              <tbody id="production-asie-table"></tbody><!-- asie sorting handled in render -->
             </table>
           </div>
         </div>
@@ -414,7 +416,7 @@ tbody tr.clickable:hover{background:#e8e8e8}
         <div class="card-full">
           <div style="overflow-x:auto">
             <table>
-              <thead><tr>
+              <thead id="achattextile-thead"><tr>
                 <th>Club</th><th>Produit</th><th>Taille</th><th>Qté</th><th>Perso</th>
                 <th>Achat</th><th>Action</th><th>Fournisseur</th>
               </tr></thead>
@@ -429,8 +431,8 @@ tbody tr.clickable:hover{background:#e8e8e8}
         <div class="card-full">
           <div style="overflow-x:auto">
             <table>
-              <thead><tr>
-                <th>Club</th><th>Produit</th><th>Impression</th><th>Action</th>
+              <thead id="achatdtf-thead"><tr>
+                <th>Club</th><th>Produit</th><th>Impression</th><th>Qté</th><th>Fichier</th><th>Action</th>
               </tr></thead>
               <tbody id="achat-dtf-table"></tbody>
             </table>
@@ -443,7 +445,7 @@ tbody tr.clickable:hover{background:#e8e8e8}
         <div class="card-full">
           <div style="overflow-x:auto">
             <table>
-              <thead><tr>
+              <thead id="reception-thead"><tr>
                 <th>Club</th><th>Produit</th><th>Taille</th><th>Qté</th>
                 <th>Réception</th>
               </tr></thead>
@@ -458,7 +460,7 @@ tbody tr.clickable:hover{background:#e8e8e8}
         <div class="card-full">
           <div style="overflow-x:auto">
             <table>
-              <thead><tr>
+              <thead id="production-thead"><tr>
                 <th>Club</th><th>Produit</th><th>Taille</th><th>Qté</th>
                 <th>Production</th>
               </tr></thead>
@@ -474,14 +476,16 @@ tbody tr.clickable:hover{background:#e8e8e8}
           <input class="search" type="text" placeholder="Rechercher (ref, club...)" oninput="_searchALivrer=this.value;renderALivrer()">
           <select onchange="_filterALivrerStatut=this.value;renderALivrer()">
             <option value="">Tous les statuts</option>
+            <option value="attente">En attente</option>
+            <option value="achat">Achat en cours</option>
             <option value="production">En production</option>
-            <option value="prete">Prête</option>
+            <option value="prete">Prête à livrer</option>
           </select>
         </div>
         <div class="card-full">
           <div style="overflow-x:auto">
             <table>
-              <thead><tr>
+              <thead id="alivrer-thead"><tr>
                 <th>Vu</th><th>Réf</th><th>Club</th><th>Date</th><th>Articles</th><th>Total</th><th>Statut</th><th>Actions</th>
               </tr></thead>
               <tbody id="alivrer-table"></tbody>
@@ -562,12 +566,69 @@ var _prodChecked = new Set();
 var _activeStatFilter = '';
 var _activeProdTab = 'statut';
 
+// Sorting system for production tabs
+var _prodSort = {}; // { tabName: { col: 'fieldName', dir: 'asc'|'desc' } }
+
+function sortProdLines(lines, tabName) {
+  var sort = _prodSort[tabName];
+  if (!sort || !sort.col) return lines;
+  var col = sort.col;
+  var dir = sort.dir === 'desc' ? -1 : 1;
+  return lines.slice().sort(function(a, b) {
+    var va = a[col] || '', vb = b[col] || '';
+    if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir;
+    va = String(va).toLowerCase(); vb = String(vb).toLowerCase();
+    if (va < vb) return -1 * dir;
+    if (va > vb) return 1 * dir;
+    return 0;
+  });
+}
+
+function toggleProdSort(tabName, col) {
+  var cur = _prodSort[tabName];
+  if (cur && cur.col === col) {
+    _prodSort[tabName] = cur.dir === 'asc' ? { col: col, dir: 'desc' } : null;
+  } else {
+    _prodSort[tabName] = { col: col, dir: 'asc' };
+  }
+  renderAllProdTabs();
+}
+
+function sortIcon(tabName, col) {
+  var cur = _prodSort[tabName];
+  if (!cur || cur.col !== col) return ' <span style="opacity:.3;font-size:.65rem">⇅</span>';
+  return cur.dir === 'asc' ? ' <span style="font-size:.65rem">↑</span>' : ' <span style="font-size:.65rem">↓</span>';
+}
+
+function sortableTh(tabName, col, label) {
+  return '<th style="cursor:pointer;user-select:none" onclick="toggleProdSort(\'' + tabName + '\',\'' + col + '\')">' + label + sortIcon(tabName, col) + '</th>';
+}
+
 function fmt(n) { return parseFloat(n || 0).toFixed(2).replace('.', ',') + ' \u20AC'; }
-function toast(msg, err) {
+var _undoTimeout = null;
+function toast(msg, err, undoFn) {
   var el = document.getElementById('toast');
-  el.textContent = msg;
+  if (_undoTimeout) clearTimeout(_undoTimeout);
+  if (undoFn) {
+    el.innerHTML = msg + ' <button onclick="event.stopPropagation();_undoAction()" style="background:rgba(255,255,255,.25);color:#fff;border:none;padding:2px 10px;border-radius:4px;font-weight:700;cursor:pointer;margin-left:8px;font-size:.8rem">ANNULER</button>';
+    window._pendingUndo = undoFn;
+  } else {
+    el.textContent = msg;
+    window._pendingUndo = null;
+  }
   el.className = 'toast show' + (err ? ' error' : '');
-  setTimeout(function() { el.className = 'toast'; }, 3000);
+  _undoTimeout = setTimeout(function() { el.className = 'toast'; window._pendingUndo = null; }, undoFn ? 6000 : 3000);
+}
+function _undoAction() {
+  if (window._pendingUndo) {
+    window._pendingUndo();
+    window._pendingUndo = null;
+    var el = document.getElementById('toast');
+    el.textContent = 'Action annulée';
+    el.className = 'toast show';
+    if (_undoTimeout) clearTimeout(_undoTimeout);
+    _undoTimeout = setTimeout(function() { el.className = 'toast'; }, 2000);
+  }
 }
 
 function apiGet(action, params) {
@@ -773,7 +834,7 @@ function confirmDeleteOrder(id, ref) {
 }
 function deleteOrder(id) {
   apiPost('adminDeleteOrder', { id: id }).then(function(res) {
-    if (res.success) { toast('Commande supprimée'); closeModal(); loadCommandes(); }
+    if (res.success) { toast('Commande supprimée'); closeModal(); loadCommandes(); loadProduction(); }
     else toast('Erreur: ' + res.error, true);
   });
 }
@@ -1594,20 +1655,29 @@ function closeStatutDD() {
 document.addEventListener('click', function() { closeStatutDD(); });
 
 function updateLineStatut(lineId, field, value) {
+  var line = G.productionLines.find(function(l) { return l.id === lineId; });
+  var oldValue = line ? line[field] : null;
   var payload = { id: lineId };
   payload[field] = value;
   apiPost('adminUpdateProductionLine', payload).then(function(res) {
     if (res.success) {
-      var line = G.productionLines.find(function(l) { return l.id === lineId; });
       if (line) line[field] = value;
       renderAllProdTabs();
       refreshStats();
-      toast('Statut mis à jour');
+      toast('Statut mis à jour', false, function() {
+        updateLineStatut(lineId, field, oldValue);
+      });
     } else toast('Erreur', true);
   });
 }
 
 function bulkByIds(ids, field, value) {
+  // Sauvegarder les anciennes valeurs pour undo
+  var oldValues = {};
+  ids.forEach(function(id) {
+    var line = G.productionLines.find(function(l) { return l.id === id; });
+    if (line) oldValues[id] = line[field];
+  });
   var update = {};
   update[field] = value;
   apiPost('adminBulkUpdateProductionLines', { ids: ids, update: update }).then(function(res) {
@@ -1618,7 +1688,20 @@ function bulkByIds(ids, field, value) {
       });
       renderAllProdTabs();
       refreshStats();
-      toast(ids.length + ' lignes mises à jour');
+      toast(ids.length + ' lignes mises à jour', false, function() {
+        // Undo: restaurer chaque ligne à son ancienne valeur
+        ids.forEach(function(id) {
+          if (oldValues[id] !== undefined) {
+            var undoPayload = { id: id };
+            undoPayload[field] = oldValues[id];
+            apiPost('adminUpdateProductionLine', undoPayload);
+            var line = G.productionLines.find(function(l) { return l.id === id; });
+            if (line) line[field] = oldValues[id];
+          }
+        });
+        renderAllProdTabs();
+        refreshStats();
+      });
     } else toast('Erreur', true);
   });
 }
@@ -1696,6 +1779,16 @@ function renderStatut() {
   if (_filterProdClub) {
     lines = lines.filter(function(l) { return l.clubNom === _filterProdClub; });
   }
+  lines = sortProdLines(lines, 'statut');
+
+  // Sortable headers
+  var thead = document.getElementById('statut-thead');
+  if (thead) thead.innerHTML = '<tr>' +
+    sortableTh('statut', 'clubNom', 'Club') +
+    sortableTh('statut', 'produitNom', 'Produit') +
+    sortableTh('statut', 'taille', 'Taille') +
+    sortableTh('statut', 'quantite', 'Qté') +
+    '<th>Perso</th><th>Statut</th></tr>';
 
   var html = '';
   lines.forEach(function(l) {
@@ -1767,10 +1860,34 @@ function asieRecu(lineId) {
 // ============================================================
 // ONGLET 3 : ACHAT TEXTILE
 // ============================================================
+function getKnownFournisseurs() {
+  var fournisseurs = {};
+  G.productionLines.forEach(function(l) {
+    if (l.fournisseur && l.fournisseur.trim()) fournisseurs[l.fournisseur.trim()] = true;
+  });
+  return Object.keys(fournisseurs).sort();
+}
+
 function renderAchatTextile() {
   var lines = G.productionLines.filter(function(l) {
     return !l.estProduitAsie && (l.statutTextile === 'a_commander' || l.statutTextile === 'en_panier');
   });
+  lines = sortProdLines(lines, 'achattextile');
+
+  // Sortable headers
+  var thead = document.getElementById('achattextile-thead');
+  if (thead) thead.innerHTML = '<tr>' +
+    sortableTh('achattextile', 'clubNom', 'Club') +
+    sortableTh('achattextile', 'produitNom', 'Produit') +
+    sortableTh('achattextile', 'taille', 'Taille') +
+    sortableTh('achattextile', 'quantite', 'Qté') +
+    '<th>Perso</th><th>Achat</th><th>Action</th>' +
+    sortableTh('achattextile', 'fournisseur', 'Fournisseur') + '</tr>';
+
+  var knownFournisseurs = getKnownFournisseurs();
+  var datalistHtml = '<datalist id="fournisseurs-list">' + knownFournisseurs.map(function(f) {
+    return '<option value="' + f.replace(/"/g, '&quot;') + '">';
+  }).join('') + '</datalist>';
 
   var html = '';
   lines.forEach(function(l) {
@@ -1778,13 +1895,13 @@ function renderAchatTextile() {
       ? '<a href="' + l.lienFournisseur + '" target="_blank" class="btn-achat btn-achat-green" style="text-decoration:none;display:inline-block">ACHETER</a>'
       : '<span class="btn-achat btn-achat-disabled">ACHETER</span>';
 
-    var enPanierBtn = l.statutTextile === 'en_panier'
-      ? '<button class="btn-achat btn-achat-outline" disabled style="opacity:.5;cursor:default">EN PANIER</button>'
-      : '<button class="btn-achat btn-achat-outline" onclick="updateLineStatut(\'' + l.id + '\',\'statutTextile\',\'en_panier\')">EN PANIER</button>';
+    var panierBtn = l.statutTextile === 'en_panier'
+      ? '<button class="btn-achat btn-achat-green" disabled style="cursor:default">✓ PANIER</button>'
+      : '<button class="btn-achat btn-achat-outline" onclick="updateLineStatut(\'' + l.id + '\',\'statutTextile\',\'en_panier\')">PANIER</button>';
 
     var commandeBtn = '<button class="btn-achat btn-achat-dark" onclick="updateLineStatut(\'' + l.id + '\',\'statutTextile\',\'commande\')">COMMANDÉ</button>';
 
-    var fournInput = '<input class="fournisseur-select" value="' + (l.fournisseur || '').replace(/"/g, '&quot;') + '" placeholder="Fournisseur..." onblur="saveFournisseur(\'' + l.id + '\',this.value)">';
+    var fournInput = '<input class="fournisseur-select" list="fournisseurs-list" value="' + (l.fournisseur || '').replace(/"/g, '&quot;') + '" placeholder="Fournisseur..." onblur="saveFournisseur(\'' + l.id + '\',this.value)" onchange="saveFournisseur(\'' + l.id + '\',this.value)">';
 
     html += '<tr>' +
       '<td>' + (l.clubNom || '—') + '</td>' +
@@ -1793,11 +1910,13 @@ function renderAchatTextile() {
       '<td><strong>' + l.quantite + '</strong></td>' +
       '<td style="font-size:.78rem">' + (l.personnalisation || '—') + '</td>' +
       '<td>' + acheterBtn + '</td>' +
-      '<td style="display:flex;gap:.4rem;align-items:center">' + enPanierBtn + ' ' + commandeBtn + '</td>' +
+      '<td style="display:flex;gap:.4rem;align-items:center">' + panierBtn + ' ' + commandeBtn + '</td>' +
       '<td>' + fournInput + '</td>' +
       '</tr>';
   });
-  document.getElementById('achat-textile-table').innerHTML = html || '<tr><td colspan="8" style="text-align:center;color:var(--grey-400);padding:2rem">Aucun textile à commander</td></tr>';
+
+  var tableContent = html || '<tr><td colspan="8" style="text-align:center;color:var(--grey-400);padding:2rem">Aucun textile à commander</td></tr>';
+  document.getElementById('achat-textile-table').innerHTML = datalistHtml + tableContent;
 }
 
 // ============================================================
@@ -1808,6 +1927,15 @@ function renderAchatDtf() {
     return !l.estProduitAsie && (l.statutDtf === 'a_commander' || l.statutDtf === 'en_panier');
   });
 
+  // Sortable headers
+  var thead = document.getElementById('achatdtf-thead');
+  if (thead) thead.innerHTML = '<tr>' +
+    sortableTh('achatdtf', 'clubNom', 'Club') +
+    sortableTh('achatdtf', 'produitNom', 'Produit') +
+    '<th>Impression</th>' +
+    sortableTh('achatdtf', 'quantite', 'Qté') +
+    '<th>Fichier</th><th>Action</th></tr>';
+
   // Dédupliquer par produit + impression (pas par taille)
   var seen = {};
   var uniqueLines = [];
@@ -1815,11 +1943,13 @@ function renderAchatDtf() {
     var key = (l.produitId || '') + '|' + (l.clubNom || '') + '|' + (l.impression || '');
     if (!seen[key]) {
       seen[key] = true;
-      // Collecter tous les IDs de ce groupe pour les marquer ensemble
       var groupIds = lines.filter(function(x) {
         return (x.produitId || '') + '|' + (x.clubNom || '') + '|' + (x.impression || '') === key;
       }).map(function(x) { return x.id; });
-      uniqueLines.push({ line: l, groupIds: groupIds });
+      var totalQty = lines.filter(function(x) {
+        return (x.produitId || '') + '|' + (x.clubNom || '') + '|' + (x.impression || '') === key;
+      }).reduce(function(s, x) { return s + x.quantite; }, 0);
+      uniqueLines.push({ line: l, groupIds: groupIds, totalQty: totalQty });
     }
   });
 
@@ -1827,41 +1957,92 @@ function renderAchatDtf() {
   uniqueLines.forEach(function(item) {
     var l = item.line;
     var ids = item.groupIds;
+    // Bouton Illustrator (ouvre le fichier impression si disponible)
+    var illuBtn = l.impression
+      ? '<a href="' + l.impression + '" target="_blank" class="btn-achat btn-achat-green" style="text-decoration:none;display:inline-block" title="Ouvrir dans Illustrator">ILLUSTRATOR</a>'
+      : '<span class="btn-achat btn-achat-disabled">ILLUSTRATOR</span>';
 
-    var commandeBtn = '<button class="btn-achat btn-achat-dark" onclick="bulkByIds(' + JSON.stringify(ids) + ',\'statutDtf\',\'commande\')">COMMANDÉ</button>';
+    // Bouton Panier avec changement de couleur
+    var allEnPanier = lines.filter(function(x) {
+      return ids.indexOf(x.id) !== -1;
+    }).every(function(x) { return x.statutDtf === 'en_panier'; });
+
+    var escProduitId = (l.produitId || '').replace(/'/g, "\\'");
+    var escClubNom = (l.clubNom || '').replace(/'/g, "\\'");
+    var escImpression = (l.impression || '').replace(/'/g, "\\'");
+
+    var panierBtn = allEnPanier
+      ? '<button class="btn-achat btn-achat-green" disabled style="cursor:default">&#10003; PANIER</button>'
+      : '<button class="btn-achat btn-achat-outline" onclick="dtfBulkAction(\'' + escProduitId + '\',\'' + escClubNom + '\',\'' + escImpression + '\',\'en_panier\')">PANIER</button>';
+
+    var commandeBtn = '<button class="btn-achat btn-achat-dark" onclick="dtfBulkAction(\'' + escProduitId + '\',\'' + escClubNom + '\',\'' + escImpression + '\',\'commande\')">COMMANDÉ</button>';
 
     html += '<tr>' +
       '<td>' + (l.clubNom || '—') + '</td>' +
       '<td><strong>' + (l.produitNom || '—') + '</strong></td>' +
       '<td>' + (l.impression || '—') + '</td>' +
-      '<td style="display:flex;gap:.4rem;align-items:center">' + commandeBtn + '</td>' +
+      '<td><strong>' + item.totalQty + '</strong></td>' +
+      '<td>' + illuBtn + '</td>' +
+      '<td style="display:flex;gap:.4rem;align-items:center">' + panierBtn + ' ' + commandeBtn + '</td>' +
       '</tr>';
   });
-  document.getElementById('achat-dtf-table').innerHTML = html || '<tr><td colspan="4" style="text-align:center;color:var(--grey-400);padding:2rem">Aucun DTF à commander</td></tr>';
+  document.getElementById('achat-dtf-table').innerHTML = html || '<tr><td colspan="6" style="text-align:center;color:var(--grey-400);padding:2rem">Aucun DTF à commander</td></tr>';
+}
+
+function dtfBulkAction(produitId, clubNom, impression, targetStatut) {
+  var key = produitId + '|' + clubNom + '|' + impression;
+  var ids = G.productionLines.filter(function(l) {
+    return !l.estProduitAsie && (l.statutDtf === 'a_commander' || l.statutDtf === 'en_panier') &&
+      (l.produitId || '') + '|' + (l.clubNom || '') + '|' + (l.impression || '') === key;
+  }).map(function(l) { return l.id; });
+  if (ids.length) bulkByIds(ids, 'statutDtf', targetStatut);
 }
 
 // ============================================================
 // ONGLET 5 : RECEPTION
 // ============================================================
 function renderReception() {
-  // Lignes classiques où textile OU DTF est commandé (en attente de réception)
+  // Lignes classiques où au moins un des deux (textile/dtf) a été commandé ou reçu,
+  // mais pas encore les deux vérifiés (sinon → onglet Production)
   var lines = G.productionLines.filter(function(l) {
     if (l.estProduitAsie) return false;
-    return l.statutTextile === 'commande' || l.statutDtf === 'commande';
+    var tAvance = l.statutTextile === 'commande' || l.statutTextile === 'recu' || l.statutTextile === 'verifie';
+    var dAvance = l.statutDtf === 'commande' || l.statutDtf === 'recu' || l.statutDtf === 'verifie';
+    var bothDone = l.statutTextile === 'verifie' && l.statutDtf === 'verifie';
+    return (tAvance || dAvance) && !bothDone;
   });
+  lines = sortProdLines(lines, 'reception');
+
+  // Sortable headers
+  var thead = document.getElementById('reception-thead');
+  if (thead) thead.innerHTML = '<tr>' +
+    sortableTh('reception', 'clubNom', 'Club') +
+    sortableTh('reception', 'produitNom', 'Produit') +
+    sortableTh('reception', 'taille', 'Taille') +
+    sortableTh('reception', 'quantite', 'Qté') +
+    '<th>Réception</th></tr>';
 
   var html = '';
   lines.forEach(function(l) {
-    var textileReceived = l.statutTextile !== 'commande';
-    var dtfReceived = l.statutDtf !== 'commande';
+    // Textile button: vert si vérifié, actif si commandé, gris si pas encore commandé
+    var textileBtn;
+    if (l.statutTextile === 'verifie') {
+      textileBtn = '<button class="btn-achat btn-achat-green" disabled style="cursor:default">✓ TEXTILE</button>';
+    } else if (l.statutTextile === 'commande') {
+      textileBtn = '<button class="btn-achat btn-achat-outline" onclick="receptionTextile(\'' + l.id + '\')">TEXTILE</button>';
+    } else {
+      textileBtn = '<button class="btn-achat btn-achat-disabled" disabled title="Pas encore commandé">TEXTILE</button>';
+    }
 
-    var textileBtn = textileReceived
-      ? '<button class="btn-achat btn-achat-outline" disabled style="opacity:.4;cursor:default">TEXTILE</button>'
-      : '<button class="btn-achat btn-achat-green" onclick="receptionTextile(\'' + l.id + '\')">TEXTILE</button>';
-
-    var dtfBtn = dtfReceived
-      ? '<button class="btn-achat btn-achat-outline" disabled style="opacity:.4;cursor:default">DTF</button>'
-      : '<button class="btn-achat btn-achat-blue" onclick="receptionDtf(\'' + l.id + '\')">DTF</button>';
+    // DTF button: vert si vérifié, actif si commandé, gris si pas encore commandé
+    var dtfBtn;
+    if (l.statutDtf === 'verifie') {
+      dtfBtn = '<button class="btn-achat btn-achat-green" disabled style="cursor:default">✓ DTF</button>';
+    } else if (l.statutDtf === 'commande') {
+      dtfBtn = '<button class="btn-achat btn-achat-blue" onclick="receptionDtf(\'' + l.id + '\')">DTF</button>';
+    } else {
+      dtfBtn = '<button class="btn-achat btn-achat-disabled" disabled title="Pas encore commandé">DTF</button>';
+    }
 
     html += '<tr>' +
       '<td>' + (l.clubNom || '—') + '</td>' +
@@ -1875,25 +2056,31 @@ function renderReception() {
 }
 
 function receptionTextile(lineId) {
+  var line = G.productionLines.find(function(l) { return l.id === lineId; });
+  var oldValue = line ? line.statutTextile : 'commande';
   apiPost('adminUpdateProductionLine', { id: lineId, statutTextile: 'verifie' }).then(function(res) {
     if (res.success) {
-      var line = G.productionLines.find(function(l) { return l.id === lineId; });
       if (line) line.statutTextile = 'verifie';
       renderAllProdTabs();
       refreshStats();
-      toast('Textile reçu');
+      toast('Textile reçu', false, function() {
+        updateLineStatut(lineId, 'statutTextile', oldValue);
+      });
     } else toast('Erreur', true);
   });
 }
 
 function receptionDtf(lineId) {
+  var line = G.productionLines.find(function(l) { return l.id === lineId; });
+  var oldValue = line ? line.statutDtf : 'commande';
   apiPost('adminUpdateProductionLine', { id: lineId, statutDtf: 'verifie' }).then(function(res) {
     if (res.success) {
-      var line = G.productionLines.find(function(l) { return l.id === lineId; });
       if (line) line.statutDtf = 'verifie';
       renderAllProdTabs();
       refreshStats();
-      toast('DTF reçu');
+      toast('DTF reçu', false, function() {
+        updateLineStatut(lineId, 'statutDtf', oldValue);
+      });
     } else toast('Erreur', true);
   });
 }
@@ -1907,6 +2094,16 @@ function renderProductionTab() {
     if (l.estProduitAsie) return false;
     return l.statutTextile === 'verifie' && l.statutDtf === 'verifie' && l.statutProduction !== 'termine' && l.statutLivraison !== 'livre';
   });
+  lines = sortProdLines(lines, 'production');
+
+  // Sortable headers
+  var thead = document.getElementById('production-thead');
+  if (thead) thead.innerHTML = '<tr>' +
+    sortableTh('production', 'clubNom', 'Club') +
+    sortableTh('production', 'produitNom', 'Produit') +
+    sortableTh('production', 'taille', 'Taille') +
+    sortableTh('production', 'quantite', 'Qté') +
+    '<th>Production</th></tr>';
 
   var html = '';
   lines.forEach(function(l) {
@@ -1924,13 +2121,16 @@ function renderProductionTab() {
 }
 
 function marquerProduit(lineId) {
+  var line = G.productionLines.find(function(l) { return l.id === lineId; });
+  var oldValue = line ? line.statutProduction : 'a_produire';
   apiPost('adminUpdateProductionLine', { id: lineId, statutProduction: 'termine' }).then(function(res) {
     if (res.success) {
-      var line = G.productionLines.find(function(l) { return l.id === lineId; });
       if (line) line.statutProduction = 'termine';
       renderAllProdTabs();
       refreshStats();
-      toast('Produit — prêt à livrer');
+      toast('Produit — prêt à livrer', false, function() {
+        updateLineStatut(lineId, 'statutProduction', oldValue);
+      });
     } else toast('Erreur', true);
   });
 }
@@ -1938,20 +2138,46 @@ function marquerProduit(lineId) {
 // ============================================================
 // ONGLET 7 : À LIVRER (vue par commande)
 // ============================================================
+function getCommandeProductionStatus(commandeId) {
+  // Trouver les lignes de production liées à cette commande via commandeIds
+  var lines = G.productionLines.filter(function(l) {
+    return l.commandeIds && l.commandeIds.indexOf(commandeId) !== -1;
+  });
+  if (!lines.length) return { status: 'attente', label: 'En attente', badge: 'badge-yellow', ready: false };
+
+  var total = lines.length;
+  var nbTermine = 0;
+  var nbEnProduction = 0;
+  var nbAchatEnCours = 0;
+
+  lines.forEach(function(l) {
+    if (l.estProduitAsie) {
+      if (l.statutAsie === 'verifie' || l.statutLivraison === 'livre') nbTermine++;
+      else if (l.statutAsie === 'commande' || l.statutAsie === 'recu') nbAchatEnCours++;
+    } else {
+      if (l.statutProduction === 'termine' || l.statutLivraison === 'livre') nbTermine++;
+      else if (l.statutTextile === 'verifie' && l.statutDtf === 'verifie') nbEnProduction++;
+      else if (l.statutTextile === 'commande' || l.statutTextile === 'en_panier' ||
+               l.statutDtf === 'commande' || l.statutDtf === 'en_panier' ||
+               l.statutTextile === 'verifie' || l.statutDtf === 'verifie') nbAchatEnCours++;
+    }
+  });
+
+  if (nbTermine === total) return { status: 'prete', label: 'Prête à livrer', badge: 'badge-green', ready: true };
+  if (nbEnProduction > 0 || nbTermine > 0) return { status: 'production', label: 'En production (' + nbTermine + '/' + total + ')', badge: 'badge-orange', ready: false };
+  if (nbAchatEnCours > 0) return { status: 'achat', label: 'Achat en cours', badge: 'badge-blue', ready: false };
+  return { status: 'attente', label: 'En attente', badge: 'badge-yellow', ready: false };
+}
+
 function renderALivrer() {
-  // On a besoin des commandes + des lignes de production pour calculer si une commande est prête
   var commandes = G.commandes || [];
 
-  // Filtrer les commandes qui ont au moins 1 ligne de production non livrée
+  // Toutes les commandes sauf livrées
   var commandesProd = [];
   commandes.forEach(function(cmd) {
-    // Trouver les lignes de production liées à cette commande via G.productionLines
-    // On ne peut pas directement, car on n'a pas les liaisons ici.
-    // On va utiliser les commandes qui sont en statut production ou payée
     if (!cmd.statut) return;
     var s = cmd.statut.toUpperCase();
-    if (s.includes('LIVRÉE') || s.includes('LIVREE')) return; // déjà livrée
-    if (s.includes('ATTENTE')) return; // pas encore payée
+    if (s.includes('LIVRÉE') || s.includes('LIVREE')) return;
     commandesProd.push(cmd);
   });
 
@@ -1963,23 +2189,45 @@ function renderALivrer() {
     });
   }
 
+  // Sortable headers
+  var thead = document.getElementById('alivrer-thead');
+  if (thead) thead.innerHTML = '<tr><th>Vu</th>' +
+    sortableTh('alivrer', 'ref', 'Réf') +
+    sortableTh('alivrer', 'clubNom', 'Club') +
+    sortableTh('alivrer', 'date', 'Date') +
+    sortableTh('alivrer', 'nbArticles', 'Articles') +
+    sortableTh('alivrer', 'total', 'Total') +
+    '<th>Statut</th><th>Actions</th></tr>';
+
+  // Sort commandes
+  var sort = _prodSort['alivrer'];
+  if (sort && sort.col) {
+    var dir = sort.dir === 'desc' ? -1 : 1;
+    commandesProd.sort(function(a, b) {
+      var va = a[sort.col] || '', vb = b[sort.col] || '';
+      if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir;
+      va = String(va).toLowerCase(); vb = String(vb).toLowerCase();
+      if (va < vb) return -1 * dir;
+      if (va > vb) return 1 * dir;
+      return 0;
+    });
+  }
+
   var html = '';
   commandesProd.forEach(function(o) {
-    // Déterminer si la commande est "Prête" (toutes les lignes de production terminées)
-    // Pour cela on regarde les lignes de production des produits de cette commande
-    // Approximation : on utilise le statut de la commande
-    var isPrete = o.statut.toUpperCase().includes('EXPÉDIÉE') || o.statut.toUpperCase().includes('EXPEDIEE');
-    var isProduction = !isPrete;
+    var ps = getCommandeProductionStatus(o.id);
 
     // Filtrage par statut
-    if (_filterALivrerStatut === 'production' && !isProduction) return;
-    if (_filterALivrerStatut === 'prete' && !isPrete) return;
+    if (_filterALivrerStatut === 'production' && ps.status !== 'production') return;
+    if (_filterALivrerStatut === 'prete' && ps.status !== 'prete') return;
+    if (_filterALivrerStatut === 'achat' && ps.status !== 'achat') return;
+    if (_filterALivrerStatut === 'attente' && ps.status !== 'attente') return;
 
-    var vu = isProduction ? '<span style="color:var(--red);font-size:1.1rem">●</span>' : '<span style="color:var(--green);font-size:1.1rem">●</span>';
-    var statutBdg = isProduction ? '<span class="badge badge-orange">En Production</span>' : '<span class="badge badge-green">Prête</span>';
+    var vu = ps.ready ? '<span style="color:var(--green);font-size:1.1rem">●</span>' : '<span style="color:var(--red);font-size:1.1rem">●</span>';
+    var statutBdg = '<span class="badge ' + ps.badge + '">' + ps.label + '</span>';
 
-    var btnClass = 'btn-livraison ' + (isProduction ? 'btn-livraison-disabled' : 'btn-livraison-ready');
-    var btnClick = isProduction ? '' : ' onclick="marquerLivraison(\'' + o.id + '\')"';
+    var btnClass = 'btn-livraison ' + (ps.ready ? 'btn-livraison-ready' : 'btn-livraison-disabled');
+    var btnClick = ps.ready ? ' onclick="marquerLivraison(\'' + o.id + '\')"' : '';
     var btn = '<button class="' + btnClass + '"' + btnClick + '>LIVRAISON</button>';
 
     html += '<tr>' +
@@ -1998,14 +2246,18 @@ function renderALivrer() {
 }
 
 function marquerLivraison(commandeId) {
+  // Trouver les production_lines liées pour les passer en 'livre'
+  var linkedLineIds = G.productionLines.filter(function(l) {
+    return l.commandeIds && l.commandeIds.indexOf(commandeId) !== -1;
+  }).map(function(l) { return l.id; });
+
   // Mettre le statut de la commande à LIVRÉE
   apiPost('adminUpdateOrder', { id: commandeId, statut: '✅ LIVRÉE' }).then(function(res) {
     if (res.success) {
-      // Mettre à jour aussi toutes les production_lines liées
-      var linesForCmd = G.productionLines.filter(function(l) {
-        // On va bulk update toutes les lignes a_livrer de cette commande via l'API
-        return true; // On reload
-      });
+      // Mettre aussi les production_lines en livré
+      if (linkedLineIds.length) {
+        apiPost('adminBulkUpdateProductionLines', { ids: linkedLineIds, update: { statutLivraison: 'livre' } });
+      }
       toast('Commande livrée');
       loadCommandes();
       loadProduction();

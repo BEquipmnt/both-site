@@ -800,16 +800,24 @@ async function adminGetProductionLines(filters = {}) {
     if (filters.statutProduction) query += `&statut_production=eq.${filters.statutProduction}`;
     if (filters.statutLivraison) query += `&statut_livraison=eq.${filters.statutLivraison}`;
 
-    const [lines, prods, clubs] = await Promise.all([
+    const [lines, prods, clubs, liaisons] = await Promise.all([
       sbGet('production_lines', query),
       sbGet('produits', 'select=id,nom,lien_fournisseur,impression,image_url'),
-      sbGet('clubs', 'select=id,nom')
+      sbGet('clubs', 'select=id,nom'),
+      sbGet('production_lines_commandes', 'select=production_line_id,commande_id')
     ]);
 
     const produitsMap = {};
     prods.forEach(p => { produitsMap[p.id] = p; });
     const clubsMap = {};
     clubs.forEach(c => { clubsMap[c.id] = c.nom; });
+
+    // Map production_line_id → [commande_ids]
+    const liaisonMap = {};
+    liaisons.forEach(l => {
+      if (!liaisonMap[l.production_line_id]) liaisonMap[l.production_line_id] = [];
+      liaisonMap[l.production_line_id].push(l.commande_id);
+    });
 
     const result = lines.map(l => {
       const prod = l.produit_id ? produitsMap[l.produit_id] : null;
@@ -833,6 +841,7 @@ async function adminGetProductionLines(filters = {}) {
         statutLivraison: l.statut_livraison,
         fournisseur: l.fournisseur || '',
         notes: l.notes,
+        commandeIds: liaisonMap[l.id] || [],
         dateCreation: l.date_creation,
         dateModification: l.date_modification
       };
