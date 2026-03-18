@@ -632,14 +632,17 @@ function _undoAction() {
   }
 }
 
+function getAuthEmail() {
+  return sessionStorage.getItem('admin_email') || '';
+}
 function apiGet(action, params) {
   var url = API + '?' + new URLSearchParams(Object.assign({ action: action }, params || {}));
-  return fetch(url).then(function(r) { return r.json(); });
+  return fetch(url, { headers: { 'X-Auth-Email': getAuthEmail() } }).then(function(r) { return r.json(); });
 }
 function apiPost(action, body) {
   return fetch(API, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'X-Auth-Email': getAuthEmail() },
     body: JSON.stringify(Object.assign({ action: action }, body || {}))
   }).then(function(r) { return r.json(); });
 }

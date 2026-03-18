@@ -741,13 +741,14 @@ function clearSavedCart(){ localStorage.removeItem('vest_cart'); }
   }catch(e){ clearSession(); }
 })();
 
+function getAuthEmail(){ return sessionStorage.getItem('vest_email') || ''; }
 async function apiGet(action, params={}){
   const url=API+'?'+new URLSearchParams({action,...params});
-  const res=await fetch(url); if(!res.ok) throw new Error('Erreur '+res.status);
+  const res=await fetch(url, {headers:{'X-Auth-Email':getAuthEmail()}}); if(!res.ok) throw new Error('Erreur '+res.status);
   return await res.json();
 }
 async function apiPost(action, body={}){
-  const res=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,...body})});
+  const res=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json','X-Auth-Email':getAuthEmail()},body:JSON.stringify({action,...body})});
   if(!res.ok) throw new Error('Erreur '+res.status);
   return await res.json();
 }
