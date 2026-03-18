@@ -447,7 +447,7 @@ th[onclick]:hover{color:var(--yellow)}
             <table>
               <thead id="reception-thead"><tr>
                 <th>Club</th><th>Produit</th><th>Taille</th><th>Qté</th>
-                <th>Réception</th>
+                <th>Textile</th><th>DTF</th>
               </tr></thead>
               <tbody id="reception-table"></tbody>
             </table>
@@ -1788,7 +1788,8 @@ function renderStatut() {
     sortableTh('statut', 'produitNom', 'Produit') +
     sortableTh('statut', 'taille', 'Taille') +
     sortableTh('statut', 'quantite', 'Qté') +
-    '<th>Perso</th><th>Statut</th></tr>';
+    sortableTh('statut', 'personnalisation', 'Perso') +
+    '<th>Statut</th></tr>';
 
   var html = '';
   lines.forEach(function(l) {
@@ -1874,14 +1875,16 @@ function renderAchatTextile() {
   });
   lines = sortProdLines(lines, 'achattextile');
 
-  // Sortable headers
+  // Sortable headers (toutes les colonnes)
   var thead = document.getElementById('achattextile-thead');
   if (thead) thead.innerHTML = '<tr>' +
     sortableTh('achattextile', 'clubNom', 'Club') +
     sortableTh('achattextile', 'produitNom', 'Produit') +
     sortableTh('achattextile', 'taille', 'Taille') +
     sortableTh('achattextile', 'quantite', 'Qté') +
-    '<th>Perso</th><th>Achat</th><th>Action</th>' +
+    sortableTh('achattextile', 'personnalisation', 'Perso') +
+    '<th>Achat</th>' +
+    sortableTh('achattextile', 'statutTextile', 'Action') +
     sortableTh('achattextile', 'fournisseur', 'Fournisseur') + '</tr>';
 
   var knownFournisseurs = getKnownFournisseurs();
@@ -1896,7 +1899,7 @@ function renderAchatTextile() {
       : '<span class="btn-achat btn-achat-disabled">ACHETER</span>';
 
     var panierBtn = l.statutTextile === 'en_panier'
-      ? '<button class="btn-achat btn-achat-green" disabled style="cursor:default">✓ PANIER</button>'
+      ? '<button class="btn-achat btn-achat-green" onclick="updateLineStatut(\'' + l.id + '\',\'statutTextile\',\'a_commander\')">PANIER</button>'
       : '<button class="btn-achat btn-achat-outline" onclick="updateLineStatut(\'' + l.id + '\',\'statutTextile\',\'en_panier\')">PANIER</button>';
 
     var commandeBtn = '<button class="btn-achat btn-achat-dark" onclick="updateLineStatut(\'' + l.id + '\',\'statutTextile\',\'commande\')">COMMANDÉ</button>';
@@ -1932,9 +1935,10 @@ function renderAchatDtf() {
   if (thead) thead.innerHTML = '<tr>' +
     sortableTh('achatdtf', 'clubNom', 'Club') +
     sortableTh('achatdtf', 'produitNom', 'Produit') +
-    '<th>Impression</th>' +
+    sortableTh('achatdtf', 'impression', 'Impression') +
     sortableTh('achatdtf', 'quantite', 'Qté') +
-    '<th>Fichier</th><th>Action</th></tr>';
+    sortableTh('achatdtf', 'illustrator', 'Illustrator') +
+    sortableTh('achatdtf', 'statutDtf', 'Action') + '</tr>';
 
   // Dédupliquer par produit + impression (pas par taille)
   var seen = {};
@@ -1957,12 +1961,15 @@ function renderAchatDtf() {
   uniqueLines.forEach(function(item) {
     var l = item.line;
     var ids = item.groupIds;
-    // Bouton Illustrator (ouvre le fichier impression si disponible)
-    var illuBtn = l.impression
-      ? '<a href="' + l.impression + '" target="_blank" class="btn-achat btn-achat-green" style="text-decoration:none;display:inline-block" title="Ouvrir dans Illustrator">ILLUSTRATOR</a>'
-      : '<span class="btn-achat btn-achat-disabled">ILLUSTRATOR</span>';
+    // Bouton Illustrator — indicateur toggle (blanc → vert)
+    // On utilise un champ local _dtfIllu pour tracker l'état (pas en base)
+    var illuKey = (l.produitId || '') + '|' + (l.clubNom || '');
+    var illuActive = _dtfIlluState[illuKey];
+    var illuBtn = illuActive
+      ? '<button class="btn-achat btn-achat-green" onclick="toggleDtfIllu(\'' + illuKey.replace(/'/g, "\\'") + '\')">ILLUSTRATOR</button>'
+      : '<button class="btn-achat btn-achat-outline" onclick="toggleDtfIllu(\'' + illuKey.replace(/'/g, "\\'") + '\')">ILLUSTRATOR</button>';
 
-    // Bouton Panier avec changement de couleur
+    // Bouton Panier avec changement de couleur (toggle)
     var allEnPanier = lines.filter(function(x) {
       return ids.indexOf(x.id) !== -1;
     }).every(function(x) { return x.statutDtf === 'en_panier'; });
@@ -1972,7 +1979,7 @@ function renderAchatDtf() {
     var escImpression = (l.impression || '').replace(/'/g, "\\'");
 
     var panierBtn = allEnPanier
-      ? '<button class="btn-achat btn-achat-green" disabled style="cursor:default">&#10003; PANIER</button>'
+      ? '<button class="btn-achat btn-achat-green" onclick="dtfBulkAction(\'' + escProduitId + '\',\'' + escClubNom + '\',\'' + escImpression + '\',\'a_commander\')">PANIER</button>'
       : '<button class="btn-achat btn-achat-outline" onclick="dtfBulkAction(\'' + escProduitId + '\',\'' + escClubNom + '\',\'' + escImpression + '\',\'en_panier\')">PANIER</button>';
 
     var commandeBtn = '<button class="btn-achat btn-achat-dark" onclick="dtfBulkAction(\'' + escProduitId + '\',\'' + escClubNom + '\',\'' + escImpression + '\',\'commande\')">COMMANDÉ</button>';
@@ -1987,6 +1994,12 @@ function renderAchatDtf() {
       '</tr>';
   });
   document.getElementById('achat-dtf-table').innerHTML = html || '<tr><td colspan="6" style="text-align:center;color:var(--grey-400);padding:2rem">Aucun DTF à commander</td></tr>';
+}
+
+var _dtfIlluState = {};
+function toggleDtfIllu(key) {
+  _dtfIlluState[key] = !_dtfIlluState[key];
+  renderAchatDtf();
 }
 
 function dtfBulkAction(produitId, clubNom, impression, targetStatut) {
@@ -2013,33 +2026,34 @@ function renderReception() {
   });
   lines = sortProdLines(lines, 'reception');
 
-  // Sortable headers
+  // Sortable headers (toutes les colonnes)
   var thead = document.getElementById('reception-thead');
   if (thead) thead.innerHTML = '<tr>' +
     sortableTh('reception', 'clubNom', 'Club') +
     sortableTh('reception', 'produitNom', 'Produit') +
     sortableTh('reception', 'taille', 'Taille') +
     sortableTh('reception', 'quantite', 'Qté') +
-    '<th>Réception</th></tr>';
+    sortableTh('reception', 'statutTextile', 'Textile') +
+    sortableTh('reception', 'statutDtf', 'DTF') + '</tr>';
 
   var html = '';
   lines.forEach(function(l) {
-    // Textile button: vert si vérifié, actif si commandé, gris si pas encore commandé
+    // Textile button: blanc par défaut, vert quand vérifié (toggle), grisé si pas commandé
     var textileBtn;
     if (l.statutTextile === 'verifie') {
-      textileBtn = '<button class="btn-achat btn-achat-green" disabled style="cursor:default">✓ TEXTILE</button>';
+      textileBtn = '<button class="btn-achat btn-achat-green" onclick="unreceptionTextile(\'' + l.id + '\')">TEXTILE</button>';
     } else if (l.statutTextile === 'commande') {
       textileBtn = '<button class="btn-achat btn-achat-outline" onclick="receptionTextile(\'' + l.id + '\')">TEXTILE</button>';
     } else {
       textileBtn = '<button class="btn-achat btn-achat-disabled" disabled title="Pas encore commandé">TEXTILE</button>';
     }
 
-    // DTF button: vert si vérifié, actif si commandé, gris si pas encore commandé
+    // DTF button: blanc par défaut, vert quand vérifié (toggle), grisé si pas commandé
     var dtfBtn;
     if (l.statutDtf === 'verifie') {
-      dtfBtn = '<button class="btn-achat btn-achat-green" disabled style="cursor:default">✓ DTF</button>';
+      dtfBtn = '<button class="btn-achat btn-achat-green" onclick="unreceptionDtf(\'' + l.id + '\')">DTF</button>';
     } else if (l.statutDtf === 'commande') {
-      dtfBtn = '<button class="btn-achat btn-achat-blue" onclick="receptionDtf(\'' + l.id + '\')">DTF</button>';
+      dtfBtn = '<button class="btn-achat btn-achat-outline" onclick="receptionDtf(\'' + l.id + '\')">DTF</button>';
     } else {
       dtfBtn = '<button class="btn-achat btn-achat-disabled" disabled title="Pas encore commandé">DTF</button>';
     }
@@ -2049,10 +2063,11 @@ function renderReception() {
       '<td><strong>' + (l.produitNom || '—') + '</strong></td>' +
       '<td>' + (l.taille || '—') + '</td>' +
       '<td><strong>' + l.quantite + '</strong></td>' +
-      '<td style="display:flex;gap:.4rem;align-items:center">' + textileBtn + ' ' + dtfBtn + '</td>' +
+      '<td>' + textileBtn + '</td>' +
+      '<td>' + dtfBtn + '</td>' +
       '</tr>';
   });
-  document.getElementById('reception-table').innerHTML = html || '<tr><td colspan="5" style="text-align:center;color:var(--grey-400);padding:2rem">Rien en attente de réception</td></tr>';
+  document.getElementById('reception-table').innerHTML = html || '<tr><td colspan="6" style="text-align:center;color:var(--grey-400);padding:2rem">Rien en attente de réception</td></tr>';
 }
 
 function receptionTextile(lineId) {
@@ -2085,6 +2100,14 @@ function receptionDtf(lineId) {
   });
 }
 
+function unreceptionTextile(lineId) {
+  updateLineStatut(lineId, 'statutTextile', 'commande');
+}
+
+function unreceptionDtf(lineId) {
+  updateLineStatut(lineId, 'statutDtf', 'commande');
+}
+
 // ============================================================
 // ONGLET 6 : PRODUCTION
 // ============================================================
@@ -2103,7 +2126,7 @@ function renderProductionTab() {
     sortableTh('production', 'produitNom', 'Produit') +
     sortableTh('production', 'taille', 'Taille') +
     sortableTh('production', 'quantite', 'Qté') +
-    '<th>Production</th></tr>';
+    sortableTh('production', 'statutProduction', 'Production') + '</tr>';
 
   var html = '';
   lines.forEach(function(l) {
