@@ -103,7 +103,45 @@ CREATE TABLE suivi_production (
   created_at      timestamptz DEFAULT now()
 );
 
--- 6. DEMANDES
+-- 6. PRODUCTION LINES (suivi de production agrégé)
+CREATE TABLE production_lines (
+  id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  produit_id          uuid REFERENCES produits(id) ON DELETE SET NULL,
+  club_id             uuid REFERENCES clubs(id) ON DELETE SET NULL,
+  taille              text DEFAULT '',
+  quantite            integer DEFAULT 0,
+  personnalisation    text DEFAULT '',          -- numéro ou nom (vide si aucune)
+  est_produit_asie    boolean DEFAULT false,
+
+  -- Statuts produits classiques (null si produit Asie)
+  statut_textile      text DEFAULT 'a_commander',  -- a_commander, en_panier, commande, recu, verifie
+  statut_dtf          text DEFAULT 'a_commander',  -- a_commander, en_panier, commande, recu, verifie
+
+  -- Statut produits Asie (null si produit classique)
+  statut_asie         text,                        -- a_commander, en_panier, commande, recu, verifie
+
+  -- Production (null si produit Asie)
+  statut_production   text DEFAULT 'a_produire',   -- a_produire, en_cours, termine
+
+  -- Livraison (tous les produits)
+  statut_livraison    text DEFAULT 'a_livrer',     -- a_livrer, livre
+
+  notes               text DEFAULT '',
+  date_creation       timestamptz DEFAULT now(),
+  date_modification   timestamptz DEFAULT now()
+);
+
+-- 7. LIAISON PRODUCTION <-> COMMANDES
+CREATE TABLE production_lines_commandes (
+  id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  production_line_id  uuid REFERENCES production_lines(id) ON DELETE CASCADE,
+  commande_id         uuid REFERENCES commandes(id) ON DELETE CASCADE,
+  ligne_commande_id   uuid REFERENCES lignes(id) ON DELETE SET NULL,
+  quantite            integer DEFAULT 0,
+  created_at          timestamptz DEFAULT now()
+);
+
+-- 8. DEMANDES
 CREATE TABLE demandes (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   airtable_id text UNIQUE,
@@ -128,6 +166,14 @@ CREATE INDEX idx_lignes_produit ON lignes(produit_id);
 CREATE INDEX idx_suivi_commande ON suivi_production(commande_id);
 CREATE INDEX idx_demandes_club ON demandes(club_id);
 CREATE INDEX idx_clubs_email ON clubs(email);
+CREATE INDEX idx_prod_lines_produit ON production_lines(produit_id);
+CREATE INDEX idx_prod_lines_club ON production_lines(club_id);
+CREATE INDEX idx_prod_lines_statut_textile ON production_lines(statut_textile);
+CREATE INDEX idx_prod_lines_statut_dtf ON production_lines(statut_dtf);
+CREATE INDEX idx_prod_lines_statut_asie ON production_lines(statut_asie);
+CREATE INDEX idx_prod_lines_statut_livraison ON production_lines(statut_livraison);
+CREATE INDEX idx_prod_lines_cmd_line ON production_lines_commandes(production_line_id);
+CREATE INDEX idx_prod_lines_cmd_commande ON production_lines_commandes(commande_id);
 
 -- ============================================================
 -- ROW LEVEL SECURITY
@@ -148,3 +194,8 @@ CREATE POLICY "anon_all" ON commandes FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "anon_all" ON lignes FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "anon_all" ON suivi_production FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "anon_all" ON demandes FOR ALL USING (true) WITH CHECK (true);
+
+ALTER TABLE production_lines ENABLE ROW LEVEL SECURITY;
+ALTER TABLE production_lines_commandes ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "anon_all" ON production_lines FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "anon_all" ON production_lines_commandes FOR ALL USING (true) WITH CHECK (true);
