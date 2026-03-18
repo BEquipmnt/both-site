@@ -806,6 +806,52 @@ async function loadCatalogue(){
   }catch(e){console.error(e);grid.innerHTML='<p style="color:red;padding:2rem;">Erreur de chargement.</p>';}
 }
 
+// ============================================================
+// HELPERS STOCK — logique centralisée
+// ============================================================
+
+// Quantité déjà dans le panier pour un produit spécifique
+function cartQtyForProduct(productId){
+  return S.cart.filter(i => i.productId === productId).reduce((s, i) => s + i.quantite, 0);
+}
+
+// Quantité déjà dans le panier pour tout un groupe de stock
+function cartQtyForGroup(groupeStock){
+  if(!groupeStock) return 0;
+  return S.cart.filter(i => {
+    const pr = S.products.find(x => x.id === i.productId);
+    return pr && pr.groupeStock === groupeStock;
+  }).reduce((s, i) => s + i.quantite, 0);
+}
+
+// Somme des dejaCommande pour tout un groupe de stock
+function dejaCommandeForGroup(groupeStock){
+  if(!groupeStock) return 0;
+  return S.products.filter(x => x.groupeStock === groupeStock).reduce((s, x) => s + (x.dejaCommande || 0), 0);
+}
+
+// Calcul du max commandable pour un produit (prend en compte max individuel + stock groupe + panier)
+function getEffectiveMax(p){
+  let max = Infinity;
+
+  // Limite 1 : maxQuantite par produit (tous temps confondus)
+  if(p.maxQuantite > 0){
+    max = Math.min(max, p.maxQuantite - (p.dejaCommande || 0) - cartQtyForProduct(p.id));
+  }
+
+  // Limite 2 : stock groupe partagé entre variantes
+  if(p.groupeStock && p.stockGroupe > 0){
+    max = Math.min(max, p.stockGroupe - dejaCommandeForGroup(p.groupeStock) - cartQtyForGroup(p.groupeStock));
+  }
+
+  return Math.max(0, max);
+}
+
+// Vérifie si un produit est en rupture
+function isRupture(p){
+  return getEffectiveMax(p) <= 0;
+}
+
 function renderProducts(list){
   const grid=document.getElementById('product-grid');
   if(!list.length){grid.innerHTML='<p style="color:var(--grey-400);padding:2rem;font-style:italic;">Aucun produit.</p>';return;}
@@ -815,14 +861,7 @@ function renderProducts(list){
   Object.keys(grouped).forEach(cat=>{
     html+=`<div class="category-section"><h3 class="category-title">${cat}</h3></div>`;
     grouped[cat].forEach(p=>{
-      // Check if product is out of stock (max/stock reached with previous orders)
-      let rupture = false;
-      if(p.groupeStock && p.stockGroupe > 0){
-        const dejaGroupe = S.products.filter(x => x.groupeStock === p.groupeStock).reduce((s, x) => s + (x.dejaCommande || 0), 0);
-        if(dejaGroupe >= p.stockGroupe) rupture = true;
-      } else if(p.maxQuantite > 0 && (p.dejaCommande || 0) >= p.maxQuantite){
-        rupture = true;
-      }
+      const rupture = isRupture(p);
       const ruptureTag = rupture ? `<div class="product-card-tag" style="background:#ef5350;color:white;">Rupture</div>` : '';
       const minTag = !rupture && p.minQuantite>1?`<div class="product-card-tag">Min. ${p.minQuantite} pcs</div>`:'';
       const imgSrc=Array.isArray(p.image)?p.image[0]:p.image?p.image.split(',')[0].trim():'';
@@ -864,136 +903,155 @@ function openModal(id){
   document.getElementById('modal-name').textContent=p.nom;
   document.getElementById('modal-desc').textContent=p.description||'Équipement sportif — Studio Both.';
   const tailles=Array.isArray(p.tailles)?p.tailles:(p.tailles?p.tailles.split(',').map(t=>t.trim()):['S','M','L','XL']);
-  const minQty=p.minQuantite||1;
-  const maxQty=p.maxQuantite||0;
+  const minQty=p.minQuantite||0;
+  const effMax = getEffectiveMax(p);
   const showPerso = hasPerso(p);
+
   let t=`<table class="size-table"><thead><tr><th>Taille</th><th>Prix</th>${showPerso?'<th>Personnalisation</th>':''}<th>Qté</th></tr></thead><tbody>`;
   tailles.forEach(s=>{t+=`<tr><td>${s}</td><td>${fmt(p.prix)}</td>${showPerso?`<td><button class="perso-btn" id="perso-btn-${s}" onclick="openPerso('${s}')" style="display:none">Personnaliser</button></td>`:''}<td><input type="number" class="qty-input" id="qty-${s}" min="0" value="0" onchange="onQtyChange()" oninput="onQtyChange()"></td></tr>`;});
   t+='</tbody></table>';
-  if(minQty>1 && p.groupeStock)t+=`<div class="modal-min-warn show" style="background:#e8f4fd;border-color:#90caf9;color:#1565c0;">ℹ️ Minimum ${minQty} pièces — combinable avec les autres variantes de ce groupe</div>`;
-  else if(minQty>1)t+=`<div class="modal-min-warn show">⚠️ Minimum : ${minQty} pièces</div>`;
-  if(maxQty>0){
-    const maxRemaining = maxQty - (p.dejaCommande || 0);
-    if(maxRemaining <= 0) t+=`<div class="modal-min-warn show" style="background:#ffebee;border-color:#ef5350;color:#c62828;">⚠️ Maximum atteint — ${maxQty} pièce${maxQty>1?'s':''} déjà commandée${maxQty>1?'s':''}</div>`;
-    else if((p.dejaCommande || 0) > 0) t+=`<div class="modal-min-warn show" style="background:#e8f4fd;border-color:#90caf9;color:#1565c0;">ℹ️ Maximum : ${maxQty} — encore ${maxRemaining} disponible${maxRemaining>1?'s':''} (${p.dejaCommande} déjà commandé${p.dejaCommande>1?'s':''})</div>`;
-    else t+=`<div class="modal-min-warn show" style="background:#e8f4fd;border-color:#90caf9;color:#1565c0;">ℹ️ Maximum : ${maxQty} pièce${maxQty>1?'s':''} par commande</div>`;
+
+  // --- Warnings min/max/stock ---
+  if(minQty > 0 && p.groupeStock) t+=`<div class="modal-min-warn show" style="background:#e8f4fd;border-color:#90caf9;color:#1565c0;">ℹ️ Minimum ${minQty} pièces — combinable avec les autres variantes de ce groupe</div>`;
+  else if(minQty > 0) t+=`<div class="modal-min-warn show">⚠️ Minimum : ${minQty} pièces</div>`;
+
+  if(effMax <= 0 && (p.maxQuantite > 0 || (p.groupeStock && p.stockGroupe > 0))){
+    t+=`<div class="modal-min-warn show" style="background:#ffebee;border-color:#ef5350;color:#c62828;">⚠️ Stock épuisé — plus aucune pièce disponible</div>`;
   }
-  // Stock groupe partagé
-  if(p.groupeStock && p.stockGroupe > 0){
-    const dejaCommandeGroupe = S.products.filter(x => x.groupeStock === p.groupeStock).reduce((s, x) => s + (x.dejaCommande || 0), 0);
-    const cartGroupQty = S.cart.filter(i => { const pr = S.products.find(x => x.id === i.productId); return pr && pr.groupeStock === p.groupeStock; }).reduce((s, i) => s + i.quantite, 0);
-    const remaining = p.stockGroupe - dejaCommandeGroupe - cartGroupQty;
-    if(remaining <= 0){
-      t+=`<div class="modal-min-warn show" id="modal-stock-warn" style="background:#ffebee;border-color:#ef5350;color:#c62828;">⚠️ Stock épuisé — ${dejaCommandeGroupe} pièce${dejaCommandeGroupe>1?'s':''} déjà commandée${dejaCommandeGroupe>1?'s':''} sur ${p.stockGroupe} (toutes variantes)</div>`;
-    } else {
-      t+=`<div class="modal-min-warn show" id="modal-stock-warn" style="background:#fff3e0;border-color:#ffb74d;color:#e65100;">ℹ️ Stock limité : ${remaining} restant${remaining>1?'s':''} sur ${p.stockGroupe}${dejaCommandeGroupe > 0 ? ` (${dejaCommandeGroupe} déjà commandé${dejaCommandeGroupe>1?'s':''})` : ''} (stock partagé entre variantes)</div>`;
-    }
-  } else {
-    t+=`<div class="modal-min-warn" id="modal-stock-warn" style="background:#fff3e0;border-color:#ffb74d;color:#e65100;display:none;"></div>`;
-  }
-  // Progression min groupe stock
+
+  // Container dynamique pour les infos stock (mis à jour dans onQtyChange)
+  t+=`<div class="modal-min-warn" id="modal-stock-warn" style="display:none;"></div>`;
   t+=`<div class="modal-min-warn" id="modal-min-groupe-warn" style="display:none;"></div>`;
+
   document.getElementById('modal-table-wrap').innerHTML=t;
   document.getElementById('modal-total-qty').textContent='0';
   document.getElementById('modal-total-price').textContent=fmt(0);
   document.getElementById('btn-add-cart').disabled=true;
   document.getElementById('modal-backdrop').classList.add('active');
+  // Trigger initial pour mettre à jour les warnings dynamiques
+  onQtyChange();
 }
 
 function onQtyChange(){
-  const p=S.currentProduct;
-  const tailles=Array.isArray(p.tailles)?p.tailles:(p.tailles?p.tailles.split(',').map(t=>t.trim()):['S','M','L','XL']);
+  const p = S.currentProduct;
+  if(!p) return;
+  const tailles = Array.isArray(p.tailles) ? p.tailles : (p.tailles ? p.tailles.split(',').map(t=>t.trim()) : ['S','M','L','XL']);
   const showPerso = hasPerso(p);
 
-  // Calculate effective max (maxQuantite and/or stock groupe remaining, minus already ordered)
-  let effectiveMax = Infinity;
-  let cartGroupQty = 0;
-  let dejaCommandeGroupe = 0;
-  if(p.maxQuantite > 0){
-    const cartProductQty = S.cart.filter(i => i.productId === p.id).reduce((s, i) => s + i.quantite, 0);
-    effectiveMax = Math.min(effectiveMax, Math.max(0, p.maxQuantite - (p.dejaCommande || 0) - cartProductQty));
-  }
-  if(p.groupeStock && p.stockGroupe > 0){
-    dejaCommandeGroupe = S.products.filter(x => x.groupeStock === p.groupeStock).reduce((s, x) => s + (x.dejaCommande || 0), 0);
-    cartGroupQty = S.cart.filter(i => { const prod = S.products.find(x => x.id === i.productId); return prod && prod.groupeStock === p.groupeStock; }).reduce((s, i) => s + i.quantite, 0);
-    effectiveMax = Math.min(effectiveMax, Math.max(0, p.stockGroupe - dejaCommandeGroupe - cartGroupQty));
-  }
-  if(effectiveMax < 0) effectiveMax = 0;
+  // --- 1. Calculer le max commandable (recalculé à chaque changement) ---
+  const effMax = getEffectiveMax(p);
 
-  // Cap input values and calculate totalQty
+  // --- 2. Lire les quantités saisies et les plafonner si nécessaire ---
   let totalQty = 0;
-  if(effectiveMax < Infinity){
+  if(effMax < Infinity){
+    // Lire le total brut
     let rawTotal = 0;
     tailles.forEach(t => { rawTotal += Math.max(0, parseInt(document.getElementById('qty-'+t).value) || 0); });
-    if(rawTotal > effectiveMax){
+
+    if(rawTotal > effMax){
+      // Plafonner : on parcourt les tailles dans l'ordre et on distribue le max
       let running = 0;
-      tailles.forEach(t => { const input = document.getElementById('qty-'+t); let qty = Math.max(0, parseInt(input.value) || 0); const allowed = Math.max(0, effectiveMax - running); if(qty > allowed){ qty = allowed; input.value = qty; } running += qty; });
+      tailles.forEach(t => {
+        const input = document.getElementById('qty-'+t);
+        let qty = Math.max(0, parseInt(input.value) || 0);
+        const allowed = Math.max(0, effMax - running);
+        if(qty > allowed){ qty = allowed; input.value = qty; }
+        running += qty;
+      });
       totalQty = running;
-    } else { totalQty = rawTotal; }
-    // Set max attribute on each input so browser prevents further increase
-    tailles.forEach(t => { const input = document.getElementById('qty-'+t); const thisQty = parseInt(input.value) || 0; input.max = Math.max(0, effectiveMax - (totalQty - thisQty)); });
+    } else {
+      totalQty = rawTotal;
+    }
+
+    // Mettre le max HTML sur chaque input pour empêcher d'augmenter
+    tailles.forEach(t => {
+      const input = document.getElementById('qty-'+t);
+      const thisQty = parseInt(input.value) || 0;
+      input.max = Math.max(0, effMax - (totalQty - thisQty));
+    });
   } else {
-    tailles.forEach(t => { const input = document.getElementById('qty-'+t); totalQty += Math.max(0, parseInt(input.value) || 0); input.removeAttribute('max'); });
+    // Pas de limite — lire librement
+    tailles.forEach(t => {
+      const input = document.getElementById('qty-'+t);
+      totalQty += Math.max(0, parseInt(input.value) || 0);
+      input.removeAttribute('max');
+    });
   }
 
-  // Handle perso buttons
-  tailles.forEach(t => { const qty = parseInt(document.getElementById('qty-'+t).value) || 0;
-    if(showPerso){const btn=document.getElementById('perso-btn-'+t);if(qty>0){btn.style.display='inline-block';if(S.persoData[t]&&S.persoData[t].length===qty){btn.textContent='✓ Modif.';btn.classList.add('done');}else{btn.textContent='Personnaliser';btn.classList.remove('done');if(S.persoData[t]&&S.persoData[t].length!==qty)delete S.persoData[t];}}else{btn.style.display='none';delete S.persoData[t];}}
+  // --- 3. Boutons personnalisation ---
+  tailles.forEach(t => {
+    const qty = parseInt(document.getElementById('qty-'+t).value) || 0;
+    if(showPerso){
+      const btn = document.getElementById('perso-btn-'+t);
+      if(qty > 0){
+        btn.style.display = 'inline-block';
+        if(S.persoData[t] && S.persoData[t].length === qty){ btn.textContent = '✓ Modif.'; btn.classList.add('done'); }
+        else { btn.textContent = 'Personnaliser'; btn.classList.remove('done'); if(S.persoData[t] && S.persoData[t].length !== qty) delete S.persoData[t]; }
+      } else { btn.style.display = 'none'; delete S.persoData[t]; }
+    }
   });
 
-  document.getElementById('modal-total-qty').textContent=totalQty;
-  document.getElementById('modal-total-price').textContent=fmt(totalQty*p.prix);
+  // --- 4. Totaux ---
+  document.getElementById('modal-total-qty').textContent = totalQty;
+  document.getElementById('modal-total-price').textContent = fmt(totalQty * p.prix);
 
-  // Min quantité — si groupe stock, ne PAS bloquer l'ajout, on vérifiera au panier
+  // --- 5. Warnings dynamiques stock ---
+  const stockWarn = document.getElementById('modal-stock-warn');
+  if(stockWarn){
+    if(p.groupeStock && p.stockGroupe > 0){
+      const remaining = p.stockGroupe - dejaCommandeForGroup(p.groupeStock) - cartQtyForGroup(p.groupeStock);
+      stockWarn.style.display = 'block';
+      stockWarn.style.background = remaining <= 0 ? '#ffebee' : '#fff3e0';
+      stockWarn.style.borderColor = remaining <= 0 ? '#ef5350' : '#ffb74d';
+      stockWarn.style.color = remaining <= 0 ? '#c62828' : '#e65100';
+      stockWarn.textContent = remaining <= 0
+        ? `⚠️ Stock épuisé (${p.stockGroupe} pièces — toutes variantes confondues)`
+        : `ℹ️ Stock partagé : ${remaining} restant${remaining>1?'s':''} sur ${p.stockGroupe} (toutes variantes)`;
+    } else if(p.maxQuantite > 0){
+      const remaining = p.maxQuantite - (p.dejaCommande || 0) - cartQtyForProduct(p.id);
+      if(remaining < p.maxQuantite){
+        stockWarn.style.display = 'block';
+        stockWarn.style.background = remaining <= 0 ? '#ffebee' : '#e8f4fd';
+        stockWarn.style.borderColor = remaining <= 0 ? '#ef5350' : '#90caf9';
+        stockWarn.style.color = remaining <= 0 ? '#c62828' : '#1565c0';
+        stockWarn.textContent = remaining <= 0
+          ? `⚠️ Maximum atteint (${p.maxQuantite} pièce${p.maxQuantite>1?'s':''})`
+          : `ℹ️ Max ${p.maxQuantite} — encore ${remaining} disponible${remaining>1?'s':''}`;
+      } else { stockWarn.style.display = 'none'; }
+    } else {
+      stockWarn.style.display = 'none';
+    }
+  }
+
+  // --- 6. Validation min quantité ---
   let minOk;
   const minGroupeWarn = document.getElementById('modal-min-groupe-warn');
-  if(p.groupeStock && p.minQuantite > 0){
-    // Toujours autoriser l'ajout pour un groupe stock
+  const minQty = p.minQuantite || 0;
+
+  if(p.groupeStock && minQty > 0){
+    // Groupe stock : on autorise l'ajout si qty > 0, le minimum est vérifié au panier (combinable)
     minOk = totalQty > 0;
-    // Afficher la progression du groupe
-    const groupTotal = cartGroupQty + totalQty;
+    const groupTotal = cartQtyForGroup(p.groupeStock) + totalQty;
     if(minGroupeWarn){
       if(totalQty > 0){
         minGroupeWarn.style.display = 'block';
-        if(groupTotal >= p.minQuantite){
+        if(groupTotal >= minQty){
           minGroupeWarn.style.background = '#e8f5e9'; minGroupeWarn.style.borderColor = '#81c784'; minGroupeWarn.style.color = '#2e7d32';
-          minGroupeWarn.textContent = `✅ Minimum atteint : ${groupTotal}/${p.minQuantite} pièces (toutes variantes)`;
+          minGroupeWarn.textContent = `✅ Minimum atteint : ${groupTotal}/${minQty} pièces (toutes variantes)`;
         } else {
           minGroupeWarn.style.background = '#fff3e0'; minGroupeWarn.style.borderColor = '#ffb74d'; minGroupeWarn.style.color = '#e65100';
-          minGroupeWarn.textContent = `🛒 ${groupTotal}/${p.minQuantite} pièces — encore ${p.minQuantite - groupTotal} à ajouter (toutes variantes combinées)`;
+          minGroupeWarn.textContent = `🛒 ${groupTotal}/${minQty} — encore ${minQty - groupTotal} à ajouter (combinable entre variantes)`;
         }
-      } else {
-        minGroupeWarn.style.display = 'none';
-      }
+      } else { minGroupeWarn.style.display = 'none'; }
     }
-  } else {
-    minOk = totalQty >= (p.minQuantite||1);
+  } else if(minQty > 0){
+    // Produit seul : bloquer si en dessous du minimum
+    minOk = totalQty >= minQty;
     if(minGroupeWarn) minGroupeWarn.style.display = 'none';
-  }
-
-  // Stock/max warning display (inputs already capped above)
-  const stockWarn = document.getElementById('modal-stock-warn');
-  if(p.groupeStock && p.stockGroupe > 0){
-    const remaining = p.stockGroupe - dejaCommandeGroupe - cartGroupQty;
-    if(stockWarn){
-      stockWarn.style.display = 'block';
-      if(remaining <= 0){
-        stockWarn.textContent = `⚠️ Stock épuisé — ${dejaCommandeGroupe} pièce${dejaCommandeGroupe>1?'s':''} déjà commandée${dejaCommandeGroupe>1?'s':''} sur ${p.stockGroupe} (toutes variantes)`;
-      } else {
-        stockWarn.textContent = `ℹ️ ${remaining} restant${remaining>1?'s':''} sur ${p.stockGroupe}${dejaCommandeGroupe > 0 ? ` (${dejaCommandeGroupe} déjà commandé${dejaCommandeGroupe>1?'s':''})` : ''} (stock partagé entre variantes)`;
-      }
-    }
-  } else if(p.maxQuantite > 0 && (p.dejaCommande || 0) > 0){
-    const cartProductQty = S.cart.filter(i => i.productId === p.id).reduce((s, i) => s + i.quantite, 0);
-    const remaining = p.maxQuantite - (p.dejaCommande || 0) - cartProductQty;
-    if(stockWarn){
-      stockWarn.style.display = 'block';
-      if(remaining <= 0){
-        stockWarn.textContent = `⚠️ Maximum atteint — ${p.maxQuantite} pièce${p.maxQuantite>1?'s':''} déjà commandée${p.maxQuantite>1?'s':''}`;
-      } else {
-        stockWarn.textContent = `ℹ️ ${remaining} restant${remaining>1?'s':''} sur ${p.maxQuantite} (${p.dejaCommande} déjà commandé${p.dejaCommande>1?'s':''})`;
-      }
-    }
+  } else {
+    // Pas de minimum
+    minOk = totalQty > 0;
+    if(minGroupeWarn) minGroupeWarn.style.display = 'none';
   }
 
   document.getElementById('btn-add-cart').disabled = !minOk || totalQty === 0;
@@ -1081,7 +1139,9 @@ function toggleCart(){document.getElementById('cart-drawer').classList.toggle('o
 
 async function validateOrder(){
   if(!S.cart.length || _orderSubmitting)return;
-  // Vérifier les minimums par groupe stock
+
+  // --- Validation des minimums ---
+  // 1. Produits en groupe stock : minimum combinable entre variantes
   const groupes = {};
   S.cart.forEach(item => {
     const prod = S.products.find(x => x.id === item.productId);
@@ -1093,7 +1153,23 @@ async function validateOrder(){
   });
   for(const g of Object.values(groupes)){
     if(g.total < g.min){
-      toast(`⚠️ Minimum ${g.min} pièces requis pour : ${g.noms.join(', ')} (vous en avez ${g.total})`);
+      toast(`⚠️ Minimum ${g.min} pièces requis pour : ${g.noms.join(', ')} (vous en avez ${g.total})`, 5000);
+      return;
+    }
+  }
+
+  // 2. Produits hors groupe : vérifier min par produit
+  const prodQtys = {};
+  S.cart.forEach(item => {
+    const prod = S.products.find(x => x.id === item.productId);
+    if(prod && !prod.groupeStock && prod.minQuantite > 0){
+      if(!prodQtys[prod.id]) prodQtys[prod.id] = { total: 0, min: prod.minQuantite, nom: prod.nom };
+      prodQtys[prod.id].total += item.quantite;
+    }
+  });
+  for(const pq of Object.values(prodQtys)){
+    if(pq.total < pq.min){
+      toast(`⚠️ Minimum ${pq.min} pièces requis pour ${pq.nom} (vous en avez ${pq.total})`, 5000);
       return;
     }
   }
@@ -1112,7 +1188,7 @@ async function validateOrder(){
   // Envoi en arrière-plan : 2 étapes (commande puis lignes en chunks)
   (async()=>{
     try{
-      // Étape 1 : créer la commande (rapide — 1 seul appel Airtable)
+      // Étape 1 : créer la commande
       btn.textContent='Création commande...';
       console.log('[COMMANDE] Étape 1 — création commande', orderRef, 'nbArticles:', nbArticles, 'total:', sousTotal+fraisLiv);
       const res=await apiPost('createOrder',{clubId:S.club.id,clubNom:S.club.nom,orderRef,total:sousTotal+fraisLiv,fraisLivraison:fraisLiv,nbArticles});
