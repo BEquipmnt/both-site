@@ -355,6 +355,18 @@ async function createLignes(payload) {
     }));
 
     const results = await sbPost('lignes', ligneRows);
+
+    // Récupérer le club_id depuis la commande pour les lignes de production
+    const commandes = await sbGet('commandes', `select=club_id&id=eq.${commandeId}`);
+    const clubId = commandes.length ? commandes[0].club_id : null;
+
+    // Créer les lignes de production automatiquement (non bloquant)
+    if (clubId) {
+      createProductionLines(commandeId, results, clubId).catch(err =>
+        console.error('Production lines auto-creation error:', err)
+      );
+    }
+
     return { success: true, created: results.length };
   } catch (error) {
     console.error('createLignes error:', error);
@@ -659,6 +671,311 @@ async function adminDeleteSuivi(payload) {
 }
 
 // ============================================================
+// PRODUCTION: Création auto des lignes de production
+// Appelé après création des lignes de commande
+// ============================================================
+async function createProductionLines(commandeId, lignes, clubId) {
+  try {
+    // Récupérer les infos produits pour savoir lesquels sont Asie
+    const produitIds = [...new Set(lignes.map(l => l.produit_id).filter(Boolean))];
+    if (!produitIds.length) return;
+
+    const produits = await sbGet('produits',
+      `select=id,produit_asie,lien_fournisseur,impression&id=in.(${produitIds.join(',')})`
+    );
+    const produitsMap = {};
+    produits.forEach(p => { produitsMap[p.id] = p; });
+
+    for (const ligne of lignes) {
+      const prod = produitsMap[ligne.produit_id];
+      if (!prod) continue;
+
+      const isAsie = prod.produit_asie || false;
+      // Clé d'agrégation : produit + taille + club + personnalisation
+      const perso = (ligne.nom_perso || '') + (ligne.numero_perso ? '#' + ligne.numero_perso : '');
+
+      // Chercher une ligne de production existante au statut "a_commander" pour agréger
+      let query = `select=*&produit_id=eq.${ligne.produit_id}&club_id=eq.${clubId}&taille=eq.${encodeURIComponent(ligne.taille)}&personnalisation=eq.${encodeURIComponent(perso)}&statut_livraison=neq.livre`;
+
+      // Pour les produits classiques, on agrège seulement si textile ET dtf sont à "a_commander"
+      // Pour les produits Asie, on agrège seulement si statut_asie est à "a_commander"
+      if (isAsie) {
+        query += '&statut_asie=eq.a_commander';
+      } else {
+        query += '&statut_textile=eq.a_commander&statut_dtf=eq.a_commander';
+      }
+
+      const existing = await sbGet('production_lines', query);
+
+      let productionLineId;
+
+      if (existing.length > 0) {
+        // Agréger : mettre à jour la quantité
+        const existingLine = existing[0];
+        const newQty = existingLine.quantite + ligne.quantite;
+        await sbPatch('production_lines', `id=eq.${existingLine.id}`, {
+          quantite: newQty,
+          date_modification: new Date().toISOString()
+        });
+        productionLineId = existingLine.id;
+      } else {
+        // Créer une nouvelle ligne de production
+        const newLine = {
+          produit_id: ligne.produit_id,
+          club_id: clubId,
+          taille: ligne.taille,
+          quantite: ligne.quantite,
+          personnalisation: perso,
+          est_produit_asie: isAsie,
+          statut_textile: isAsie ? null : 'a_commander',
+          statut_dtf: isAsie ? null : 'a_commander',
+          statut_asie: isAsie ? 'a_commander' : null,
+          statut_production: isAsie ? null : 'a_produire',
+          statut_livraison: 'a_livrer',
+          notes: ''
+        };
+        const result = await sbPost('production_lines', newLine);
+        productionLineId = result[0].id;
+      }
+
+      // Créer la liaison production <-> commande
+      await sbPost('production_lines_commandes', {
+        production_line_id: productionLineId,
+        commande_id: commandeId,
+        ligne_commande_id: ligne.id || null,
+        quantite: ligne.quantite
+      });
+    }
+  } catch (error) {
+    console.error('createProductionLines error:', error);
+    // Non bloquant — la commande est déjà créée
+  }
+}
+
+// ============================================================
+// ADMIN: GET PRODUCTION LINES (toutes ou filtrées)
+// ============================================================
+async function adminGetProductionLines(filters = {}) {
+  try {
+    let query = 'select=*&order=date_creation.desc';
+
+    if (filters.clubId) query += `&club_id=eq.${filters.clubId}`;
+    if (filters.produitAsie === 'true') query += '&est_produit_asie=eq.true';
+    if (filters.produitAsie === 'false') query += '&est_produit_asie=eq.false';
+    if (filters.statutTextile) query += `&statut_textile=eq.${filters.statutTextile}`;
+    if (filters.statutDtf) query += `&statut_dtf=eq.${filters.statutDtf}`;
+    if (filters.statutAsie) query += `&statut_asie=eq.${filters.statutAsie}`;
+    if (filters.statutProduction) query += `&statut_production=eq.${filters.statutProduction}`;
+    if (filters.statutLivraison) query += `&statut_livraison=eq.${filters.statutLivraison}`;
+
+    const [lines, prods, clubs] = await Promise.all([
+      sbGet('production_lines', query),
+      sbGet('produits', 'select=id,nom,lien_fournisseur,impression,image_url'),
+      sbGet('clubs', 'select=id,nom')
+    ]);
+
+    const produitsMap = {};
+    prods.forEach(p => { produitsMap[p.id] = p; });
+    const clubsMap = {};
+    clubs.forEach(c => { clubsMap[c.id] = c.nom; });
+
+    const result = lines.map(l => {
+      const prod = l.produit_id ? produitsMap[l.produit_id] : null;
+      return {
+        id: l.id,
+        produitId: l.produit_id,
+        produitNom: prod ? prod.nom : '—',
+        lienFournisseur: prod ? prod.lien_fournisseur : '',
+        impression: prod ? prod.impression : '',
+        imageUrl: prod ? prod.image_url : '',
+        clubId: l.club_id,
+        clubNom: l.club_id ? (clubsMap[l.club_id] || '—') : '—',
+        taille: l.taille,
+        quantite: l.quantite,
+        personnalisation: l.personnalisation,
+        estProduitAsie: l.est_produit_asie,
+        statutTextile: l.statut_textile,
+        statutDtf: l.statut_dtf,
+        statutAsie: l.statut_asie,
+        statutProduction: l.statut_production,
+        statutLivraison: l.statut_livraison,
+        notes: l.notes,
+        dateCreation: l.date_creation,
+        dateModification: l.date_modification
+      };
+    });
+
+    return { productionLines: result };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ============================================================
+// ADMIN: GET PRODUCTION STATS (compteurs dashboard)
+// ============================================================
+async function adminGetProductionStats() {
+  try {
+    const lines = await sbGet('production_lines', 'select=statut_textile,statut_dtf,statut_asie,statut_production,statut_livraison,est_produit_asie,quantite&statut_livraison=neq.livre');
+
+    const stats = {
+      textileACommander: 0,
+      dtfACommander: 0,
+      textileAVerifier: 0,
+      dtfAVerifier: 0,
+      aProduire: 0,
+      aLivrer: 0,
+      asieEnAttente: 0
+    };
+
+    lines.forEach(l => {
+      const qty = l.quantite || 0;
+      if (!l.est_produit_asie) {
+        if (l.statut_textile === 'a_commander') stats.textileACommander += qty;
+        if (l.statut_dtf === 'a_commander') stats.dtfACommander += qty;
+        if (l.statut_textile === 'recu') stats.textileAVerifier += qty;
+        if (l.statut_dtf === 'recu') stats.dtfAVerifier += qty;
+        if (l.statut_textile === 'verifie' && l.statut_dtf === 'verifie' && l.statut_production === 'a_produire') stats.aProduire += qty;
+        if (l.statut_production === 'termine' && l.statut_livraison === 'a_livrer') stats.aLivrer += qty;
+      } else {
+        if (l.statut_asie === 'a_commander' || l.statut_asie === 'en_panier' || l.statut_asie === 'commande') stats.asieEnAttente += qty;
+        if (l.statut_asie === 'verifie' && l.statut_livraison === 'a_livrer') stats.aLivrer += qty;
+      }
+    });
+
+    return { stats };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ============================================================
+// ADMIN: UPDATE PRODUCTION LINE (changer un statut)
+// ============================================================
+async function adminUpdateProductionLine(payload) {
+  try {
+    const data = { date_modification: new Date().toISOString() };
+    if (payload.statutTextile !== undefined) data.statut_textile = payload.statutTextile;
+    if (payload.statutDtf !== undefined) data.statut_dtf = payload.statutDtf;
+    if (payload.statutAsie !== undefined) data.statut_asie = payload.statutAsie;
+    if (payload.statutProduction !== undefined) data.statut_production = payload.statutProduction;
+    if (payload.statutLivraison !== undefined) data.statut_livraison = payload.statutLivraison;
+    if (payload.notes !== undefined) data.notes = payload.notes;
+
+    await sbPatch('production_lines', `id=eq.${payload.id}`, data);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+// ============================================================
+// ADMIN: BULK UPDATE PRODUCTION LINES (actions groupées)
+// ============================================================
+async function adminBulkUpdateProductionLines(payload) {
+  try {
+    const { ids, update } = payload;
+    if (!Array.isArray(ids) || !ids.length) return { success: false, error: 'ids requis' };
+
+    const data = { date_modification: new Date().toISOString() };
+    if (update.statutTextile !== undefined) data.statut_textile = update.statutTextile;
+    if (update.statutDtf !== undefined) data.statut_dtf = update.statutDtf;
+    if (update.statutAsie !== undefined) data.statut_asie = update.statutAsie;
+    if (update.statutProduction !== undefined) data.statut_production = update.statutProduction;
+    if (update.statutLivraison !== undefined) data.statut_livraison = update.statutLivraison;
+
+    await sbPatch('production_lines', `id=in.(${ids.join(',')})`, data);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+// ============================================================
+// ADMIN: GET PRODUCTION FOR ORDER (vue par commande)
+// ============================================================
+async function adminGetProductionForOrder(commandeId) {
+  try {
+    // Récupérer les liaisons pour cette commande
+    const liaisons = await sbGet('production_lines_commandes',
+      `select=*&commande_id=eq.${commandeId}`
+    );
+    if (!liaisons.length) return { productionLines: [], progress: { done: 0, total: 0, percent: 0 } };
+
+    const lineIds = [...new Set(liaisons.map(l => l.production_line_id))];
+    const [lines, prods, clubs] = await Promise.all([
+      sbGet('production_lines', `select=*&id=in.(${lineIds.join(',')})`),
+      sbGet('produits', 'select=id,nom,lien_fournisseur,impression'),
+      sbGet('clubs', 'select=id,nom')
+    ]);
+
+    const produitsMap = {};
+    prods.forEach(p => { produitsMap[p.id] = p; });
+    const clubsMap = {};
+    clubs.forEach(c => { clubsMap[c.id] = c.nom; });
+
+    // Map des quantités spécifiques à cette commande
+    const cmdQtyMap = {};
+    liaisons.forEach(l => {
+      cmdQtyMap[l.production_line_id] = (cmdQtyMap[l.production_line_id] || 0) + l.quantite;
+    });
+
+    let totalItems = 0;
+    let doneItems = 0;
+
+    const result = lines.map(l => {
+      const prod = l.produit_id ? produitsMap[l.produit_id] : null;
+      const qtyForCmd = cmdQtyMap[l.id] || 0;
+      totalItems += qtyForCmd;
+      if (l.statut_livraison === 'livre') doneItems += qtyForCmd;
+
+      return {
+        id: l.id,
+        produitNom: prod ? prod.nom : '—',
+        lienFournisseur: prod ? prod.lien_fournisseur : '',
+        impression: prod ? prod.impression : '',
+        clubNom: l.club_id ? (clubsMap[l.club_id] || '—') : '—',
+        taille: l.taille,
+        quantite: l.quantite,
+        quantiteCommande: qtyForCmd,
+        personnalisation: l.personnalisation,
+        estProduitAsie: l.est_produit_asie,
+        statutTextile: l.statut_textile,
+        statutDtf: l.statut_dtf,
+        statutAsie: l.statut_asie,
+        statutProduction: l.statut_production,
+        statutLivraison: l.statut_livraison,
+        notes: l.notes
+      };
+    });
+
+    return {
+      productionLines: result,
+      progress: {
+        done: doneItems,
+        total: totalItems,
+        percent: totalItems > 0 ? Math.round((doneItems / totalItems) * 100) : 0
+      }
+    };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ============================================================
+// ADMIN: DELETE PRODUCTION LINE
+// ============================================================
+async function adminDeleteProductionLine(payload) {
+  try {
+    // Les liaisons sont supprimées en cascade
+    await sbDelete('production_lines', `id=eq.${payload.id}`);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+// ============================================================
 // ADMIN: DEMANDES
 // ============================================================
 async function adminGetAllDemandes() {
@@ -762,6 +1079,16 @@ exports.handler = async (event) => {
         case 'adminGetAllDemandes':
           result = await adminGetAllDemandes();
           break;
+        // Production GET
+        case 'adminGetProductionLines':
+          result = await adminGetProductionLines(params);
+          break;
+        case 'adminGetProductionStats':
+          result = await adminGetProductionStats();
+          break;
+        case 'adminGetProductionForOrder':
+          result = await adminGetProductionForOrder(params.commandeId);
+          break;
         default:
           result = { error: 'Action inconnue' };
       }
@@ -820,6 +1147,16 @@ exports.handler = async (event) => {
           break;
         case 'adminDeleteDemande':
           result = await adminDeleteDemande(payload);
+          break;
+        // Production POST
+        case 'adminUpdateProductionLine':
+          result = await adminUpdateProductionLine(payload);
+          break;
+        case 'adminBulkUpdateProductionLines':
+          result = await adminBulkUpdateProductionLines(payload);
+          break;
+        case 'adminDeleteProductionLine':
+          result = await adminDeleteProductionLine(payload);
           break;
         default:
           result = { error: 'Action POST inconnue' };

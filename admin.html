@@ -157,6 +157,49 @@ tbody tr.clickable:hover{background:#e8e8e8}
 .section{display:none}
 .section.active{display:block}
 
+/* PRODUCTION */
+.prod-tabs{display:flex;gap:0;margin-bottom:1.5rem;border-bottom:2px solid var(--grey-200)}
+.prod-tab{padding:.6rem 1.2rem;font-size:.78rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--grey-400);background:none;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .2s}
+.prod-tab:hover{color:var(--black)}
+.prod-tab.active{color:var(--black);border-bottom-color:var(--yellow)}
+.prod-panel{display:none}
+.prod-panel.active{display:block}
+
+.stat-card.clickable{cursor:pointer;transition:transform .15s,box-shadow .15s}
+.stat-card.clickable:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.1)}
+.stat-card.clickable.active{border:2px solid var(--yellow)}
+
+.pastille{display:inline-block;width:14px;height:14px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .15s}
+.pastille:hover{transform:scale(1.3)}
+.pastille-rouge{background:#ef4444}
+.pastille-jaune{background:#f59e0b}
+.pastille-orange{background:#f97316}
+.pastille-bleu{background:#3b82f6}
+.pastille-vert{background:#22c55e}
+
+.statut-dd{position:absolute;background:var(--white);border:1.5px solid var(--grey-200);border-radius:var(--radius);box-shadow:0 4px 12px rgba(0,0,0,.15);z-index:60;min-width:160px;padding:.3rem 0}
+.statut-dd-item{padding:.4rem .8rem;font-size:.8rem;cursor:pointer;display:flex;align-items:center;gap:.5rem;transition:background .1s}
+.statut-dd-item:hover{background:var(--grey-100)}
+
+.progress-bar{height:8px;background:var(--grey-200);border-radius:4px;overflow:hidden;margin-top:.3rem}
+.progress-fill{height:100%;background:var(--green);border-radius:4px;transition:width .3s}
+
+.bulk-bar{display:none;align-items:center;gap:.8rem;padding:.6rem 1rem;background:var(--black);color:var(--white);border-radius:var(--radius);margin-bottom:1rem;font-size:.82rem}
+.bulk-bar.show{display:flex}
+.bulk-bar .bulk-count{font-weight:700;margin-right:.5rem}
+.bulk-bar button{background:rgba(255,255,255,.15);color:var(--white);border:none;padding:.3rem .7rem;border-radius:var(--radius);font-size:.72rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;transition:background .2s}
+.bulk-bar button:hover{background:rgba(255,255,255,.25)}
+
+.note-inline{background:transparent;border:1px solid transparent;padding:2px 4px;font-size:.8rem;width:100%;min-width:80px;border-radius:3px;transition:border .2s}
+.note-inline:hover{border-color:var(--grey-200)}
+.note-inline:focus{border-color:var(--yellow);outline:none;background:var(--white)}
+
+.fournisseur-group{background:var(--white);border-radius:var(--radius);padding:1.2rem 1.5rem;margin-bottom:1rem;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.fournisseur-group-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:.8rem;padding-bottom:.5rem;border-bottom:1px solid var(--grey-200)}
+.fournisseur-group-header h4{font-family:var(--display);font-size:.9rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.fournisseur-link{display:inline-flex;align-items:center;gap:.3rem;color:var(--blue);font-size:.8rem;text-decoration:none;font-weight:500}
+.fournisseur-link:hover{text-decoration:underline}
+
 /* RESPONSIVE */
 @media(max-width:768px){
   .sidebar{width:60px;overflow:hidden}
@@ -202,6 +245,9 @@ tbody tr.clickable:hover{background:#e8e8e8}
       </a>
       <a class="sidebar-link" onclick="showSection('clubs')" data-section="clubs">
         <span class="icon">🏟️</span><span>Clubs</span>
+      </a>
+      <a class="sidebar-link" onclick="showSection('production')" data-section="production">
+        <span class="icon">🏭</span><span>Production</span>
       </a>
       <a class="sidebar-link" onclick="showSection('demandes')" data-section="demandes">
         <span class="icon">💬</span><span>Demandes</span>
@@ -283,6 +329,93 @@ tbody tr.clickable:hover{background:#e8e8e8}
       </div>
     </div>
 
+    <!-- ========== PRODUCTION ========== -->
+    <div class="section" id="sec-production">
+      <h1 class="page-title">Suivi de production</h1>
+
+      <!-- Dashboard compteurs -->
+      <div class="stats" id="production-stats"></div>
+
+      <!-- Tabs -->
+      <div class="prod-tabs">
+        <button class="prod-tab active" onclick="showProdTab('classique')">Production classique</button>
+        <button class="prod-tab" onclick="showProdTab('asie')">Produits Asie</button>
+        <button class="prod-tab" onclick="showProdTab('acommander')">À commander</button>
+      </div>
+
+      <!-- Bulk actions bar -->
+      <div class="bulk-bar" id="bulk-bar">
+        <span class="bulk-count" id="bulk-count">0</span> sélectionnés
+        <button onclick="bulkAction('statutTextile','en_panier')">Textile → En panier</button>
+        <button onclick="bulkAction('statutTextile','commande')">Textile → Commandé</button>
+        <button onclick="bulkAction('statutTextile','recu')">Textile → Reçu</button>
+        <button onclick="bulkAction('statutTextile','verifie')">Textile → Vérifié</button>
+        <button onclick="bulkAction('statutDtf','en_panier')">DTF → En panier</button>
+        <button onclick="bulkAction('statutDtf','commande')">DTF → Commandé</button>
+        <button onclick="bulkAction('statutDtf','recu')">DTF → Reçu</button>
+        <button onclick="bulkAction('statutDtf','verifie')">DTF → Vérifié</button>
+        <button onclick="bulkAction('statutProduction','en_cours')">Prod → En cours</button>
+        <button onclick="bulkAction('statutProduction','termine')">Prod → Terminé</button>
+        <button onclick="bulkAction('statutLivraison','livre')">→ Livré</button>
+      </div>
+
+      <!-- Bulk actions bar Asie -->
+      <div class="bulk-bar" id="bulk-bar-asie">
+        <span class="bulk-count" id="bulk-count-asie">0</span> sélectionnés
+        <button onclick="bulkAction('statutAsie','en_panier')">→ En panier</button>
+        <button onclick="bulkAction('statutAsie','commande')">→ Commandé</button>
+        <button onclick="bulkAction('statutAsie','recu')">→ Reçu</button>
+        <button onclick="bulkAction('statutAsie','verifie')">→ Vérifié</button>
+        <button onclick="bulkAction('statutLivraison','livre')">→ Livré</button>
+      </div>
+
+      <!-- Panel: Production classique -->
+      <div class="prod-panel active" id="panel-classique">
+        <div class="toolbar">
+          <input class="search" type="text" placeholder="Rechercher (produit, club...)" oninput="_searchProd=this.value;renderProductionClassique()">
+          <select onchange="_filterProdClub=this.value;renderProductionClassique()" id="prod-club-filter">
+            <option value="">Tous les clubs</option>
+          </select>
+        </div>
+        <div class="card-full">
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr>
+                <th><input type="checkbox" onchange="toggleAllCheckboxes('classique',this.checked)"></th>
+                <th>Club</th><th>Produit</th><th>Taille</th><th>Qté</th><th>Perso</th>
+                <th>Fournisseur</th><th>Textile</th><th>DTF</th><th>Production</th><th>Livraison</th><th>Notes</th>
+              </tr></thead>
+              <tbody id="production-classique-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel: Produits Asie -->
+      <div class="prod-panel" id="panel-asie">
+        <div class="toolbar">
+          <input class="search" type="text" placeholder="Rechercher..." oninput="_searchProdAsie=this.value;renderProductionAsie()">
+        </div>
+        <div class="card-full">
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr>
+                <th><input type="checkbox" onchange="toggleAllCheckboxes('asie',this.checked)"></th>
+                <th>Club</th><th>Produit</th><th>Taille</th><th>Qté</th><th>Perso</th>
+                <th>Fournisseur</th><th>Fournisseur Asie</th><th>Livraison</th><th>Notes</th>
+              </tr></thead>
+              <tbody id="production-asie-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel: À commander -->
+      <div class="prod-panel" id="panel-acommander">
+        <div id="acommander-content"></div>
+      </div>
+    </div>
+
     <!-- ========== DEMANDES ========== -->
     <div class="section" id="sec-demandes">
       <h1 class="page-title">Demandes</h1>
@@ -330,11 +463,15 @@ tbody tr.clickable:hover{background:#e8e8e8}
 // GLOBALS
 // ============================================================
 var API = '/.netlify/functions/supabase-api';
-var G = { club: null, commandes: [], produits: [], clubs: [], demandes: [] };
+var G = { club: null, commandes: [], produits: [], clubs: [], demandes: [], productionLines: [], productionStats: {} };
 var _searchCommandes = '', _statutCommandes = '';
 var _searchProduits = '', _clubProduits = '';
 var _searchClubs = '';
 var _searchDemandes = '', _statutDemandes = '';
+var _searchProd = '', _filterProdClub = '', _searchProdAsie = '';
+var _prodChecked = new Set();
+var _activeStatFilter = '';
+var _activeProdTab = 'classique';
 
 function fmt(n) { return parseFloat(n || 0).toFixed(2).replace('.', ',') + ' \u20AC'; }
 function toast(msg, err) {
@@ -398,6 +535,7 @@ function loadAll() {
   loadProduits();
   loadClubs();
   loadDemandes();
+  loadProduction();
 }
 
 // ============================================================
@@ -512,10 +650,9 @@ function openCommandeDetail(id) {
     });
     html += '</tbody></table></div>';
 
-    // Suivi production
+    // Suivi production (nouveau système)
     html += '<div style="margin-top:2rem"><strong style="font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;color:var(--grey-400)">Suivi production</strong>' +
-      '<div id="suivi-list" style="margin-top:.5rem"><em style="color:var(--grey-400);font-size:.85rem">Chargement...</em></div>' +
-      '<button class="btn btn-outline btn-sm" style="margin-top:.8rem" onclick="addSuiviForm(\'' + id + '\')">+ Ajouter une étape</button></div>';
+      '<div id="production-order-detail" style="margin-top:.5rem"><em style="color:var(--grey-400);font-size:.85rem">Chargement...</em></div></div>';
 
     html += '<div style="margin-top:2rem;padding-top:1rem;border-top:2px solid var(--grey-200);font-size:1.2rem;font-weight:700;text-align:right">Total : ' + fmt(o.total) + '</div>';
 
@@ -525,8 +662,8 @@ function openCommandeDetail(id) {
       true
     );
 
-    // Charger le suivi
-    loadSuivi(id);
+    // Charger le suivi production
+    loadProductionForOrder(id);
   });
 }
 
@@ -1217,6 +1354,534 @@ function deleteDemande(id) {
   apiPost('adminDeleteDemande', { id: id }).then(function(res) {
     if (res.success) { toast('Demande supprimée'); closeModal(); loadDemandes(); }
     else toast('Erreur', true);
+  });
+}
+
+// ============================================================
+// PRODUCTION — SUIVI
+// ============================================================
+function loadProduction() {
+  Promise.all([
+    apiGet('adminGetProductionLines'),
+    apiGet('adminGetProductionStats')
+  ]).then(function(results) {
+    G.productionLines = results[0].productionLines || [];
+    G.productionStats = results[1].stats || {};
+    renderProductionStats();
+    renderProductionClassique();
+    renderProductionAsie();
+    renderACommander();
+    updateProdClubFilter();
+  });
+}
+
+function updateProdClubFilter() {
+  var clubs = [];
+  G.productionLines.forEach(function(l) {
+    if (l.clubNom && clubs.indexOf(l.clubNom) === -1) clubs.push(l.clubNom);
+  });
+  clubs.sort();
+  var sel = document.getElementById('prod-club-filter');
+  if (sel) sel.innerHTML = '<option value="">Tous les clubs</option>' + clubs.map(function(c) { return '<option>' + c + '</option>'; }).join('');
+}
+
+// ---- TABS ----
+function showProdTab(name) {
+  _activeProdTab = name;
+  document.querySelectorAll('.prod-tab').forEach(function(t) { t.classList.remove('active'); });
+  document.querySelectorAll('.prod-panel').forEach(function(p) { p.classList.remove('active'); });
+  document.querySelector('.prod-tab[onclick*="' + name + '"]').classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+  _prodChecked.clear();
+  updateBulkBar();
+}
+
+// ---- STATS ----
+function renderProductionStats() {
+  var s = G.productionStats;
+  var items = [
+    { key: 'textileACommander', label: 'Textiles à commander', value: s.textileACommander || 0, color: 'var(--red)' },
+    { key: 'dtfACommander', label: 'DTF à commander', value: s.dtfACommander || 0, color: 'var(--red)' },
+    { key: 'textileAVerifier', label: 'Textiles à vérifier', value: s.textileAVerifier || 0, color: 'var(--blue)' },
+    { key: 'dtfAVerifier', label: 'DTF à vérifier', value: s.dtfAVerifier || 0, color: 'var(--blue)' },
+    { key: 'aProduire', label: 'À produire', value: s.aProduire || 0, color: 'var(--orange)' },
+    { key: 'aLivrer', label: 'À livrer', value: s.aLivrer || 0, color: 'var(--green)' },
+    { key: 'asieEnAttente', label: 'Asie en attente', value: s.asieEnAttente || 0, color: '#8b5cf6' }
+  ];
+  var html = '';
+  items.forEach(function(item) {
+    var active = _activeStatFilter === item.key ? ' active' : '';
+    html += '<div class="stat-card clickable' + active + '" onclick="filterByStat(\'' + item.key + '\')" style="border-left:3px solid ' + item.color + '">' +
+      '<div class="stat-value">' + item.value + '</div>' +
+      '<div class="stat-label">' + item.label + '</div></div>';
+  });
+  document.getElementById('production-stats').innerHTML = html;
+}
+
+function filterByStat(key) {
+  if (_activeStatFilter === key) {
+    _activeStatFilter = '';
+  } else {
+    _activeStatFilter = key;
+  }
+  renderProductionStats();
+  renderProductionClassique();
+  renderProductionAsie();
+}
+
+// ---- PASTILLE HELPER ----
+function pastilleColor(statut) {
+  switch (statut) {
+    case 'a_commander': return 'pastille-rouge';
+    case 'en_panier': return 'pastille-jaune';
+    case 'commande': return 'pastille-orange';
+    case 'recu': return 'pastille-bleu';
+    case 'verifie': return 'pastille-vert';
+    case 'a_produire': return 'pastille-rouge';
+    case 'en_cours': return 'pastille-orange';
+    case 'termine': return 'pastille-vert';
+    case 'a_livrer': return 'pastille-rouge';
+    case 'livre': return 'pastille-vert';
+    default: return 'pastille-rouge';
+  }
+}
+
+function statutLabel(statut) {
+  switch (statut) {
+    case 'a_commander': return 'À commander';
+    case 'en_panier': return 'En panier';
+    case 'commande': return 'Commandé';
+    case 'recu': return 'Reçu';
+    case 'verifie': return 'Vérifié';
+    case 'a_produire': return 'À produire';
+    case 'en_cours': return 'En cours';
+    case 'termine': return 'Terminé';
+    case 'a_livrer': return 'À livrer';
+    case 'livre': return 'Livré';
+    default: return statut || '—';
+  }
+}
+
+function pastilleHtml(lineId, field, statut, options) {
+  if (!statut) return '<span style="color:var(--grey-400)">—</span>';
+  var color = pastilleColor(statut);
+  return '<span class="pastille ' + color + '" title="' + statutLabel(statut) + '" onclick="event.stopPropagation();showStatutDD(this,\'' + lineId + '\',\'' + field + '\',' + JSON.stringify(options) + ')"></span>' +
+    ' <span style="font-size:.72rem;color:var(--grey-600)">' + statutLabel(statut) + '</span>';
+}
+
+// ---- STATUT DROPDOWN ----
+var _openDD = null;
+function showStatutDD(el, lineId, field, options) {
+  closeStatutDD();
+  var dd = document.createElement('div');
+  dd.className = 'statut-dd';
+  dd.id = 'statut-dd-active';
+  options.forEach(function(opt) {
+    var item = document.createElement('div');
+    item.className = 'statut-dd-item';
+    item.innerHTML = '<span class="pastille ' + pastilleColor(opt) + '" style="cursor:default"></span> ' + statutLabel(opt);
+    item.onclick = function(e) {
+      e.stopPropagation();
+      closeStatutDD();
+      updateStatut(lineId, field, opt);
+    };
+    dd.appendChild(item);
+  });
+  var rect = el.getBoundingClientRect();
+  dd.style.position = 'fixed';
+  dd.style.top = (rect.bottom + 4) + 'px';
+  dd.style.left = rect.left + 'px';
+  document.body.appendChild(dd);
+  _openDD = dd;
+}
+
+function closeStatutDD() {
+  if (_openDD) { _openDD.remove(); _openDD = null; }
+  var existing = document.getElementById('statut-dd-active');
+  if (existing) existing.remove();
+}
+document.addEventListener('click', function() { closeStatutDD(); });
+
+function updateStatut(lineId, field, value) {
+  var payload = { id: lineId };
+  payload[field] = value;
+  apiPost('adminUpdateProductionLine', payload).then(function(res) {
+    if (res.success) {
+      // Mettre à jour localement
+      var line = G.productionLines.find(function(l) { return l.id === lineId; });
+      if (line) line[field] = value;
+      renderProductionClassique();
+      renderProductionAsie();
+      renderACommander();
+      // Recharger les stats
+      apiGet('adminGetProductionStats').then(function(r) {
+        G.productionStats = r.stats || {};
+        renderProductionStats();
+      });
+      toast('Statut mis à jour');
+    } else toast('Erreur', true);
+  });
+}
+
+// ---- CHECKBOXES & BULK ----
+function toggleCheck(id) {
+  if (_prodChecked.has(id)) _prodChecked.delete(id);
+  else _prodChecked.add(id);
+  updateBulkBar();
+}
+
+function toggleAllCheckboxes(type, checked) {
+  var lines = type === 'asie'
+    ? G.productionLines.filter(function(l) { return l.estProduitAsie && l.statutLivraison !== 'livre'; })
+    : G.productionLines.filter(function(l) { return !l.estProduitAsie && l.statutLivraison !== 'livre'; });
+  _prodChecked.clear();
+  if (checked) lines.forEach(function(l) { _prodChecked.add(l.id); });
+  updateBulkBar();
+  if (type === 'asie') renderProductionAsie();
+  else renderProductionClassique();
+}
+
+function updateBulkBar() {
+  var count = _prodChecked.size;
+  var barClassique = document.getElementById('bulk-bar');
+  var barAsie = document.getElementById('bulk-bar-asie');
+  if (_activeProdTab === 'classique') {
+    barClassique.className = count > 0 ? 'bulk-bar show' : 'bulk-bar';
+    barAsie.className = 'bulk-bar';
+    document.getElementById('bulk-count').textContent = count;
+  } else if (_activeProdTab === 'asie') {
+    barAsie.className = count > 0 ? 'bulk-bar show' : 'bulk-bar';
+    barClassique.className = 'bulk-bar';
+    document.getElementById('bulk-count-asie').textContent = count;
+  } else {
+    barClassique.className = 'bulk-bar';
+    barAsie.className = 'bulk-bar';
+  }
+}
+
+function bulkAction(field, value) {
+  if (!_prodChecked.size) return;
+  var ids = Array.from(_prodChecked);
+  var update = {};
+  update[field] = value;
+  apiPost('adminBulkUpdateProductionLines', { ids: ids, update: update }).then(function(res) {
+    if (res.success) {
+      ids.forEach(function(id) {
+        var line = G.productionLines.find(function(l) { return l.id === id; });
+        if (line) line[field] = value;
+      });
+      _prodChecked.clear();
+      updateBulkBar();
+      renderProductionClassique();
+      renderProductionAsie();
+      renderACommander();
+      apiGet('adminGetProductionStats').then(function(r) {
+        G.productionStats = r.stats || {};
+        renderProductionStats();
+      });
+      toast(ids.length + ' lignes mises à jour');
+    } else toast('Erreur', true);
+  });
+}
+
+// ---- FILTER HELPERS ----
+function filterByStatKey(lines) {
+  if (!_activeStatFilter) return lines;
+  return lines.filter(function(l) {
+    switch (_activeStatFilter) {
+      case 'textileACommander': return !l.estProduitAsie && l.statutTextile === 'a_commander';
+      case 'dtfACommander': return !l.estProduitAsie && l.statutDtf === 'a_commander';
+      case 'textileAVerifier': return !l.estProduitAsie && l.statutTextile === 'recu';
+      case 'dtfAVerifier': return !l.estProduitAsie && l.statutDtf === 'recu';
+      case 'aProduire': return !l.estProduitAsie && l.statutTextile === 'verifie' && l.statutDtf === 'verifie' && l.statutProduction === 'a_produire';
+      case 'aLivrer': return l.statutLivraison === 'a_livrer' && (l.estProduitAsie ? l.statutAsie === 'verifie' : l.statutProduction === 'termine');
+      case 'asieEnAttente': return l.estProduitAsie && l.statutAsie !== 'verifie' && l.statutLivraison !== 'livre';
+      default: return true;
+    }
+  });
+}
+
+// ---- RENDER CLASSIQUE ----
+function renderProductionClassique() {
+  var lines = G.productionLines.filter(function(l) { return !l.estProduitAsie; });
+  lines = filterByStatKey(lines);
+  // Search filter
+  if (_searchProd) {
+    var q = _searchProd.toLowerCase();
+    lines = lines.filter(function(l) {
+      return (l.produitNom || '').toLowerCase().includes(q) || (l.clubNom || '').toLowerCase().includes(q);
+    });
+  }
+  if (_filterProdClub) {
+    lines = lines.filter(function(l) { return l.clubNom === _filterProdClub; });
+  }
+
+  var textileOpts = ['a_commander', 'en_panier', 'commande', 'recu', 'verifie'];
+  var prodOpts = ['a_produire', 'en_cours', 'termine'];
+  var livrOpts = ['a_livrer', 'livre'];
+
+  var html = '';
+  lines.forEach(function(l) {
+    var checked = _prodChecked.has(l.id) ? ' checked' : '';
+    var fourn = l.lienFournisseur ? '<a href="' + l.lienFournisseur + '" target="_blank" class="fournisseur-link" onclick="event.stopPropagation()" title="Ouvrir fournisseur">🔗</a>' : '—';
+    html += '<tr>' +
+      '<td><input type="checkbox" onchange="toggleCheck(\'' + l.id + '\')"' + checked + '></td>' +
+      '<td>' + (l.clubNom || '—') + '</td>' +
+      '<td><strong>' + (l.produitNom || '—') + '</strong></td>' +
+      '<td>' + (l.taille || '—') + '</td>' +
+      '<td><strong>' + l.quantite + '</strong></td>' +
+      '<td style="font-size:.78rem">' + (l.personnalisation || '—') + '</td>' +
+      '<td>' + fourn + '</td>' +
+      '<td>' + pastilleHtml(l.id, 'statutTextile', l.statutTextile, textileOpts) + '</td>' +
+      '<td>' + pastilleHtml(l.id, 'statutDtf', l.statutDtf, textileOpts) + '</td>' +
+      '<td>' + pastilleHtml(l.id, 'statutProduction', l.statutProduction, prodOpts) + '</td>' +
+      '<td>' + pastilleHtml(l.id, 'statutLivraison', l.statutLivraison, livrOpts) + '</td>' +
+      '<td><input class="note-inline" value="' + (l.notes || '').replace(/"/g, '&quot;') + '" onblur="saveNote(\'' + l.id + '\',this.value)" placeholder="..."></td>' +
+      '</tr>';
+  });
+  document.getElementById('production-classique-table').innerHTML = html || '<tr><td colspan="12" style="text-align:center;color:var(--grey-400);padding:2rem">Aucune ligne de production</td></tr>';
+}
+
+// ---- RENDER ASIE ----
+function renderProductionAsie() {
+  var lines = G.productionLines.filter(function(l) { return l.estProduitAsie; });
+  lines = filterByStatKey(lines);
+  if (_searchProdAsie) {
+    var q = _searchProdAsie.toLowerCase();
+    lines = lines.filter(function(l) {
+      return (l.produitNom || '').toLowerCase().includes(q) || (l.clubNom || '').toLowerCase().includes(q);
+    });
+  }
+
+  var asieOpts = ['a_commander', 'en_panier', 'commande', 'recu', 'verifie'];
+  var livrOpts = ['a_livrer', 'livre'];
+
+  var html = '';
+  lines.forEach(function(l) {
+    var checked = _prodChecked.has(l.id) ? ' checked' : '';
+    var fourn = l.lienFournisseur ? '<a href="' + l.lienFournisseur + '" target="_blank" class="fournisseur-link" onclick="event.stopPropagation()" title="Ouvrir fournisseur">🔗</a>' : '—';
+    html += '<tr>' +
+      '<td><input type="checkbox" onchange="toggleCheck(\'' + l.id + '\')"' + checked + '></td>' +
+      '<td>' + (l.clubNom || '—') + '</td>' +
+      '<td><strong>' + (l.produitNom || '—') + '</strong></td>' +
+      '<td>' + (l.taille || '—') + '</td>' +
+      '<td><strong>' + l.quantite + '</strong></td>' +
+      '<td style="font-size:.78rem">' + (l.personnalisation || '—') + '</td>' +
+      '<td>' + fourn + '</td>' +
+      '<td>' + pastilleHtml(l.id, 'statutAsie', l.statutAsie, asieOpts) + '</td>' +
+      '<td>' + pastilleHtml(l.id, 'statutLivraison', l.statutLivraison, livrOpts) + '</td>' +
+      '<td><input class="note-inline" value="' + (l.notes || '').replace(/"/g, '&quot;') + '" onblur="saveNote(\'' + l.id + '\',this.value)" placeholder="..."></td>' +
+      '</tr>';
+  });
+  document.getElementById('production-asie-table').innerHTML = html || '<tr><td colspan="10" style="text-align:center;color:var(--grey-400);padding:2rem">Aucun produit Asie</td></tr>';
+}
+
+// ---- SAVE NOTE ----
+function saveNote(lineId, value) {
+  var line = G.productionLines.find(function(l) { return l.id === lineId; });
+  if (line && line.notes === value) return; // pas de changement
+  apiPost('adminUpdateProductionLine', { id: lineId, notes: value }).then(function(res) {
+    if (res.success && line) line.notes = value;
+  });
+}
+
+// ---- VUE À COMMANDER ----
+function renderACommander() {
+  var container = document.getElementById('acommander-content');
+  if (!container) return;
+
+  // Section Textile : regrouper par lien fournisseur
+  var textileLines = G.productionLines.filter(function(l) {
+    return !l.estProduitAsie && l.statutTextile === 'a_commander';
+  });
+
+  // Section DTF : regrouper par impression
+  var dtfLines = G.productionLines.filter(function(l) {
+    return !l.estProduitAsie && l.statutDtf === 'a_commander';
+  });
+
+  // Section Asie : regrouper par lien fournisseur
+  var asieLines = G.productionLines.filter(function(l) {
+    return l.estProduitAsie && l.statutAsie === 'a_commander';
+  });
+
+  var html = '';
+
+  // === TEXTILE ===
+  html += '<h2 style="font-family:var(--display);font-size:1.1rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin-bottom:1rem">Commande Textile</h2>';
+  if (textileLines.length === 0) {
+    html += '<p style="color:var(--grey-400);margin-bottom:2rem">Aucun textile à commander</p>';
+  } else {
+    var byFourn = {};
+    textileLines.forEach(function(l) {
+      var key = l.lienFournisseur || 'Sans fournisseur';
+      if (!byFourn[key]) byFourn[key] = [];
+      byFourn[key].push(l);
+    });
+    Object.keys(byFourn).forEach(function(fourn) {
+      var items = byFourn[fourn];
+      var ids = items.map(function(l) { return l.id; });
+      html += '<div class="fournisseur-group">';
+      html += '<div class="fournisseur-group-header"><h4>' + (fourn !== 'Sans fournisseur' ? '<a href="' + fourn + '" target="_blank" class="fournisseur-link">🔗 ' + truncUrl(fourn) + '</a>' : 'Sans fournisseur') + '</h4>';
+      html += '<div style="display:flex;gap:.5rem">' +
+        '<button class="btn btn-sm btn-outline" onclick="bulkByIds(' + JSON.stringify(ids) + ',\'statutTextile\',\'en_panier\')">Tout en panier</button>' +
+        '<button class="btn btn-sm btn-primary" onclick="bulkByIds(' + JSON.stringify(ids) + ',\'statutTextile\',\'commande\')">Tout commandé</button>' +
+        '</div></div>';
+      html += '<table><thead><tr><th>Club</th><th>Produit</th><th>Taille</th><th>Qté</th><th>Perso</th><th>Action</th></tr></thead><tbody>';
+      items.forEach(function(l) {
+        html += '<tr><td>' + (l.clubNom || '—') + '</td><td><strong>' + (l.produitNom || '—') + '</strong></td>' +
+          '<td>' + (l.taille || '—') + '</td><td><strong>' + l.quantite + '</strong></td>' +
+          '<td style="font-size:.78rem">' + (l.personnalisation || '—') + '</td>' +
+          '<td><button class="btn btn-sm btn-outline" onclick="updateStatut(\'' + l.id + '\',\'statutTextile\',\'en_panier\')">En panier</button> ' +
+          '<button class="btn btn-sm btn-primary" onclick="updateStatut(\'' + l.id + '\',\'statutTextile\',\'commande\')">Commandé</button></td></tr>';
+      });
+      html += '</tbody></table></div>';
+    });
+  }
+
+  // === DTF ===
+  html += '<h2 style="font-family:var(--display);font-size:1.1rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin:2rem 0 1rem">Commande DTF</h2>';
+  if (dtfLines.length === 0) {
+    html += '<p style="color:var(--grey-400);margin-bottom:2rem">Aucun DTF à commander</p>';
+  } else {
+    var byImpression = {};
+    dtfLines.forEach(function(l) {
+      var key = l.impression || 'Sans impression';
+      if (!byImpression[key]) byImpression[key] = [];
+      byImpression[key].push(l);
+    });
+    Object.keys(byImpression).forEach(function(imp) {
+      var items = byImpression[imp];
+      var ids = items.map(function(l) { return l.id; });
+      html += '<div class="fournisseur-group">';
+      html += '<div class="fournisseur-group-header"><h4>Impression : ' + imp + '</h4>';
+      html += '<div style="display:flex;gap:.5rem">' +
+        '<button class="btn btn-sm btn-outline" onclick="bulkByIds(' + JSON.stringify(ids) + ',\'statutDtf\',\'en_panier\')">Tout en panier</button>' +
+        '<button class="btn btn-sm btn-primary" onclick="bulkByIds(' + JSON.stringify(ids) + ',\'statutDtf\',\'commande\')">Tout commandé</button>' +
+        '</div></div>';
+      html += '<table><thead><tr><th>Club</th><th>Produit</th><th>Taille</th><th>Qté</th><th>Perso</th><th>Action</th></tr></thead><tbody>';
+      items.forEach(function(l) {
+        html += '<tr><td>' + (l.clubNom || '—') + '</td><td><strong>' + (l.produitNom || '—') + '</strong></td>' +
+          '<td>' + (l.taille || '—') + '</td><td><strong>' + l.quantite + '</strong></td>' +
+          '<td style="font-size:.78rem">' + (l.personnalisation || '—') + '</td>' +
+          '<td><button class="btn btn-sm btn-outline" onclick="updateStatut(\'' + l.id + '\',\'statutDtf\',\'en_panier\')">En panier</button> ' +
+          '<button class="btn btn-sm btn-primary" onclick="updateStatut(\'' + l.id + '\',\'statutDtf\',\'commande\')">Commandé</button></td></tr>';
+      });
+      html += '</tbody></table></div>';
+    });
+  }
+
+  // === ASIE ===
+  if (asieLines.length > 0) {
+    html += '<h2 style="font-family:var(--display);font-size:1.1rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin:2rem 0 1rem">Commande Asie</h2>';
+    var byFournAsie = {};
+    asieLines.forEach(function(l) {
+      var key = l.lienFournisseur || 'Sans fournisseur';
+      if (!byFournAsie[key]) byFournAsie[key] = [];
+      byFournAsie[key].push(l);
+    });
+    Object.keys(byFournAsie).forEach(function(fourn) {
+      var items = byFournAsie[fourn];
+      var ids = items.map(function(l) { return l.id; });
+      html += '<div class="fournisseur-group">';
+      html += '<div class="fournisseur-group-header"><h4>' + (fourn !== 'Sans fournisseur' ? '<a href="' + fourn + '" target="_blank" class="fournisseur-link">🔗 ' + truncUrl(fourn) + '</a>' : 'Sans fournisseur') + '</h4>';
+      html += '<div style="display:flex;gap:.5rem">' +
+        '<button class="btn btn-sm btn-outline" onclick="bulkByIds(' + JSON.stringify(ids) + ',\'statutAsie\',\'en_panier\')">Tout en panier</button>' +
+        '<button class="btn btn-sm btn-primary" onclick="bulkByIds(' + JSON.stringify(ids) + ',\'statutAsie\',\'commande\')">Tout commandé</button>' +
+        '</div></div>';
+      html += '<table><thead><tr><th>Club</th><th>Produit</th><th>Taille</th><th>Qté</th><th>Perso</th><th>Action</th></tr></thead><tbody>';
+      items.forEach(function(l) {
+        html += '<tr><td>' + (l.clubNom || '—') + '</td><td><strong>' + (l.produitNom || '—') + '</strong></td>' +
+          '<td>' + (l.taille || '—') + '</td><td><strong>' + l.quantite + '</strong></td>' +
+          '<td style="font-size:.78rem">' + (l.personnalisation || '—') + '</td>' +
+          '<td><button class="btn btn-sm btn-outline" onclick="updateStatut(\'' + l.id + '\',\'statutAsie\',\'en_panier\')">En panier</button> ' +
+          '<button class="btn btn-sm btn-primary" onclick="updateStatut(\'' + l.id + '\',\'statutAsie\',\'commande\')">Commandé</button></td></tr>';
+      });
+      html += '</tbody></table></div>';
+    });
+  }
+
+  container.innerHTML = html;
+}
+
+function truncUrl(url) {
+  try {
+    var u = new URL(url);
+    return u.hostname + (u.pathname.length > 30 ? u.pathname.slice(0, 30) + '...' : u.pathname);
+  } catch(e) { return url.length > 40 ? url.slice(0, 40) + '...' : url; }
+}
+
+function bulkByIds(ids, field, value) {
+  var update = {};
+  update[field] = value;
+  apiPost('adminBulkUpdateProductionLines', { ids: ids, update: update }).then(function(res) {
+    if (res.success) {
+      ids.forEach(function(id) {
+        var line = G.productionLines.find(function(l) { return l.id === id; });
+        if (line) line[field] = value;
+      });
+      renderProductionClassique();
+      renderProductionAsie();
+      renderACommander();
+      apiGet('adminGetProductionStats').then(function(r) {
+        G.productionStats = r.stats || {};
+        renderProductionStats();
+      });
+      toast(ids.length + ' lignes mises à jour');
+    } else toast('Erreur', true);
+  });
+}
+
+// ---- VUE PAR COMMANDE (dans le detail commande) ----
+function loadProductionForOrder(commandeId) {
+  apiGet('adminGetProductionForOrder', { commandeId: commandeId }).then(function(res) {
+    var container = document.getElementById('production-order-detail');
+    if (!container) return;
+    var lines = res.productionLines || [];
+    var progress = res.progress || { done: 0, total: 0, percent: 0 };
+
+    if (!lines.length) {
+      container.innerHTML = '<em style="color:var(--grey-400);font-size:.8rem">Aucune ligne de production</em>';
+      return;
+    }
+
+    var html = '<div style="margin-bottom:1rem"><strong>' + progress.done + '/' + progress.total + ' articles terminés (' + progress.percent + '%)</strong>' +
+      '<div class="progress-bar"><div class="progress-fill" style="width:' + progress.percent + '%"></div></div></div>';
+
+    var textileOpts = ['a_commander', 'en_panier', 'commande', 'recu', 'verifie'];
+    var prodOpts = ['a_produire', 'en_cours', 'termine'];
+    var livrOpts = ['a_livrer', 'livre'];
+
+    html += '<table style="font-size:.85rem"><thead><tr><th>Produit</th><th>Taille</th><th>Qté cmd</th><th>Qté totale</th><th>Perso</th>';
+    // Colonnes selon type
+    var hasClassique = lines.some(function(l) { return !l.estProduitAsie; });
+    var hasAsie = lines.some(function(l) { return l.estProduitAsie; });
+    if (hasClassique) html += '<th>Textile</th><th>DTF</th><th>Prod</th>';
+    if (hasAsie) html += '<th>Asie</th>';
+    html += '<th>Livraison</th></tr></thead><tbody>';
+
+    lines.forEach(function(l) {
+      html += '<tr><td><strong>' + (l.produitNom || '—') + '</strong></td>' +
+        '<td>' + (l.taille || '—') + '</td>' +
+        '<td>' + l.quantiteCommande + '</td>' +
+        '<td>' + l.quantite + '</td>' +
+        '<td style="font-size:.78rem">' + (l.personnalisation || '—') + '</td>';
+      if (hasClassique) {
+        if (!l.estProduitAsie) {
+          html += '<td>' + pastilleHtml(l.id, 'statutTextile', l.statutTextile, textileOpts) + '</td>' +
+            '<td>' + pastilleHtml(l.id, 'statutDtf', l.statutDtf, textileOpts) + '</td>' +
+            '<td>' + pastilleHtml(l.id, 'statutProduction', l.statutProduction, prodOpts) + '</td>';
+        } else {
+          html += '<td>—</td><td>—</td><td>—</td>';
+        }
+      }
+      if (hasAsie) {
+        html += '<td>' + (l.estProduitAsie ? pastilleHtml(l.id, 'statutAsie', l.statutAsie, textileOpts) : '—') + '</td>';
+      }
+      html += '<td>' + pastilleHtml(l.id, 'statutLivraison', l.statutLivraison, livrOpts) + '</td></tr>';
+    });
+    html += '</tbody></table>';
+    container.innerHTML = html;
   });
 }
 </script>
