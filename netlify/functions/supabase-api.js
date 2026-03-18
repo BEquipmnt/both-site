@@ -360,11 +360,14 @@ async function createLignes(payload) {
     const commandes = await sbGet('commandes', `select=club_id&id=eq.${commandeId}`);
     const clubId = commandes.length ? commandes[0].club_id : null;
 
-    // Créer les lignes de production automatiquement (non bloquant)
+    // Créer les lignes de production automatiquement
+    // IMPORTANT: on attend la fin — sinon Lambda coupe l'exécution avant la fin
     if (clubId) {
-      createProductionLines(commandeId, results, clubId).catch(err =>
-        console.error('Production lines auto-creation error:', err)
-      );
+      try {
+        await createProductionLines(commandeId, results, clubId);
+      } catch (err) {
+        console.error('Production lines auto-creation error:', err);
+      }
     }
 
     return { success: true, created: results.length };
