@@ -126,6 +126,7 @@ CREATE TABLE production_lines (
   -- Livraison (tous les produits)
   statut_livraison    text DEFAULT 'a_livrer',     -- a_livrer, livre
 
+  fournisseur         text DEFAULT '',             -- où le produit a réellement été acheté
   notes               text DEFAULT '',
   date_creation       timestamptz DEFAULT now(),
   date_modification   timestamptz DEFAULT now()
