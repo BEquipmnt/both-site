@@ -725,11 +725,17 @@ function msOpenDD() {
   if (dd) dd.classList.add('open');
 }
 function msCloseDD() {
-  setTimeout(function() {
-    var dd = document.querySelector('#ms-tailles .ms-dd');
-    if (dd) dd.classList.remove('open');
-  }, 200);
+  // Ne ferme que si le clic est en dehors du composant
+  // Géré par le listener document click ci-dessous
 }
+document.addEventListener('click', function(e) {
+  var wrap = document.getElementById('ms-tailles');
+  if (!wrap) return;
+  var dd = wrap.querySelector('.ms-dd');
+  if (!dd) return;
+  if (wrap.contains(e.target)) return;
+  dd.classList.remove('open');
+});
 
 function buildTaillesHtml(selected) {
   _msTailles = selected || [];
@@ -738,13 +744,13 @@ function buildTaillesHtml(selected) {
     ddHtml += '<div class="ms-dd-cat">' + cat.label + ' <button type="button" onclick="msSelectCat(\'' + cat.label + '\')">Tout</button></div>';
     cat.items.forEach(function(t) {
       var sel = _msTailles.indexOf(t) >= 0 ? ' selected' : '';
-      ddHtml += '<div class="ms-dd-item' + sel + '" data-val="' + t + '" onmousedown="msToggle(\'' + t + '\')">' + t + '</div>';
+      ddHtml += '<div class="ms-dd-item' + sel + '" data-val="' + t + '" onclick="msToggle(\'' + t + '\')">' + t + '</div>';
     });
   });
   return '<div class="ms-wrap" id="ms-tailles">' +
-    '<div class="ms-tags" onclick="this.querySelector(\'.ms-input\').focus()">' +
+    '<div class="ms-tags" onclick="this.querySelector(\'.ms-input\').focus();msOpenDD()">' +
     _msTailles.map(function(t) { return '<span class="tag">' + t + ' <span class="tag-x" onclick="msRemove(\'' + t + '\')">&times;</span></span>'; }).join('') +
-    '<input class="ms-input" placeholder="Ajouter..." oninput="msFilter(this.value)" onfocus="msOpenDD()" onblur="msCloseDD()">' +
+    '<input class="ms-input" placeholder="Ajouter..." oninput="msFilter(this.value)" onfocus="msOpenDD()">' +
     '</div>' +
     '<div class="ms-dd">' + ddHtml + '</div>' +
     '</div>';
@@ -886,7 +892,8 @@ function openProduitModal(id, templateData) {
   clubNames.forEach(function(c) { clubOptions += '<option' + (p && p.club === c ? ' selected' : '') + '>' + c + '</option>'; });
 
   function sel(field, opts, val) {
-    return '<select id="f-' + field + '">' + opts.map(function(o) { return '<option' + (val === o ? ' selected' : '') + '>' + o + '</option>'; }).join('') + '</select>';
+    return '<input id="f-' + field + '" list="dl-' + field + '" value="' + (val || '').replace(/"/g, '&quot;') + '">' +
+      '<datalist id="dl-' + field + '">' + opts.filter(Boolean).map(function(o) { return '<option value="' + o + '">'; }).join('') + '</datalist>';
   }
 
   var ht = p ? (parseFloat(p.prix_ht_textile) || 0) : 0;
