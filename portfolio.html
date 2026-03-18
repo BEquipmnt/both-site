@@ -150,7 +150,8 @@ const API = "/.netlify/functions/notion-api";
 
 async function loadPortfolio() {
   try {
-    const res = await fetch(API + '?action=getPortfolio&all=true');
+    let res = await fetch('/_data/portfolio.json');
+    if(!res.ok) res = await fetch(API + '?action=getPortfolio&all=true');
     const data = await res.json();
     
     if (!data.projects || data.projects.length === 0) {

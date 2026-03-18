@@ -1,4 +1,6 @@
 [build]
+  command = "node build-notion.js"
+  publish = "."
   functions = "netlify/functions"
 
 [functions]

@@ -279,6 +279,7 @@ th[onclick]:hover{color:var(--yellow)}
     </div>
     <div class="sidebar-bottom">
       <a href="javascript:void(0)" onclick="loadAll();toast('Données rafraîchies')" style="display:block;margin-bottom:.5rem">🔄 Rafraîchir</a>
+      <a href="javascript:void(0)" onclick="triggerRebuild()" style="display:block;margin-bottom:.5rem" id="btn-rebuild">🔨 Régénérer le site</a>
       <a href="/vestiaire.html">← Vestiaire</a>
     </div>
   </nav>
@@ -641,6 +642,36 @@ function apiPost(action, body) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(Object.assign({ action: action }, body || {}))
   }).then(function(r) { return r.json(); });
+}
+
+// ============================================================
+// REBUILD SITE (Netlify Build Hook)
+// ============================================================
+var NETLIFY_BUILD_HOOK = ''; // À configurer dans Netlify: Settings > Build hooks > Create hook
+function triggerRebuild() {
+  if(!NETLIFY_BUILD_HOOK) {
+    toast('⚠ Build hook non configuré. Ajoutez NETLIFY_BUILD_HOOK dans admin.html');
+    return;
+  }
+  var btn = document.getElementById('btn-rebuild');
+  btn.style.opacity = '0.5';
+  btn.style.pointerEvents = 'none';
+  btn.textContent = '⏳ Régénération...';
+  fetch(NETLIFY_BUILD_HOOK, { method: 'POST' })
+    .then(function() {
+      toast('✅ Régénération lancée ! Le site sera à jour dans ~30 secondes.');
+      setTimeout(function() {
+        btn.style.opacity = '1';
+        btn.style.pointerEvents = 'auto';
+        btn.textContent = '🔨 Régénérer le site';
+      }, 30000);
+    })
+    .catch(function() {
+      toast('❌ Erreur lors du déclenchement du rebuild.');
+      btn.style.opacity = '1';
+      btn.style.pointerEvents = 'auto';
+      btn.textContent = '🔨 Régénérer le site';
+    });
 }
 
 // ============================================================

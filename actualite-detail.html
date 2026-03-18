@@ -149,7 +149,8 @@ async function loadArticle() {
       return;
     }
     
-    const res = await fetch(API + '?action=getNews&id=' + encodeURIComponent(id));
+    let res = await fetch('/_data/news-' + id + '.json');
+    if(!res.ok) res = await fetch(API + '?action=getNews&id=' + encodeURIComponent(id));
     const data = await res.json();
     
     if (!data.news) {
