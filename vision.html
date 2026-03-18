@@ -375,7 +375,8 @@ function mergeListItems(html) {
 
 (function loadVision() {
   var container = document.getElementById('vision-content');
-  fetch(NOTION_API + '?action=getVision')
+  fetch('/_data/vision.json')
+    .then(function(r) { if(!r.ok) return fetch(NOTION_API + '?action=getVision'); return r; })
     .then(function(r) { return r.json(); })
     .then(function(data) {
       if(!data.vision || !data.vision.blocks || !data.vision.blocks.length) {

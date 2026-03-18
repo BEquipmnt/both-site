@@ -409,7 +409,8 @@ async function loadProject() {
       return;
     }
 
-    var res = await fetch(API + '?action=getProjectBlocks&id=' + encodeURIComponent(id));
+    var res = await fetch('/_data/project-' + id + '.json');
+    if(!res.ok) res = await fetch(API + '?action=getProjectBlocks&id=' + encodeURIComponent(id));
     var data = await res.json();
 
     if (!data.project) {

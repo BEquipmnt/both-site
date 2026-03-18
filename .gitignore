@@ -1,0 +1,4 @@
+_data/
+node_modules/
+.env
+.netlify/

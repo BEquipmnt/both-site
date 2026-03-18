@@ -261,7 +261,8 @@ loadSavedTheme();
 async function loadAllNews(){
   const grid = document.getElementById('news-grid');
   try {
-    const res = await fetch(API + '?action=getNews');
+    let res = await fetch('/_data/news.json');
+    if(!res.ok) res = await fetch(API + '?action=getNews');
     const data = await res.json();
     const news = data.news || [];
     

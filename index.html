@@ -779,10 +779,11 @@ function scrollTop(){ window.scrollTo({ top:0, behavior:'smooth' }); }
 // PUBLIC CONTENT — News, Portfolio, Partners
 // ============================================================
 async function loadVision(){
-  // Charge les premiers paragraphes depuis Notion pour le teaser accueil
+  // Charge les premiers paragraphes (pré-rendus ou fallback Notion)
   const body = document.getElementById('vision-body');
   try {
-    const res = await fetch(NOTION_API + '?action=getVision');
+    let res = await fetch('/_data/vision.json');
+    if(!res.ok) res = await fetch(NOTION_API + '?action=getVision');
     const data = await res.json();
     if(!data.vision || !data.vision.blocks || !data.vision.blocks.length) return;
     // On prend seulement les paragraphes du début (avant le premier heading)
@@ -800,7 +801,8 @@ async function loadVision(){
 async function loadPortfolio(){
   const grid = document.getElementById('portfolio-preview');
   try {
-    const res = await fetch(NOTION_API + '?action=getPortfolio');
+    let res = await fetch('/_data/portfolio-featured.json');
+    if(!res.ok) res = await fetch(NOTION_API + '?action=getPortfolio');
     const data = await res.json();
     S.portfolio = data.projects || [];
     
@@ -830,7 +832,8 @@ async function loadPortfolio(){
 async function loadPartners(){
   const grid = document.getElementById('partners-grid');
   try {
-    const res = await fetch(NOTION_API + '?action=getPartners');
+    let res = await fetch('/_data/partners.json');
+    if(!res.ok) res = await fetch(NOTION_API + '?action=getPartners');
     const data = await res.json();
     S.partners = data.partners || [];
     
