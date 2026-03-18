@@ -647,7 +647,7 @@ function apiPost(action, body) {
 // ============================================================
 // REBUILD SITE (Netlify Build Hook)
 // ============================================================
-var NETLIFY_BUILD_HOOK = ''; // À configurer dans Netlify: Settings > Build hooks > Create hook
+var NETLIFY_BUILD_HOOK = 'https://api.netlify.com/build_hooks/69baec814f9a1a3e26986579';
 function triggerRebuild() {
   if(!NETLIFY_BUILD_HOOK) {
     toast('⚠ Build hook non configuré. Ajoutez NETLIFY_BUILD_HOOK dans admin.html');
