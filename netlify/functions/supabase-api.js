@@ -612,8 +612,35 @@ async function adminUpdateOrder(payload) {
 
 async function adminDeleteOrder(payload) {
   try {
-    // Les lignes sont supprimées en cascade (ON DELETE CASCADE)
+    // 1. Récupérer les production_lines liées à cette commande
+    const liaisons = await sbGet('production_lines_commandes',
+      `select=production_line_id,quantite&commande_id=eq.${payload.id}`
+    );
+
+    // 2. Supprimer la commande (cascade supprime lignes, suivi_production, production_lines_commandes)
     await sbDelete('commandes', `id=eq.${payload.id}`);
+
+    // 3. Pour chaque production_line liée : décrémenter la quantité ou supprimer si plus rien
+    for (const liaison of liaisons) {
+      const plId = liaison.production_line_id;
+      if (!plId) continue;
+      // Vérifier si la production_line existe encore et combien de liaisons restent
+      const remaining = await sbGet('production_lines_commandes',
+        `select=quantite&production_line_id=eq.${plId}`
+      );
+      if (remaining.length === 0) {
+        // Plus aucune commande liée → supprimer la ligne de production
+        await sbDelete('production_lines', `id=eq.${plId}`);
+      } else {
+        // Recalculer la quantité totale depuis les liaisons restantes
+        const newQty = remaining.reduce((s, r) => s + (r.quantite || 0), 0);
+        await sbPatch('production_lines', `id=eq.${plId}`, {
+          quantite: newQty,
+          date_modification: new Date().toISOString()
+        });
+      }
+    }
+
     return { success: true };
   } catch (error) {
     return { success: false, error: error.message };
@@ -681,11 +708,13 @@ async function createProductionLines(commandeId, lignes, clubId) {
   try {
     // Récupérer les infos produits pour savoir lesquels sont Asie
     const produitIds = [...new Set(lignes.map(l => l.produit_id).filter(Boolean))];
-    if (!produitIds.length) return;
+    console.log('[PROD_LINES] commandeId:', commandeId, 'lignes:', lignes.length, 'produitIds:', produitIds.length);
+    if (!produitIds.length) { console.log('[PROD_LINES] Aucun produit_id trouvé, abandon'); return; }
 
     const produits = await sbGet('produits',
       `select=id,produit_asie,lien_fournisseur,impression&id=in.(${produitIds.join(',')})`
     );
+    console.log('[PROD_LINES] Produits trouvés:', produits.length, 'sur', produitIds.length, 'demandés');
     const produitsMap = {};
     produits.forEach(p => { produitsMap[p.id] = p; });
 

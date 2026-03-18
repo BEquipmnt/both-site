@@ -719,6 +719,28 @@ let _orderSubmitting = false;
 function toast(msg, dur=2800){ const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),dur); }
 function fmt(n){ return n.toFixed(2).replace('.',',')+' €'; }
 
+// Persistence helpers
+function saveSession(){ if(S.club) sessionStorage.setItem('vest_email', S.club.email || ''); }
+function clearSession(){ sessionStorage.removeItem('vest_email'); }
+function saveCart(){ localStorage.setItem('vest_cart', JSON.stringify(S.cart)); }
+function loadSavedCart(){ try{ const c=JSON.parse(localStorage.getItem('vest_cart')||'[]'); if(Array.isArray(c)) S.cart=c; }catch(e){} }
+function clearSavedCart(){ localStorage.removeItem('vest_cart'); }
+
+// Auto-login on page load
+(async function autoLogin(){
+  const email = sessionStorage.getItem('vest_email');
+  if(!email) return;
+  try{
+    const res = await apiGet('getClub', {email});
+    if(!res.club) { clearSession(); return; }
+    S.club = res.club;
+    if(S.club.admin){ window.location.href='/admin.html'; return; }
+    loadSavedCart();
+    document.getElementById('login-screen').style.display='none';
+    openPortal();
+  }catch(e){ clearSession(); }
+})();
+
 async function apiGet(action, params={}){
   const url=API+'?'+new URLSearchParams({action,...params});
   const res=await fetch(url); if(!res.ok) throw new Error('Erreur '+res.status);
@@ -742,7 +764,9 @@ async function loginClub(){
     const res=await apiGet('getClub',{email});
     if(!res.club){errEl.textContent='Aucun club trouvé avec cet email.';btn.disabled=false;btn.textContent='Accéder au Vestiaire';return;}
     S.club=res.club; btn.disabled=false; btn.textContent='Accéder au Vestiaire';
+    saveSession();
     if(S.club.admin){window.location.href='/admin.html';return;}
+    loadSavedCart();
     document.getElementById('login-screen').style.display='none';
     openPortal();
   }catch(e){console.error(e);errEl.textContent='Erreur de connexion. Réessayez.';btn.disabled=false;btn.textContent='Accéder au Vestiaire';}
@@ -763,7 +787,9 @@ async function openPortal(){
 function closePortal(){
   document.getElementById('portal').classList.remove('active');
   document.getElementById('login-screen').style.display='';
+  clearSession();
   S.club=null; S.cart=[]; updateCartUI();
+  // Note: on ne supprime PAS le panier (localStorage) — il sera restauré au prochain login
 }
 
 // CATALOGUE
@@ -1032,6 +1058,7 @@ function addToCart(){
 function removeFromCart(i){S.cart.splice(i,1);updateCartUI();}
 
 function updateCartUI(){
+  saveCart();
   const wrap=document.getElementById('cart-items-wrap');
   const totalArticles=S.cart.reduce((s,i)=>s+i.quantite,0);
   const sousTotal=S.cart.reduce((s,i)=>s+(i.prix*i.quantite),0);
@@ -1081,7 +1108,7 @@ async function validateOrder(){
   const nbArticles=S.cart.reduce((s,i)=>s+i.quantite,0);
   // Confirmation immédiate — l'envoi continue en arrière-plan
   showOrderConfirmation(orderRef,cartSnapshot,sousTotal,fraisLiv);
-  S.cart=[];updateCartUI();toggleCart();
+  S.cart=[];clearSavedCart();updateCartUI();toggleCart();
   // Envoi en arrière-plan : 2 étapes (commande puis lignes en chunks)
   (async()=>{
     try{
