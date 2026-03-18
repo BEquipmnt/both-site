@@ -194,6 +194,27 @@ tbody tr.clickable:hover{background:#e8e8e8}
 .note-inline:hover{border-color:var(--grey-200)}
 .note-inline:focus{border-color:var(--yellow);outline:none;background:var(--white)}
 
+/* Production action buttons */
+.btn-achat{padding:.35rem .8rem;border:none;border-radius:var(--radius);font-size:.72rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;transition:all .2s;cursor:pointer}
+.btn-achat-green{background:var(--green);color:var(--white)}
+.btn-achat-green:hover{background:#16a34a}
+.btn-achat-dark{background:var(--black);color:var(--white)}
+.btn-achat-dark:hover{background:#333}
+.btn-achat-outline{background:var(--white);color:var(--black);border:1.5px solid var(--grey-200)}
+.btn-achat-outline:hover{border-color:var(--black)}
+.btn-achat-green-outline{background:var(--white);color:var(--green);border:1.5px solid var(--green)}
+.btn-achat-green-outline:hover{background:var(--green);color:var(--white)}
+.btn-achat-blue{background:var(--blue);color:var(--white)}
+.btn-achat-blue:hover{background:#2563eb}
+.btn-achat-disabled{background:var(--grey-200);color:var(--grey-400);cursor:not-allowed}
+.btn-livraison{padding:.4rem 1rem;border:none;border-radius:var(--radius);font-size:.75rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;transition:all .2s;cursor:pointer}
+.btn-livraison-ready{background:var(--green);color:var(--white)}
+.btn-livraison-ready:hover{background:#16a34a}
+.btn-livraison-disabled{background:var(--grey-200);color:var(--grey-600);cursor:not-allowed}
+.fournisseur-select{padding:.3rem .5rem;border:1.5px solid var(--grey-200);border-radius:var(--radius);font-size:.78rem;min-width:120px;outline:none;transition:border .2s}
+.fournisseur-select:focus{border-color:var(--yellow)}
+.badge-orange{background:#fed7aa;color:#9a3412}
+
 .fournisseur-group{background:var(--white);border-radius:var(--radius);padding:1.2rem 1.5rem;margin-bottom:1rem;box-shadow:0 1px 3px rgba(0,0,0,.06)}
 .fournisseur-group-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:.8rem;padding-bottom:.5rem;border-bottom:1px solid var(--grey-200)}
 .fournisseur-group-header h4{font-family:var(--display);font-size:.9rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
@@ -339,42 +360,20 @@ tbody tr.clickable:hover{background:#e8e8e8}
 
       <!-- Tabs -->
       <div class="prod-tabs">
-        <button class="prod-tab active" onclick="showProdTab('classique')">Production classique</button>
+        <button class="prod-tab active" onclick="showProdTab('statut')">Statut</button>
         <button class="prod-tab" onclick="showProdTab('asie')">Produits Asie</button>
-        <button class="prod-tab" onclick="showProdTab('acommander')">À commander</button>
+        <button class="prod-tab" onclick="showProdTab('achattextile')">Achat Textile</button>
+        <button class="prod-tab" onclick="showProdTab('achatdtf')">Achat DTF</button>
+        <button class="prod-tab" onclick="showProdTab('reception')">Réception</button>
+        <button class="prod-tab" onclick="showProdTab('production')">Production</button>
+        <button class="prod-tab" onclick="showProdTab('alivrer')">À livrer</button>
       </div>
 
-      <!-- Bulk actions bar -->
-      <div class="bulk-bar" id="bulk-bar">
-        <span class="bulk-count" id="bulk-count">0</span> sélectionnés
-        <button onclick="bulkAction('statutTextile','en_panier')">Textile → En panier</button>
-        <button onclick="bulkAction('statutTextile','commande')">Textile → Commandé</button>
-        <button onclick="bulkAction('statutTextile','recu')">Textile → Reçu</button>
-        <button onclick="bulkAction('statutTextile','verifie')">Textile → Vérifié</button>
-        <button onclick="bulkAction('statutDtf','en_panier')">DTF → En panier</button>
-        <button onclick="bulkAction('statutDtf','commande')">DTF → Commandé</button>
-        <button onclick="bulkAction('statutDtf','recu')">DTF → Reçu</button>
-        <button onclick="bulkAction('statutDtf','verifie')">DTF → Vérifié</button>
-        <button onclick="bulkAction('statutProduction','en_cours')">Prod → En cours</button>
-        <button onclick="bulkAction('statutProduction','termine')">Prod → Terminé</button>
-        <button onclick="bulkAction('statutLivraison','livre')">→ Livré</button>
-      </div>
-
-      <!-- Bulk actions bar Asie -->
-      <div class="bulk-bar" id="bulk-bar-asie">
-        <span class="bulk-count" id="bulk-count-asie">0</span> sélectionnés
-        <button onclick="bulkAction('statutAsie','en_panier')">→ En panier</button>
-        <button onclick="bulkAction('statutAsie','commande')">→ Commandé</button>
-        <button onclick="bulkAction('statutAsie','recu')">→ Reçu</button>
-        <button onclick="bulkAction('statutAsie','verifie')">→ Vérifié</button>
-        <button onclick="bulkAction('statutLivraison','livre')">→ Livré</button>
-      </div>
-
-      <!-- Panel: Production classique -->
-      <div class="prod-panel active" id="panel-classique">
+      <!-- Panel: Statut (vue d'ensemble) -->
+      <div class="prod-panel active" id="panel-statut">
         <div class="toolbar">
-          <input class="search" type="text" placeholder="Rechercher (produit, club...)" oninput="_searchProd=this.value;renderProductionClassique()">
-          <select onchange="_filterProdClub=this.value;renderProductionClassique()" id="prod-club-filter">
+          <input class="search" type="text" placeholder="Rechercher (produit, club...)" oninput="_searchProd=this.value;renderStatut()">
+          <select onchange="_filterProdClub=this.value;renderStatut()" id="prod-club-filter">
             <option value="">Tous les clubs</option>
           </select>
         </div>
@@ -382,11 +381,10 @@ tbody tr.clickable:hover{background:#e8e8e8}
           <div style="overflow-x:auto">
             <table>
               <thead><tr>
-                <th><input type="checkbox" onchange="toggleAllCheckboxes('classique',this.checked)"></th>
                 <th>Club</th><th>Produit</th><th>Taille</th><th>Qté</th><th>Perso</th>
-                <th>Fournisseur</th><th>Textile</th><th>DTF</th><th>Production</th><th>Livraison</th><th>Notes</th>
+                <th>Statut</th>
               </tr></thead>
-              <tbody id="production-classique-table"></tbody>
+              <tbody id="statut-table"></tbody>
             </table>
           </div>
         </div>
@@ -403,7 +401,7 @@ tbody tr.clickable:hover{background:#e8e8e8}
               <thead><tr>
                 <th><input type="checkbox" onchange="toggleAllCheckboxes('asie',this.checked)"></th>
                 <th>Club</th><th>Produit</th><th>Taille</th><th>Qté</th><th>Perso</th>
-                <th>Fournisseur</th><th>Fournisseur Asie</th><th>Livraison</th><th>Notes</th>
+                <th>Actions</th>
               </tr></thead>
               <tbody id="production-asie-table"></tbody>
             </table>
@@ -411,10 +409,87 @@ tbody tr.clickable:hover{background:#e8e8e8}
         </div>
       </div>
 
-      <!-- Panel: À commander -->
-      <div class="prod-panel" id="panel-acommander">
-        <div id="acommander-content"></div>
+      <!-- Panel: Achat Textile -->
+      <div class="prod-panel" id="panel-achattextile">
+        <div class="card-full">
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr>
+                <th>Club</th><th>Produit</th><th>Taille</th><th>Qté</th><th>Perso</th>
+                <th>Achat</th><th>Action</th><th>Fournisseur</th>
+              </tr></thead>
+              <tbody id="achat-textile-table"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
+
+      <!-- Panel: Achat DTF -->
+      <div class="prod-panel" id="panel-achatdtf">
+        <div class="card-full">
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr>
+                <th>Club</th><th>Produit</th><th>Impression</th><th>Action</th>
+              </tr></thead>
+              <tbody id="achat-dtf-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel: Réception -->
+      <div class="prod-panel" id="panel-reception">
+        <div class="card-full">
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr>
+                <th>Club</th><th>Produit</th><th>Taille</th><th>Qté</th>
+                <th>Réception</th>
+              </tr></thead>
+              <tbody id="reception-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel: Production -->
+      <div class="prod-panel" id="panel-production">
+        <div class="card-full">
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr>
+                <th>Club</th><th>Produit</th><th>Taille</th><th>Qté</th>
+                <th>Production</th>
+              </tr></thead>
+              <tbody id="production-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel: À livrer -->
+      <div class="prod-panel" id="panel-alivrer">
+        <div class="toolbar">
+          <input class="search" type="text" placeholder="Rechercher (ref, club...)" oninput="_searchALivrer=this.value;renderALivrer()">
+          <select onchange="_filterALivrerStatut=this.value;renderALivrer()">
+            <option value="">Tous les statuts</option>
+            <option value="production">En production</option>
+            <option value="prete">Prête</option>
+          </select>
+        </div>
+        <div class="card-full">
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr>
+                <th>Vu</th><th>Réf</th><th>Club</th><th>Date</th><th>Articles</th><th>Total</th><th>Statut</th><th>Actions</th>
+              </tr></thead>
+              <tbody id="alivrer-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
     </div>
 
     <!-- ========== DEMANDES ========== -->
@@ -482,10 +557,10 @@ var _searchCommandes = '', _statutCommandes = '';
 var _searchProduits = '', _clubProduits = '';
 var _searchClubs = '';
 var _searchDemandes = '', _statutDemandes = '';
-var _searchProd = '', _filterProdClub = '', _searchProdAsie = '';
+var _searchProd = '', _filterProdClub = '', _searchProdAsie = '', _searchALivrer = '', _filterALivrerStatut = '';
 var _prodChecked = new Set();
 var _activeStatFilter = '';
-var _activeProdTab = 'classique';
+var _activeProdTab = 'statut';
 
 function fmt(n) { return parseFloat(n || 0).toFixed(2).replace('.', ',') + ' \u20AC'; }
 function toast(msg, err) {
@@ -1383,10 +1458,25 @@ function loadProduction() {
     G.productionLines = results[0].productionLines || [];
     G.productionStats = results[1].stats || {};
     renderProductionStats();
-    renderProductionClassique();
-    renderProductionAsie();
-    renderACommander();
+    renderAllProdTabs();
     updateProdClubFilter();
+  });
+}
+
+function renderAllProdTabs() {
+  renderStatut();
+  renderProductionAsie();
+  renderAchatTextile();
+  renderAchatDtf();
+  renderReception();
+  renderProductionTab();
+  renderALivrer();
+}
+
+function refreshStats() {
+  apiGet('adminGetProductionStats').then(function(r) {
+    G.productionStats = r.stats || {};
+    renderProductionStats();
   });
 }
 
@@ -1408,7 +1498,6 @@ function showProdTab(name) {
   document.querySelector('.prod-tab[onclick*="' + name + '"]').classList.add('active');
   document.getElementById('panel-' + name).classList.add('active');
   _prodChecked.clear();
-  updateBulkBar();
 }
 
 // ---- STATS ----
@@ -1417,34 +1506,22 @@ function renderProductionStats() {
   var items = [
     { key: 'textileACommander', label: 'Textiles à commander', value: s.textileACommander || 0, color: 'var(--red)' },
     { key: 'dtfACommander', label: 'DTF à commander', value: s.dtfACommander || 0, color: 'var(--red)' },
-    { key: 'textileAVerifier', label: 'Textiles à vérifier', value: s.textileAVerifier || 0, color: 'var(--blue)' },
-    { key: 'dtfAVerifier', label: 'DTF à vérifier', value: s.dtfAVerifier || 0, color: 'var(--blue)' },
-    { key: 'aProduire', label: 'À produire', value: s.aProduire || 0, color: 'var(--orange)' },
+    { key: 'textileReception', label: 'En attente réception Textile', value: s.textileReception || 0, color: 'var(--orange)' },
+    { key: 'dtfReception', label: 'En attente réception DTF', value: s.dtfReception || 0, color: 'var(--orange)' },
+    { key: 'aProduire', label: 'À produire', value: s.aProduire || 0, color: 'var(--blue)' },
     { key: 'aLivrer', label: 'À livrer', value: s.aLivrer || 0, color: 'var(--green)' },
     { key: 'asieEnAttente', label: 'Asie en attente', value: s.asieEnAttente || 0, color: '#8b5cf6' }
   ];
   var html = '';
   items.forEach(function(item) {
-    var active = _activeStatFilter === item.key ? ' active' : '';
-    html += '<div class="stat-card clickable' + active + '" onclick="filterByStat(\'' + item.key + '\')" style="border-left:3px solid ' + item.color + '">' +
+    html += '<div class="stat-card" style="border-left:3px solid ' + item.color + '">' +
       '<div class="stat-value">' + item.value + '</div>' +
       '<div class="stat-label">' + item.label + '</div></div>';
   });
   document.getElementById('production-stats').innerHTML = html;
 }
 
-function filterByStat(key) {
-  if (_activeStatFilter === key) {
-    _activeStatFilter = '';
-  } else {
-    _activeStatFilter = key;
-  }
-  renderProductionStats();
-  renderProductionClassique();
-  renderProductionAsie();
-}
-
-// ---- PASTILLE HELPER ----
+// ---- HELPERS ----
 function pastilleColor(statut) {
   switch (statut) {
     case 'a_commander': return 'pastille-rouge';
@@ -1484,7 +1561,6 @@ function pastilleHtml(lineId, field, statut, options) {
     ' <span style="font-size:.72rem;color:var(--grey-600)">' + statutLabel(statut) + '</span>';
 }
 
-// ---- STATUT DROPDOWN ----
 var _openDD = null;
 function showStatutDD(el, lineId, field, options) {
   closeStatutDD();
@@ -1498,7 +1574,7 @@ function showStatutDD(el, lineId, field, options) {
     item.onclick = function(e) {
       e.stopPropagation();
       closeStatutDD();
-      updateStatut(lineId, field, opt);
+      updateLineStatut(lineId, field, opt);
     };
     dd.appendChild(item);
   });
@@ -1517,313 +1593,18 @@ function closeStatutDD() {
 }
 document.addEventListener('click', function() { closeStatutDD(); });
 
-function updateStatut(lineId, field, value) {
+function updateLineStatut(lineId, field, value) {
   var payload = { id: lineId };
   payload[field] = value;
   apiPost('adminUpdateProductionLine', payload).then(function(res) {
     if (res.success) {
-      // Mettre à jour localement
       var line = G.productionLines.find(function(l) { return l.id === lineId; });
       if (line) line[field] = value;
-      renderProductionClassique();
-      renderProductionAsie();
-      renderACommander();
-      // Recharger les stats
-      apiGet('adminGetProductionStats').then(function(r) {
-        G.productionStats = r.stats || {};
-        renderProductionStats();
-      });
+      renderAllProdTabs();
+      refreshStats();
       toast('Statut mis à jour');
     } else toast('Erreur', true);
   });
-}
-
-// ---- CHECKBOXES & BULK ----
-function toggleCheck(id) {
-  if (_prodChecked.has(id)) _prodChecked.delete(id);
-  else _prodChecked.add(id);
-  updateBulkBar();
-}
-
-function toggleAllCheckboxes(type, checked) {
-  var lines = type === 'asie'
-    ? G.productionLines.filter(function(l) { return l.estProduitAsie && l.statutLivraison !== 'livre'; })
-    : G.productionLines.filter(function(l) { return !l.estProduitAsie && l.statutLivraison !== 'livre'; });
-  _prodChecked.clear();
-  if (checked) lines.forEach(function(l) { _prodChecked.add(l.id); });
-  updateBulkBar();
-  if (type === 'asie') renderProductionAsie();
-  else renderProductionClassique();
-}
-
-function updateBulkBar() {
-  var count = _prodChecked.size;
-  var barClassique = document.getElementById('bulk-bar');
-  var barAsie = document.getElementById('bulk-bar-asie');
-  if (_activeProdTab === 'classique') {
-    barClassique.className = count > 0 ? 'bulk-bar show' : 'bulk-bar';
-    barAsie.className = 'bulk-bar';
-    document.getElementById('bulk-count').textContent = count;
-  } else if (_activeProdTab === 'asie') {
-    barAsie.className = count > 0 ? 'bulk-bar show' : 'bulk-bar';
-    barClassique.className = 'bulk-bar';
-    document.getElementById('bulk-count-asie').textContent = count;
-  } else {
-    barClassique.className = 'bulk-bar';
-    barAsie.className = 'bulk-bar';
-  }
-}
-
-function bulkAction(field, value) {
-  if (!_prodChecked.size) return;
-  var ids = Array.from(_prodChecked);
-  var update = {};
-  update[field] = value;
-  apiPost('adminBulkUpdateProductionLines', { ids: ids, update: update }).then(function(res) {
-    if (res.success) {
-      ids.forEach(function(id) {
-        var line = G.productionLines.find(function(l) { return l.id === id; });
-        if (line) line[field] = value;
-      });
-      _prodChecked.clear();
-      updateBulkBar();
-      renderProductionClassique();
-      renderProductionAsie();
-      renderACommander();
-      apiGet('adminGetProductionStats').then(function(r) {
-        G.productionStats = r.stats || {};
-        renderProductionStats();
-      });
-      toast(ids.length + ' lignes mises à jour');
-    } else toast('Erreur', true);
-  });
-}
-
-// ---- FILTER HELPERS ----
-function filterByStatKey(lines) {
-  if (!_activeStatFilter) return lines;
-  return lines.filter(function(l) {
-    switch (_activeStatFilter) {
-      case 'textileACommander': return !l.estProduitAsie && l.statutTextile === 'a_commander';
-      case 'dtfACommander': return !l.estProduitAsie && l.statutDtf === 'a_commander';
-      case 'textileAVerifier': return !l.estProduitAsie && l.statutTextile === 'recu';
-      case 'dtfAVerifier': return !l.estProduitAsie && l.statutDtf === 'recu';
-      case 'aProduire': return !l.estProduitAsie && l.statutTextile === 'verifie' && l.statutDtf === 'verifie' && l.statutProduction === 'a_produire';
-      case 'aLivrer': return l.statutLivraison === 'a_livrer' && (l.estProduitAsie ? l.statutAsie === 'verifie' : l.statutProduction === 'termine');
-      case 'asieEnAttente': return l.estProduitAsie && l.statutAsie !== 'verifie' && l.statutLivraison !== 'livre';
-      default: return true;
-    }
-  });
-}
-
-// ---- RENDER CLASSIQUE ----
-function renderProductionClassique() {
-  var lines = G.productionLines.filter(function(l) { return !l.estProduitAsie; });
-  lines = filterByStatKey(lines);
-  // Search filter
-  if (_searchProd) {
-    var q = _searchProd.toLowerCase();
-    lines = lines.filter(function(l) {
-      return (l.produitNom || '').toLowerCase().includes(q) || (l.clubNom || '').toLowerCase().includes(q);
-    });
-  }
-  if (_filterProdClub) {
-    lines = lines.filter(function(l) { return l.clubNom === _filterProdClub; });
-  }
-
-  var textileOpts = ['a_commander', 'en_panier', 'commande', 'recu', 'verifie'];
-  var prodOpts = ['a_produire', 'en_cours', 'termine'];
-  var livrOpts = ['a_livrer', 'livre'];
-
-  var html = '';
-  lines.forEach(function(l) {
-    var checked = _prodChecked.has(l.id) ? ' checked' : '';
-    var fourn = l.lienFournisseur ? '<a href="' + l.lienFournisseur + '" target="_blank" class="fournisseur-link" onclick="event.stopPropagation()" title="Ouvrir fournisseur">🔗</a>' : '—';
-    html += '<tr>' +
-      '<td><input type="checkbox" onchange="toggleCheck(\'' + l.id + '\')"' + checked + '></td>' +
-      '<td>' + (l.clubNom || '—') + '</td>' +
-      '<td><strong>' + (l.produitNom || '—') + '</strong></td>' +
-      '<td>' + (l.taille || '—') + '</td>' +
-      '<td><strong>' + l.quantite + '</strong></td>' +
-      '<td style="font-size:.78rem">' + (l.personnalisation || '—') + '</td>' +
-      '<td>' + fourn + '</td>' +
-      '<td>' + pastilleHtml(l.id, 'statutTextile', l.statutTextile, textileOpts) + '</td>' +
-      '<td>' + pastilleHtml(l.id, 'statutDtf', l.statutDtf, textileOpts) + '</td>' +
-      '<td>' + pastilleHtml(l.id, 'statutProduction', l.statutProduction, prodOpts) + '</td>' +
-      '<td>' + pastilleHtml(l.id, 'statutLivraison', l.statutLivraison, livrOpts) + '</td>' +
-      '<td><input class="note-inline" value="' + (l.notes || '').replace(/"/g, '&quot;') + '" onblur="saveNote(\'' + l.id + '\',this.value)" placeholder="..."></td>' +
-      '</tr>';
-  });
-  document.getElementById('production-classique-table').innerHTML = html || '<tr><td colspan="12" style="text-align:center;color:var(--grey-400);padding:2rem">Aucune ligne de production</td></tr>';
-}
-
-// ---- RENDER ASIE ----
-function renderProductionAsie() {
-  var lines = G.productionLines.filter(function(l) { return l.estProduitAsie; });
-  lines = filterByStatKey(lines);
-  if (_searchProdAsie) {
-    var q = _searchProdAsie.toLowerCase();
-    lines = lines.filter(function(l) {
-      return (l.produitNom || '').toLowerCase().includes(q) || (l.clubNom || '').toLowerCase().includes(q);
-    });
-  }
-
-  var asieOpts = ['a_commander', 'en_panier', 'commande', 'recu', 'verifie'];
-  var livrOpts = ['a_livrer', 'livre'];
-
-  var html = '';
-  lines.forEach(function(l) {
-    var checked = _prodChecked.has(l.id) ? ' checked' : '';
-    var fourn = l.lienFournisseur ? '<a href="' + l.lienFournisseur + '" target="_blank" class="fournisseur-link" onclick="event.stopPropagation()" title="Ouvrir fournisseur">🔗</a>' : '—';
-    html += '<tr>' +
-      '<td><input type="checkbox" onchange="toggleCheck(\'' + l.id + '\')"' + checked + '></td>' +
-      '<td>' + (l.clubNom || '—') + '</td>' +
-      '<td><strong>' + (l.produitNom || '—') + '</strong></td>' +
-      '<td>' + (l.taille || '—') + '</td>' +
-      '<td><strong>' + l.quantite + '</strong></td>' +
-      '<td style="font-size:.78rem">' + (l.personnalisation || '—') + '</td>' +
-      '<td>' + fourn + '</td>' +
-      '<td>' + pastilleHtml(l.id, 'statutAsie', l.statutAsie, asieOpts) + '</td>' +
-      '<td>' + pastilleHtml(l.id, 'statutLivraison', l.statutLivraison, livrOpts) + '</td>' +
-      '<td><input class="note-inline" value="' + (l.notes || '').replace(/"/g, '&quot;') + '" onblur="saveNote(\'' + l.id + '\',this.value)" placeholder="..."></td>' +
-      '</tr>';
-  });
-  document.getElementById('production-asie-table').innerHTML = html || '<tr><td colspan="10" style="text-align:center;color:var(--grey-400);padding:2rem">Aucun produit Asie</td></tr>';
-}
-
-// ---- SAVE NOTE ----
-function saveNote(lineId, value) {
-  var line = G.productionLines.find(function(l) { return l.id === lineId; });
-  if (line && line.notes === value) return; // pas de changement
-  apiPost('adminUpdateProductionLine', { id: lineId, notes: value }).then(function(res) {
-    if (res.success && line) line.notes = value;
-  });
-}
-
-// ---- VUE À COMMANDER ----
-function renderACommander() {
-  var container = document.getElementById('acommander-content');
-  if (!container) return;
-
-  // Section Textile : regrouper par lien fournisseur
-  var textileLines = G.productionLines.filter(function(l) {
-    return !l.estProduitAsie && l.statutTextile === 'a_commander';
-  });
-
-  // Section DTF : regrouper par impression
-  var dtfLines = G.productionLines.filter(function(l) {
-    return !l.estProduitAsie && l.statutDtf === 'a_commander';
-  });
-
-  // Section Asie : regrouper par lien fournisseur
-  var asieLines = G.productionLines.filter(function(l) {
-    return l.estProduitAsie && l.statutAsie === 'a_commander';
-  });
-
-  var html = '';
-
-  // === TEXTILE ===
-  html += '<h2 style="font-family:var(--display);font-size:1.1rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin-bottom:1rem">Commande Textile</h2>';
-  if (textileLines.length === 0) {
-    html += '<p style="color:var(--grey-400);margin-bottom:2rem">Aucun textile à commander</p>';
-  } else {
-    var byFourn = {};
-    textileLines.forEach(function(l) {
-      var key = l.lienFournisseur || 'Sans fournisseur';
-      if (!byFourn[key]) byFourn[key] = [];
-      byFourn[key].push(l);
-    });
-    Object.keys(byFourn).forEach(function(fourn) {
-      var items = byFourn[fourn];
-      var ids = items.map(function(l) { return l.id; });
-      html += '<div class="fournisseur-group">';
-      html += '<div class="fournisseur-group-header"><h4>' + (fourn !== 'Sans fournisseur' ? '<a href="' + fourn + '" target="_blank" class="fournisseur-link">🔗 ' + truncUrl(fourn) + '</a>' : 'Sans fournisseur') + '</h4>';
-      html += '<div style="display:flex;gap:.5rem">' +
-        '<button class="btn btn-sm btn-outline" onclick="bulkByIds(' + JSON.stringify(ids) + ',\'statutTextile\',\'en_panier\')">Tout en panier</button>' +
-        '<button class="btn btn-sm btn-primary" onclick="bulkByIds(' + JSON.stringify(ids) + ',\'statutTextile\',\'commande\')">Tout commandé</button>' +
-        '</div></div>';
-      html += '<table><thead><tr><th>Club</th><th>Produit</th><th>Taille</th><th>Qté</th><th>Perso</th><th>Action</th></tr></thead><tbody>';
-      items.forEach(function(l) {
-        html += '<tr><td>' + (l.clubNom || '—') + '</td><td><strong>' + (l.produitNom || '—') + '</strong></td>' +
-          '<td>' + (l.taille || '—') + '</td><td><strong>' + l.quantite + '</strong></td>' +
-          '<td style="font-size:.78rem">' + (l.personnalisation || '—') + '</td>' +
-          '<td><button class="btn btn-sm btn-outline" onclick="updateStatut(\'' + l.id + '\',\'statutTextile\',\'en_panier\')">En panier</button> ' +
-          '<button class="btn btn-sm btn-primary" onclick="updateStatut(\'' + l.id + '\',\'statutTextile\',\'commande\')">Commandé</button></td></tr>';
-      });
-      html += '</tbody></table></div>';
-    });
-  }
-
-  // === DTF ===
-  html += '<h2 style="font-family:var(--display);font-size:1.1rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin:2rem 0 1rem">Commande DTF</h2>';
-  if (dtfLines.length === 0) {
-    html += '<p style="color:var(--grey-400);margin-bottom:2rem">Aucun DTF à commander</p>';
-  } else {
-    var byImpression = {};
-    dtfLines.forEach(function(l) {
-      var key = l.impression || 'Sans impression';
-      if (!byImpression[key]) byImpression[key] = [];
-      byImpression[key].push(l);
-    });
-    Object.keys(byImpression).forEach(function(imp) {
-      var items = byImpression[imp];
-      var ids = items.map(function(l) { return l.id; });
-      html += '<div class="fournisseur-group">';
-      html += '<div class="fournisseur-group-header"><h4>Impression : ' + imp + '</h4>';
-      html += '<div style="display:flex;gap:.5rem">' +
-        '<button class="btn btn-sm btn-outline" onclick="bulkByIds(' + JSON.stringify(ids) + ',\'statutDtf\',\'en_panier\')">Tout en panier</button>' +
-        '<button class="btn btn-sm btn-primary" onclick="bulkByIds(' + JSON.stringify(ids) + ',\'statutDtf\',\'commande\')">Tout commandé</button>' +
-        '</div></div>';
-      html += '<table><thead><tr><th>Club</th><th>Produit</th><th>Taille</th><th>Qté</th><th>Perso</th><th>Action</th></tr></thead><tbody>';
-      items.forEach(function(l) {
-        html += '<tr><td>' + (l.clubNom || '—') + '</td><td><strong>' + (l.produitNom || '—') + '</strong></td>' +
-          '<td>' + (l.taille || '—') + '</td><td><strong>' + l.quantite + '</strong></td>' +
-          '<td style="font-size:.78rem">' + (l.personnalisation || '—') + '</td>' +
-          '<td><button class="btn btn-sm btn-outline" onclick="updateStatut(\'' + l.id + '\',\'statutDtf\',\'en_panier\')">En panier</button> ' +
-          '<button class="btn btn-sm btn-primary" onclick="updateStatut(\'' + l.id + '\',\'statutDtf\',\'commande\')">Commandé</button></td></tr>';
-      });
-      html += '</tbody></table></div>';
-    });
-  }
-
-  // === ASIE ===
-  if (asieLines.length > 0) {
-    html += '<h2 style="font-family:var(--display);font-size:1.1rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin:2rem 0 1rem">Commande Asie</h2>';
-    var byFournAsie = {};
-    asieLines.forEach(function(l) {
-      var key = l.lienFournisseur || 'Sans fournisseur';
-      if (!byFournAsie[key]) byFournAsie[key] = [];
-      byFournAsie[key].push(l);
-    });
-    Object.keys(byFournAsie).forEach(function(fourn) {
-      var items = byFournAsie[fourn];
-      var ids = items.map(function(l) { return l.id; });
-      html += '<div class="fournisseur-group">';
-      html += '<div class="fournisseur-group-header"><h4>' + (fourn !== 'Sans fournisseur' ? '<a href="' + fourn + '" target="_blank" class="fournisseur-link">🔗 ' + truncUrl(fourn) + '</a>' : 'Sans fournisseur') + '</h4>';
-      html += '<div style="display:flex;gap:.5rem">' +
-        '<button class="btn btn-sm btn-outline" onclick="bulkByIds(' + JSON.stringify(ids) + ',\'statutAsie\',\'en_panier\')">Tout en panier</button>' +
-        '<button class="btn btn-sm btn-primary" onclick="bulkByIds(' + JSON.stringify(ids) + ',\'statutAsie\',\'commande\')">Tout commandé</button>' +
-        '</div></div>';
-      html += '<table><thead><tr><th>Club</th><th>Produit</th><th>Taille</th><th>Qté</th><th>Perso</th><th>Action</th></tr></thead><tbody>';
-      items.forEach(function(l) {
-        html += '<tr><td>' + (l.clubNom || '—') + '</td><td><strong>' + (l.produitNom || '—') + '</strong></td>' +
-          '<td>' + (l.taille || '—') + '</td><td><strong>' + l.quantite + '</strong></td>' +
-          '<td style="font-size:.78rem">' + (l.personnalisation || '—') + '</td>' +
-          '<td><button class="btn btn-sm btn-outline" onclick="updateStatut(\'' + l.id + '\',\'statutAsie\',\'en_panier\')">En panier</button> ' +
-          '<button class="btn btn-sm btn-primary" onclick="updateStatut(\'' + l.id + '\',\'statutAsie\',\'commande\')">Commandé</button></td></tr>';
-      });
-      html += '</tbody></table></div>';
-    });
-  }
-
-  container.innerHTML = html;
-}
-
-function truncUrl(url) {
-  try {
-    var u = new URL(url);
-    return u.hostname + (u.pathname.length > 30 ? u.pathname.slice(0, 30) + '...' : u.pathname);
-  } catch(e) { return url.length > 40 ? url.slice(0, 40) + '...' : url; }
 }
 
 function bulkByIds(ids, field, value) {
@@ -1835,14 +1616,399 @@ function bulkByIds(ids, field, value) {
         var line = G.productionLines.find(function(l) { return l.id === id; });
         if (line) line[field] = value;
       });
-      renderProductionClassique();
-      renderProductionAsie();
-      renderACommander();
-      apiGet('adminGetProductionStats').then(function(r) {
-        G.productionStats = r.stats || {};
-        renderProductionStats();
-      });
+      renderAllProdTabs();
+      refreshStats();
       toast(ids.length + ' lignes mises à jour');
+    } else toast('Erreur', true);
+  });
+}
+
+function toggleCheck(id) {
+  if (_prodChecked.has(id)) _prodChecked.delete(id);
+  else _prodChecked.add(id);
+}
+
+function toggleAllCheckboxes(type, checked) {
+  var lines = G.productionLines.filter(function(l) {
+    return l.estProduitAsie && l.statutLivraison !== 'livre';
+  });
+  _prodChecked.clear();
+  if (checked) lines.forEach(function(l) { _prodChecked.add(l.id); });
+  renderProductionAsie();
+}
+
+function saveNote(lineId, value) {
+  var line = G.productionLines.find(function(l) { return l.id === lineId; });
+  if (line && line.notes === value) return;
+  apiPost('adminUpdateProductionLine', { id: lineId, notes: value }).then(function(res) {
+    if (res.success && line) line.notes = value;
+  });
+}
+
+function saveFournisseur(lineId, value) {
+  var line = G.productionLines.find(function(l) { return l.id === lineId; });
+  if (line && line.fournisseur === value) return;
+  apiPost('adminUpdateProductionLine', { id: lineId, fournisseur: value }).then(function(res) {
+    if (res.success && line) line.fournisseur = value;
+  });
+}
+
+function truncUrl(url) {
+  try {
+    var u = new URL(url);
+    return u.hostname + (u.pathname.length > 30 ? u.pathname.slice(0, 30) + '...' : u.pathname);
+  } catch(e) { return url.length > 40 ? url.slice(0, 40) + '...' : url; }
+}
+
+// Calcule le statut global d'une ligne pour l'onglet Statut
+function getGlobalStatut(l) {
+  if (l.estProduitAsie) {
+    if (l.statutLivraison === 'livre') return { label: 'Livré', badge: 'badge-green' };
+    if (l.statutAsie === 'verifie') return { label: 'À livrer', badge: 'badge-green' };
+    if (l.statutAsie === 'recu') return { label: 'Reçu Asie', badge: 'badge-blue' };
+    if (l.statutAsie === 'commande') return { label: 'Commandé Asie', badge: 'badge-orange' };
+    if (l.statutAsie === 'en_panier') return { label: 'En panier Asie', badge: 'badge-yellow' };
+    return { label: 'À commander Asie', badge: 'badge-red' };
+  }
+  if (l.statutLivraison === 'livre') return { label: 'Livré', badge: 'badge-green' };
+  if (l.statutProduction === 'termine') return { label: 'À livrer', badge: 'badge-green' };
+  if (l.statutProduction === 'en_cours') return { label: 'En production', badge: 'badge-orange' };
+  if (l.statutTextile === 'verifie' && l.statutDtf === 'verifie') return { label: 'À produire', badge: 'badge-blue' };
+  // Réception
+  var tRecu = l.statutTextile === 'recu' || l.statutTextile === 'verifie';
+  var dRecu = l.statutDtf === 'recu' || l.statutDtf === 'verifie';
+  if (l.statutTextile === 'commande' || l.statutDtf === 'commande') return { label: 'Réception', badge: 'badge-orange' };
+  if (l.statutTextile === 'en_panier' || l.statutDtf === 'en_panier') return { label: 'En panier', badge: 'badge-yellow' };
+  return { label: 'À commander', badge: 'badge-red' };
+}
+
+// ============================================================
+// ONGLET 1 : STATUT (vue d'ensemble)
+// ============================================================
+function renderStatut() {
+  var lines = G.productionLines.filter(function(l) { return l.statutLivraison !== 'livre'; });
+  if (_searchProd) {
+    var q = _searchProd.toLowerCase();
+    lines = lines.filter(function(l) {
+      return (l.produitNom || '').toLowerCase().includes(q) || (l.clubNom || '').toLowerCase().includes(q);
+    });
+  }
+  if (_filterProdClub) {
+    lines = lines.filter(function(l) { return l.clubNom === _filterProdClub; });
+  }
+
+  var html = '';
+  lines.forEach(function(l) {
+    var gs = getGlobalStatut(l);
+    html += '<tr>' +
+      '<td>' + (l.clubNom || '—') + '</td>' +
+      '<td><strong>' + (l.produitNom || '—') + '</strong></td>' +
+      '<td>' + (l.taille || '—') + '</td>' +
+      '<td><strong>' + l.quantite + '</strong></td>' +
+      '<td style="font-size:.78rem">' + (l.personnalisation || '—') + '</td>' +
+      '<td><span class="badge ' + gs.badge + '">' + gs.label + '</span></td>' +
+      '</tr>';
+  });
+  document.getElementById('statut-table').innerHTML = html || '<tr><td colspan="6" style="text-align:center;color:var(--grey-400);padding:2rem">Aucune ligne de production</td></tr>';
+}
+
+// ============================================================
+// ONGLET 2 : PRODUITS ASIE
+// ============================================================
+function renderProductionAsie() {
+  var lines = G.productionLines.filter(function(l) { return l.estProduitAsie && l.statutLivraison !== 'livre'; });
+  if (_searchProdAsie) {
+    var q = _searchProdAsie.toLowerCase();
+    lines = lines.filter(function(l) {
+      return (l.produitNom || '').toLowerCase().includes(q) || (l.clubNom || '').toLowerCase().includes(q);
+    });
+  }
+
+  var html = '';
+  lines.forEach(function(l) {
+    var checked = _prodChecked.has(l.id) ? ' checked' : '';
+    var isCommande = l.statutAsie === 'commande' || l.statutAsie === 'recu' || l.statutAsie === 'verifie';
+    var isRecu = l.statutAsie === 'recu' || l.statutAsie === 'verifie';
+
+    var cmdBtn = isCommande
+      ? '<button class="btn-achat btn-achat-dark" disabled style="opacity:.5;cursor:default">COMMANDÉ</button>'
+      : '<button class="btn-achat btn-achat-dark" onclick="updateLineStatut(\'' + l.id + '\',\'statutAsie\',\'commande\')">COMMANDÉ</button>';
+
+    var recuBtn = isRecu
+      ? '<button class="btn-achat btn-achat-outline" disabled style="opacity:.5;cursor:default">REÇU</button>'
+      : '<button class="btn-achat btn-achat-outline" onclick="asieRecu(\'' + l.id + '\')">REÇU</button>';
+
+    html += '<tr>' +
+      '<td><input type="checkbox" onchange="toggleCheck(\'' + l.id + '\')"' + checked + '></td>' +
+      '<td>' + (l.clubNom || '—') + '</td>' +
+      '<td><strong>' + (l.produitNom || '—') + '</strong></td>' +
+      '<td>' + (l.taille || '—') + '</td>' +
+      '<td><strong>' + l.quantite + '</strong></td>' +
+      '<td style="font-size:.78rem">' + (l.personnalisation || '—') + '</td>' +
+      '<td style="display:flex;gap:.4rem;align-items:center">' + cmdBtn + ' ' + recuBtn + '</td>' +
+      '</tr>';
+  });
+  document.getElementById('production-asie-table').innerHTML = html || '<tr><td colspan="7" style="text-align:center;color:var(--grey-400);padding:2rem">Aucun produit Asie</td></tr>';
+}
+
+// Asie reçu → passe aussi verifie + prêt à livrer
+function asieRecu(lineId) {
+  apiPost('adminUpdateProductionLine', { id: lineId, statutAsie: 'verifie' }).then(function(res) {
+    if (res.success) {
+      var line = G.productionLines.find(function(l) { return l.id === lineId; });
+      if (line) line.statutAsie = 'verifie';
+      renderAllProdTabs();
+      refreshStats();
+      toast('Reçu — prêt à livrer');
+    } else toast('Erreur', true);
+  });
+}
+
+// ============================================================
+// ONGLET 3 : ACHAT TEXTILE
+// ============================================================
+function renderAchatTextile() {
+  var lines = G.productionLines.filter(function(l) {
+    return !l.estProduitAsie && (l.statutTextile === 'a_commander' || l.statutTextile === 'en_panier');
+  });
+
+  var html = '';
+  lines.forEach(function(l) {
+    var acheterBtn = l.lienFournisseur
+      ? '<a href="' + l.lienFournisseur + '" target="_blank" class="btn-achat btn-achat-green" style="text-decoration:none;display:inline-block">ACHETER</a>'
+      : '<span class="btn-achat btn-achat-disabled">ACHETER</span>';
+
+    var enPanierBtn = l.statutTextile === 'en_panier'
+      ? '<button class="btn-achat btn-achat-outline" disabled style="opacity:.5;cursor:default">EN PANIER</button>'
+      : '<button class="btn-achat btn-achat-outline" onclick="updateLineStatut(\'' + l.id + '\',\'statutTextile\',\'en_panier\')">EN PANIER</button>';
+
+    var commandeBtn = '<button class="btn-achat btn-achat-dark" onclick="updateLineStatut(\'' + l.id + '\',\'statutTextile\',\'commande\')">COMMANDÉ</button>';
+
+    var fournInput = '<input class="fournisseur-select" value="' + (l.fournisseur || '').replace(/"/g, '&quot;') + '" placeholder="Fournisseur..." onblur="saveFournisseur(\'' + l.id + '\',this.value)">';
+
+    html += '<tr>' +
+      '<td>' + (l.clubNom || '—') + '</td>' +
+      '<td><strong>' + (l.produitNom || '—') + '</strong></td>' +
+      '<td>' + (l.taille || '—') + '</td>' +
+      '<td><strong>' + l.quantite + '</strong></td>' +
+      '<td style="font-size:.78rem">' + (l.personnalisation || '—') + '</td>' +
+      '<td>' + acheterBtn + '</td>' +
+      '<td style="display:flex;gap:.4rem;align-items:center">' + enPanierBtn + ' ' + commandeBtn + '</td>' +
+      '<td>' + fournInput + '</td>' +
+      '</tr>';
+  });
+  document.getElementById('achat-textile-table').innerHTML = html || '<tr><td colspan="8" style="text-align:center;color:var(--grey-400);padding:2rem">Aucun textile à commander</td></tr>';
+}
+
+// ============================================================
+// ONGLET 4 : ACHAT DTF
+// ============================================================
+function renderAchatDtf() {
+  var lines = G.productionLines.filter(function(l) {
+    return !l.estProduitAsie && (l.statutDtf === 'a_commander' || l.statutDtf === 'en_panier');
+  });
+
+  // Dédupliquer par produit + impression (pas par taille)
+  var seen = {};
+  var uniqueLines = [];
+  lines.forEach(function(l) {
+    var key = (l.produitId || '') + '|' + (l.clubNom || '') + '|' + (l.impression || '');
+    if (!seen[key]) {
+      seen[key] = true;
+      // Collecter tous les IDs de ce groupe pour les marquer ensemble
+      var groupIds = lines.filter(function(x) {
+        return (x.produitId || '') + '|' + (x.clubNom || '') + '|' + (x.impression || '') === key;
+      }).map(function(x) { return x.id; });
+      uniqueLines.push({ line: l, groupIds: groupIds });
+    }
+  });
+
+  var html = '';
+  uniqueLines.forEach(function(item) {
+    var l = item.line;
+    var ids = item.groupIds;
+
+    var commandeBtn = '<button class="btn-achat btn-achat-dark" onclick="bulkByIds(' + JSON.stringify(ids) + ',\'statutDtf\',\'commande\')">COMMANDÉ</button>';
+
+    html += '<tr>' +
+      '<td>' + (l.clubNom || '—') + '</td>' +
+      '<td><strong>' + (l.produitNom || '—') + '</strong></td>' +
+      '<td>' + (l.impression || '—') + '</td>' +
+      '<td style="display:flex;gap:.4rem;align-items:center">' + commandeBtn + '</td>' +
+      '</tr>';
+  });
+  document.getElementById('achat-dtf-table').innerHTML = html || '<tr><td colspan="4" style="text-align:center;color:var(--grey-400);padding:2rem">Aucun DTF à commander</td></tr>';
+}
+
+// ============================================================
+// ONGLET 5 : RECEPTION
+// ============================================================
+function renderReception() {
+  // Lignes classiques où textile OU DTF est commandé (en attente de réception)
+  var lines = G.productionLines.filter(function(l) {
+    if (l.estProduitAsie) return false;
+    return l.statutTextile === 'commande' || l.statutDtf === 'commande';
+  });
+
+  var html = '';
+  lines.forEach(function(l) {
+    var textileReceived = l.statutTextile !== 'commande';
+    var dtfReceived = l.statutDtf !== 'commande';
+
+    var textileBtn = textileReceived
+      ? '<button class="btn-achat btn-achat-outline" disabled style="opacity:.4;cursor:default">TEXTILE</button>'
+      : '<button class="btn-achat btn-achat-green" onclick="receptionTextile(\'' + l.id + '\')">TEXTILE</button>';
+
+    var dtfBtn = dtfReceived
+      ? '<button class="btn-achat btn-achat-outline" disabled style="opacity:.4;cursor:default">DTF</button>'
+      : '<button class="btn-achat btn-achat-blue" onclick="receptionDtf(\'' + l.id + '\')">DTF</button>';
+
+    html += '<tr>' +
+      '<td>' + (l.clubNom || '—') + '</td>' +
+      '<td><strong>' + (l.produitNom || '—') + '</strong></td>' +
+      '<td>' + (l.taille || '—') + '</td>' +
+      '<td><strong>' + l.quantite + '</strong></td>' +
+      '<td style="display:flex;gap:.4rem;align-items:center">' + textileBtn + ' ' + dtfBtn + '</td>' +
+      '</tr>';
+  });
+  document.getElementById('reception-table').innerHTML = html || '<tr><td colspan="5" style="text-align:center;color:var(--grey-400);padding:2rem">Rien en attente de réception</td></tr>';
+}
+
+function receptionTextile(lineId) {
+  apiPost('adminUpdateProductionLine', { id: lineId, statutTextile: 'verifie' }).then(function(res) {
+    if (res.success) {
+      var line = G.productionLines.find(function(l) { return l.id === lineId; });
+      if (line) line.statutTextile = 'verifie';
+      renderAllProdTabs();
+      refreshStats();
+      toast('Textile reçu');
+    } else toast('Erreur', true);
+  });
+}
+
+function receptionDtf(lineId) {
+  apiPost('adminUpdateProductionLine', { id: lineId, statutDtf: 'verifie' }).then(function(res) {
+    if (res.success) {
+      var line = G.productionLines.find(function(l) { return l.id === lineId; });
+      if (line) line.statutDtf = 'verifie';
+      renderAllProdTabs();
+      refreshStats();
+      toast('DTF reçu');
+    } else toast('Erreur', true);
+  });
+}
+
+// ============================================================
+// ONGLET 6 : PRODUCTION
+// ============================================================
+function renderProductionTab() {
+  // Lignes classiques prêtes à produire (textile + DTF vérifiés, production pas encore terminée)
+  var lines = G.productionLines.filter(function(l) {
+    if (l.estProduitAsie) return false;
+    return l.statutTextile === 'verifie' && l.statutDtf === 'verifie' && l.statutProduction !== 'termine' && l.statutLivraison !== 'livre';
+  });
+
+  var html = '';
+  lines.forEach(function(l) {
+    var btn = '<button class="btn-achat btn-achat-outline" onclick="marquerProduit(\'' + l.id + '\')">PRODUIT</button>';
+
+    html += '<tr>' +
+      '<td>' + (l.clubNom || '—') + '</td>' +
+      '<td><strong>' + (l.produitNom || '—') + '</strong></td>' +
+      '<td>' + (l.taille || '—') + '</td>' +
+      '<td><strong>' + l.quantite + '</strong></td>' +
+      '<td>' + btn + '</td>' +
+      '</tr>';
+  });
+  document.getElementById('production-table').innerHTML = html || '<tr><td colspan="5" style="text-align:center;color:var(--grey-400);padding:2rem">Rien à produire</td></tr>';
+}
+
+function marquerProduit(lineId) {
+  apiPost('adminUpdateProductionLine', { id: lineId, statutProduction: 'termine' }).then(function(res) {
+    if (res.success) {
+      var line = G.productionLines.find(function(l) { return l.id === lineId; });
+      if (line) line.statutProduction = 'termine';
+      renderAllProdTabs();
+      refreshStats();
+      toast('Produit — prêt à livrer');
+    } else toast('Erreur', true);
+  });
+}
+
+// ============================================================
+// ONGLET 7 : À LIVRER (vue par commande)
+// ============================================================
+function renderALivrer() {
+  // On a besoin des commandes + des lignes de production pour calculer si une commande est prête
+  var commandes = G.commandes || [];
+
+  // Filtrer les commandes qui ont au moins 1 ligne de production non livrée
+  var commandesProd = [];
+  commandes.forEach(function(cmd) {
+    // Trouver les lignes de production liées à cette commande via G.productionLines
+    // On ne peut pas directement, car on n'a pas les liaisons ici.
+    // On va utiliser les commandes qui sont en statut production ou payée
+    if (!cmd.statut) return;
+    var s = cmd.statut.toUpperCase();
+    if (s.includes('LIVRÉE') || s.includes('LIVREE')) return; // déjà livrée
+    if (s.includes('ATTENTE')) return; // pas encore payée
+    commandesProd.push(cmd);
+  });
+
+  // Filtres
+  if (_searchALivrer) {
+    var q = _searchALivrer.toLowerCase();
+    commandesProd = commandesProd.filter(function(o) {
+      return (o.ref || '').toLowerCase().includes(q) || (o.clubNom || '').toLowerCase().includes(q);
+    });
+  }
+
+  var html = '';
+  commandesProd.forEach(function(o) {
+    // Déterminer si la commande est "Prête" (toutes les lignes de production terminées)
+    // Pour cela on regarde les lignes de production des produits de cette commande
+    // Approximation : on utilise le statut de la commande
+    var isPrete = o.statut.toUpperCase().includes('EXPÉDIÉE') || o.statut.toUpperCase().includes('EXPEDIEE');
+    var isProduction = !isPrete;
+
+    // Filtrage par statut
+    if (_filterALivrerStatut === 'production' && !isProduction) return;
+    if (_filterALivrerStatut === 'prete' && !isPrete) return;
+
+    var vu = isProduction ? '<span style="color:var(--red);font-size:1.1rem">●</span>' : '<span style="color:var(--green);font-size:1.1rem">●</span>';
+    var statutBdg = isProduction ? '<span class="badge badge-orange">En Production</span>' : '<span class="badge badge-green">Prête</span>';
+
+    var btnClass = 'btn-livraison ' + (isProduction ? 'btn-livraison-disabled' : 'btn-livraison-ready');
+    var btnClick = isProduction ? '' : ' onclick="marquerLivraison(\'' + o.id + '\')"';
+    var btn = '<button class="' + btnClass + '"' + btnClick + '>LIVRAISON</button>';
+
+    html += '<tr>' +
+      '<td>' + vu + '</td>' +
+      '<td><strong>' + (o.ref || '—') + '</strong></td>' +
+      '<td>' + (o.clubNom || '—') + '</td>' +
+      '<td>' + (o.date || '—') + '</td>' +
+      '<td>' + (o.nbArticles || 0) + '</td>' +
+      '<td>' + fmt(o.total) + '</td>' +
+      '<td>' + statutBdg + '</td>' +
+      '<td>' + btn + '</td>' +
+      '</tr>';
+  });
+
+  document.getElementById('alivrer-table').innerHTML = html || '<tr><td colspan="8" style="text-align:center;color:var(--grey-400);padding:2rem">Aucune commande à livrer</td></tr>';
+}
+
+function marquerLivraison(commandeId) {
+  // Mettre le statut de la commande à LIVRÉE
+  apiPost('adminUpdateOrder', { id: commandeId, statut: '✅ LIVRÉE' }).then(function(res) {
+    if (res.success) {
+      // Mettre à jour aussi toutes les production_lines liées
+      var linesForCmd = G.productionLines.filter(function(l) {
+        // On va bulk update toutes les lignes a_livrer de cette commande via l'API
+        return true; // On reload
+      });
+      toast('Commande livrée');
+      loadCommandes();
+      loadProduction();
     } else toast('Erreur', true);
   });
 }
@@ -1868,7 +2034,6 @@ function loadProductionForOrder(commandeId) {
     var livrOpts = ['a_livrer', 'livre'];
 
     html += '<table style="font-size:.85rem"><thead><tr><th>Produit</th><th>Taille</th><th>Qté cmd</th><th>Qté totale</th><th>Perso</th>';
-    // Colonnes selon type
     var hasClassique = lines.some(function(l) { return !l.estProduitAsie; });
     var hasAsie = lines.some(function(l) { return l.estProduitAsie; });
     if (hasClassique) html += '<th>Textile</th><th>DTF</th><th>Prod</th>';

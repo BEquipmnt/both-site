@@ -831,6 +831,7 @@ async function adminGetProductionLines(filters = {}) {
         statutAsie: l.statut_asie,
         statutProduction: l.statut_production,
         statutLivraison: l.statut_livraison,
+        fournisseur: l.fournisseur || '',
         notes: l.notes,
         dateCreation: l.date_creation,
         dateModification: l.date_modification
@@ -853,8 +854,8 @@ async function adminGetProductionStats() {
     const stats = {
       textileACommander: 0,
       dtfACommander: 0,
-      textileAVerifier: 0,
-      dtfAVerifier: 0,
+      textileReception: 0,
+      dtfReception: 0,
       aProduire: 0,
       aLivrer: 0,
       asieEnAttente: 0
@@ -863,10 +864,10 @@ async function adminGetProductionStats() {
     lines.forEach(l => {
       const qty = l.quantite || 0;
       if (!l.est_produit_asie) {
-        if (l.statut_textile === 'a_commander') stats.textileACommander += qty;
-        if (l.statut_dtf === 'a_commander') stats.dtfACommander += qty;
-        if (l.statut_textile === 'recu') stats.textileAVerifier += qty;
-        if (l.statut_dtf === 'recu') stats.dtfAVerifier += qty;
+        if (l.statut_textile === 'a_commander' || l.statut_textile === 'en_panier') stats.textileACommander += qty;
+        if (l.statut_dtf === 'a_commander' || l.statut_dtf === 'en_panier') stats.dtfACommander += qty;
+        if (l.statut_textile === 'commande') stats.textileReception += qty;
+        if (l.statut_dtf === 'commande') stats.dtfReception += qty;
         if (l.statut_textile === 'verifie' && l.statut_dtf === 'verifie' && l.statut_production === 'a_produire') stats.aProduire += qty;
         if (l.statut_production === 'termine' && l.statut_livraison === 'a_livrer') stats.aLivrer += qty;
       } else {
@@ -892,6 +893,7 @@ async function adminUpdateProductionLine(payload) {
     if (payload.statutAsie !== undefined) data.statut_asie = payload.statutAsie;
     if (payload.statutProduction !== undefined) data.statut_production = payload.statutProduction;
     if (payload.statutLivraison !== undefined) data.statut_livraison = payload.statutLivraison;
+    if (payload.fournisseur !== undefined) data.fournisseur = payload.fournisseur;
     if (payload.notes !== undefined) data.notes = payload.notes;
 
     await sbPatch('production_lines', `id=eq.${payload.id}`, data);
@@ -915,6 +917,7 @@ async function adminBulkUpdateProductionLines(payload) {
     if (update.statutAsie !== undefined) data.statut_asie = update.statutAsie;
     if (update.statutProduction !== undefined) data.statut_production = update.statutProduction;
     if (update.statutLivraison !== undefined) data.statut_livraison = update.statutLivraison;
+    if (update.fournisseur !== undefined) data.fournisseur = update.fournisseur;
 
     await sbPatch('production_lines', `id=in.(${ids.join(',')})`, data);
     return { success: true };
