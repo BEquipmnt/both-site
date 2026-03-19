@@ -1337,6 +1337,25 @@ async function downloadFacture(orderId, btn){
 }
 
 function generateInvoicePDF(order, lignes){
+  const logoUrl = 'https://i.imgur.com/e68bB0X.png';
+  const img = new Image(); img.crossOrigin = 'anonymous';
+  img.onload = function(){ _buildInvoicePDF(order, lignes, img); };
+  img.onerror = function(){ _buildInvoicePDF(order, lignes, null); };
+  img.src = logoUrl;
+}
+
+function _makeWhiteLogo(img){
+  const c = document.createElement('canvas');
+  c.width = img.naturalWidth; c.height = img.naturalHeight;
+  const ctx = c.getContext('2d');
+  ctx.drawImage(img, 0, 0);
+  ctx.globalCompositeOperation = 'source-in';
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, c.width, c.height);
+  return c.toDataURL('image/png');
+}
+
+function _buildInvoicePDF(order, lignes, logoImg){
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit:'mm', format:'a4' });
   const W = 210, MG = 20, cW = W - 2*MG;
@@ -1346,10 +1365,26 @@ function generateInvoicePDF(order, lignes){
   // EN-TETE
   doc.setFillColor(...noir);
   doc.rect(0,0,W,42,'F');
-  doc.setTextColor(...blanc); doc.setFont('helvetica','bold'); doc.setFontSize(22);
-  doc.text('BOTH EQUIPMNT', MG, 18);
-  doc.setFontSize(9); doc.setFont('helvetica','normal');
-  doc.text('Equipementier sportif', MG, 25);
+  if(logoImg){
+    try{
+      const whiteLogoData = _makeWhiteLogo(logoImg);
+      const ratio = logoImg.naturalWidth / logoImg.naturalHeight;
+      const logoH = 12, logoW = logoH * ratio;
+      doc.addImage(whiteLogoData, 'PNG', MG, 10, logoW, logoH);
+      doc.setTextColor(...blanc); doc.setFontSize(9); doc.setFont('helvetica','normal');
+      doc.text('Equipementier sportif', MG, 28);
+    }catch(e){
+      doc.setTextColor(...blanc); doc.setFont('helvetica','bold'); doc.setFontSize(22);
+      doc.text('BOTH EQUIPMNT', MG, 18);
+      doc.setFontSize(9); doc.setFont('helvetica','normal');
+      doc.text('Equipementier sportif', MG, 25);
+    }
+  }else{
+    doc.setTextColor(...blanc); doc.setFont('helvetica','bold'); doc.setFontSize(22);
+    doc.text('BOTH EQUIPMNT', MG, 18);
+    doc.setFontSize(9); doc.setFont('helvetica','normal');
+    doc.text('Equipementier sportif', MG, 25);
+  }
   doc.setTextColor(...or); doc.setFontSize(14);
   doc.text('FACTURE', W-MG, 18, {align:'right'});
   doc.setTextColor(...blanc); doc.setFontSize(9);
