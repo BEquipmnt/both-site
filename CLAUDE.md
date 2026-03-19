@@ -22,6 +22,7 @@ Clubs de sport se connectent au "Vestiaire" pour commander des tenues personnali
 - **Phase 1** (actuel) : Migration Airtable → Supabase, le vestiaire fonctionne pareil cote clubs
 - **Phase 2** (actuel) : Back-office admin custom sur /admin (gestion produits, commandes, suivi production)
 - **Phase 3** : Pre-generation des pages vitrine depuis Notion (temps de chargement instantanes)
+- **Phase 4** (futur) : Authentification securisee via Supabase Auth (Magic Links)
 
 ## Architecture des fichiers
 
@@ -293,6 +294,25 @@ npx netlify-cli dev
 # 2. Puis :
 AIRTABLE_TOKEN=pat... AIRTABLE_BASE_ID=app... SUPABASE_URL=https://xxx.supabase.co SUPABASE_SERVICE_KEY=eyJ... node supabase/migrate.js
 ```
+
+## Phase 4 — Supabase Auth (a faire quand le nombre de clubs augmente)
+
+Actuellement l'auth vestiaire est un simple lookup par email dans la table `clubs` (pas de mot de passe, pas de session).
+Ca fonctionne mais n'importe qui connaissant l'email d'un club peut acceder a son vestiaire.
+
+**Plan prevu :**
+- Utiliser **Supabase Auth** avec **Magic Links** (lien de connexion envoye par email)
+- Meme UX qu'aujourd'hui pour les clubs (pas de mot de passe), mais securise avec un vrai token de session
+- Activer le **RLS reel** sur les tables (chaque club ne voit que ses propres donnees cote base)
+- Sessions persistantes (pas besoin de se reconnecter a chaque visite)
+- Migrer les clubs existants vers Supabase Auth (creer un user par club)
+
+**Points d'attention pour la migration :**
+- Certains clubs ont plusieurs emails (champ `emails` separe par virgules) — il faudra gerer ca
+- L'admin utilise le meme mecanisme d'auth (flag `admin` sur le club) — a migrer aussi
+- Tester sur un club pilote avant de migrer tout le monde
+
+**Declencheur** : quand le nombre de clubs devient significatif et que la securite devient un enjeu.
 
 ## Points d'attention
 
