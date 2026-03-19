@@ -930,52 +930,90 @@ function deleteOrder(id) {
 // FACTURE PDF (admin)
 // ============================================================
 function adminFacture(id) {
+  toast('Generation de la facture...');
   apiGet('getOrderDetail', { orderId: id }).then(function(res) {
-    if (res.error) { toast(res.error); return; }
-    // Charger les settings pour le RIB
+    if (res.error) { toast(res.error, true); return; }
     apiGet('getSettings').then(function(sr) {
       var settings = sr.settings || {};
-      generateAdminInvoice(res.order, res.lignes, settings);
+      // Charger le logo puis generer le PDF
+      var logoUrl = 'https://i.imgur.com/e68bB0X.png';
+      var img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = function() {
+        var canvas = document.createElement('canvas');
+        canvas.width = img.width; canvas.height = img.height;
+        canvas.getContext('2d').drawImage(img, 0, 0);
+        var logoData = canvas.toDataURL('image/png');
+        generateAdminInvoice(res.order, res.lignes, settings, logoData);
+      };
+      img.onerror = function() {
+        // Fallback sans logo
+        generateAdminInvoice(res.order, res.lignes, settings, null);
+      };
+      img.src = logoUrl;
     });
   });
 }
 
 function fmtPDF(n) { return n.toFixed(2).replace('.', ',') + ' \u20AC'; }
 
-function generateAdminInvoice(order, lignes, settings) {
+function generateAdminInvoice(order, lignes, settings, logoData) {
   var jsPDF = window.jspdf.jsPDF;
   var doc = new jsPDF({ unit: 'mm', format: 'a4' });
   var W = 210, MG = 20, cW = W - 2 * MG;
   var y = MG;
   var noir = [10,10,10], gris = [106,106,106], or = [255,215,0], blanc = [250,250,248];
 
-  // EN-TETE
+  // ========== EN-TETE ==========
   doc.setFillColor(noir[0],noir[1],noir[2]);
-  doc.rect(0, 0, W, 42, 'F');
-  doc.setTextColor(blanc[0],blanc[1],blanc[2]); doc.setFont('helvetica','bold'); doc.setFontSize(22);
-  doc.text('BOTH EQUIPMNT', MG, 18);
+  doc.rect(0, 0, W, 48, 'F');
+
+  // Logo (gauche)
+  if (logoData) {
+    doc.addImage(logoData, 'PNG', MG, 8, 32, 32);
+  }
+  var logoOffset = logoData ? 56 : MG;
+
+  // Nom + EI (a cote du logo)
+  doc.setTextColor(blanc[0],blanc[1],blanc[2]); doc.setFont('helvetica','bold'); doc.setFontSize(8);
+  doc.text('Brian Otto Schacht \u2014 EI', logoOffset, 14);
+  doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(gris[0],gris[1],gris[2]);
+  doc.text('SIRET : 852 445 428 00026', logoOffset, 19);
+  doc.text('1, Rue de la Grange \u2014 91230 Montgeron', logoOffset, 24);
+  doc.text('bothequipmnt@gmail.com', logoOffset, 29);
+
+  // FACTURE + Ref (droite)
+  doc.setTextColor(or[0],or[1],or[2]); doc.setFont('helvetica','bold'); doc.setFontSize(16);
+  doc.text('FACTURE', W - MG, 16, { align: 'right' });
+  doc.setTextColor(blanc[0],blanc[1],blanc[2]); doc.setFontSize(10);
+  doc.text(order.ref, W - MG, 24, { align: 'right' });
   doc.setFontSize(9); doc.setFont('helvetica','normal');
-  doc.text('Equipementier sportif', MG, 25);
-  doc.setTextColor(or[0],or[1],or[2]); doc.setFontSize(14);
-  doc.text('FACTURE', W - MG, 18, { align: 'right' });
-  doc.setTextColor(blanc[0],blanc[1],blanc[2]); doc.setFontSize(9);
-  doc.text(order.ref, W - MG, 25, { align: 'right' });
-  doc.text(order.date || '', W - MG, 31, { align: 'right' });
-  y = 52;
+  doc.text('Date : ' + (order.date || ''), W - MG, 31, { align: 'right' });
+  y = 58;
 
-  // DESTINATAIRE
-  doc.setTextColor(gris[0],gris[1],gris[2]); doc.setFontSize(8);
-  doc.text('DESTINATAIRE', MG, y); y += 5;
+  // ========== DESTINATAIRE ==========
+  doc.setFillColor(248,248,248);
+  doc.roundedRect(MG, y, cW, 28, 2, 2, 'F');
+  doc.setTextColor(gris[0],gris[1],gris[2]); doc.setFontSize(7); doc.setFont('helvetica','bold');
+  doc.text('DESTINATAIRE', MG + 6, y + 6);
   doc.setTextColor(noir[0],noir[1],noir[2]); doc.setFontSize(11); doc.setFont('helvetica','bold');
-  doc.text(order.clubNom || '', MG, y); y += 5;
-  doc.setFont('helvetica','normal'); doc.setFontSize(9);
-  doc.text(order.clubEmail || '', MG, y); y += 12;
+  doc.text(order.clubNom || '', MG + 6, y + 13);
+  doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
+  var clubLine2 = order.clubEmail || '';
+  doc.text(clubLine2, MG + 6, y + 19);
+  var clubLine3Parts = [];
+  if (order.clubAdresse) clubLine3Parts.push(order.clubAdresse);
+  if (order.clubSiret) clubLine3Parts.push('SIRET : ' + order.clubSiret);
+  if (clubLine3Parts.length) {
+    doc.text(clubLine3Parts.join(' \u2014 '), MG + 6, y + 24);
+  }
+  y += 36;
 
-  // LIGNE OR
+  // ========== LIGNE OR ==========
   doc.setDrawColor(or[0],or[1],or[2]); doc.setLineWidth(0.8);
   doc.line(MG, y, W - MG, y); y += 8;
 
-  // AGREGER par produit (sans taille/perso)
+  // ========== AGREGER par produit ==========
   var grouped = {};
   lignes.forEach(function(l) {
     var key = l.produit;
@@ -986,74 +1024,82 @@ function generateAdminInvoice(order, lignes, settings) {
   });
   var rows = Object.values(grouped);
 
-  // TABLEAU
+  // ========== TABLEAU ==========
   var colX = [MG, MG + 90, MG + 110, MG + 140];
-  doc.setFillColor(245,245,245); doc.rect(MG, y - 4, cW, 8, 'F');
-  doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(gris[0],gris[1],gris[2]);
-  doc.text('PRODUIT', colX[0] + 2, y);
-  doc.text('QTE', colX[1] + 2, y);
-  doc.text('PRIX UNIT.', colX[2] + 2, y);
-  doc.text('TOTAL', colX[3] + 2, y);
+  doc.setFillColor(noir[0],noir[1],noir[2]); doc.rect(MG, y - 4, cW, 8, 'F');
+  doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(blanc[0],blanc[1],blanc[2]);
+  doc.text('PRODUIT', colX[0] + 3, y);
+  doc.text('QTE', colX[1] + 3, y);
+  doc.text('PRIX UNIT.', colX[2] + 3, y);
+  doc.text('TOTAL', colX[3] + 3, y);
   y += 7;
-  doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(noir[0],noir[1],noir[2]);
+  doc.setTextColor(noir[0],noir[1],noir[2]);
 
   var sousTotal = 0;
-  rows.forEach(function(r) {
+  rows.forEach(function(r, i) {
     var lt = r.prix * r.quantite;
     sousTotal += lt;
-    if (y > 260) { doc.addPage(); y = MG; }
-    doc.setFont('helvetica','bold');
-    doc.text(r.produit, colX[0] + 2, y, { maxWidth: 85 });
+    if (y > 255) { doc.addPage(); y = MG; }
+    // Bande alternee
+    if (i % 2 === 0) {
+      doc.setFillColor(250,250,250); doc.rect(MG, y - 4, cW, 10, 'F');
+    }
+    doc.setFont('helvetica','bold'); doc.setFontSize(9);
+    doc.text(r.produit, colX[0] + 3, y, { maxWidth: 85 });
     doc.setFont('helvetica','normal');
-    doc.text(String(r.quantite), colX[1] + 2, y);
-    doc.text(fmtPDF(r.prix), colX[2] + 2, y);
-    doc.text(fmtPDF(lt), colX[3] + 2, y);
-    y += 6;
-    doc.setDrawColor(230,230,230); doc.setLineWidth(0.2); doc.line(MG, y, W - MG, y); y += 4;
+    doc.text(String(r.quantite), colX[1] + 3, y);
+    doc.text(fmtPDF(r.prix), colX[2] + 3, y);
+    doc.setFont('helvetica','bold');
+    doc.text(fmtPDF(lt), colX[3] + 3, y);
+    y += 10;
   });
+  doc.setDrawColor(noir[0],noir[1],noir[2]); doc.setLineWidth(0.3);
+  doc.line(MG, y - 4, W - MG, y - 4);
   y += 4;
 
-  // TOTAUX
+  // ========== TOTAUX ==========
   var total = order.total;
   var fraisLiv = order.fraisLivraison || 0;
-  var tX = W - MG - 55;
-  doc.setFontSize(9);
+  var tX = W - MG - 60;
+  doc.setFont('helvetica','normal'); doc.setFontSize(9);
   doc.setTextColor(gris[0],gris[1],gris[2]); doc.text('Sous-total', tX, y);
   doc.setTextColor(noir[0],noir[1],noir[2]); doc.text(fmtPDF(sousTotal), W - MG, y, { align: 'right' }); y += 6;
   if (fraisLiv > 0.01) {
     doc.setTextColor(gris[0],gris[1],gris[2]); doc.text('Frais de livraison', tX, y);
     doc.setTextColor(noir[0],noir[1],noir[2]); doc.text(fmtPDF(fraisLiv), W - MG, y, { align: 'right' }); y += 6;
   }
-  doc.setDrawColor(or[0],or[1],or[2]); doc.setLineWidth(0.6); doc.line(tX, y, W - MG, y); y += 6;
-  doc.setFont('helvetica','bold'); doc.setFontSize(12);
-  doc.text('TOTAL', tX, y); doc.text(fmtPDF(total), W - MG, y, { align: 'right' }); y += 4;
+  doc.setDrawColor(or[0],or[1],or[2]); doc.setLineWidth(0.8); doc.line(tX, y, W - MG, y); y += 7;
+  doc.setFont('helvetica','bold'); doc.setFontSize(13);
+  doc.text('TOTAL', tX, y);
+  doc.setTextColor(noir[0],noir[1],noir[2]); doc.text(fmtPDF(total), W - MG, y, { align: 'right' }); y += 5;
   doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(gris[0],gris[1],gris[2]);
   doc.text('TVA non applicable \u2014 article 293 B du CGI', tX, y); y += 14;
 
-  // COORDONNEES BANCAIRES
-  if (y > 240) { doc.addPage(); y = MG; }
+  // ========== COORDONNEES BANCAIRES ==========
+  if (y > 235) { doc.addPage(); y = MG; }
   doc.setFillColor(255,251,235); doc.setDrawColor(or[0],or[1],or[2]); doc.setLineWidth(0.5);
-  doc.roundedRect(MG, y, cW, 38, 2, 2, 'FD'); y += 7;
+  doc.roundedRect(MG, y, cW, 40, 2, 2, 'FD'); y += 7;
   doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(noir[0],noir[1],noir[2]);
-  doc.text('COORDONNEES BANCAIRES', MG + 6, y); y += 3;
+  doc.text('COORDONNEES BANCAIRES', MG + 6, y); y += 4;
   doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(gris[0],gris[1],gris[2]);
   doc.text('Effectuez votre virement avec la reference de commande en objet.', MG + 6, y); y += 6;
-  doc.setFontSize(8.5); doc.setTextColor(noir[0],noir[1],noir[2]);
+  doc.setFontSize(8.5);
   var ribData = [
-    ['Beneficiaire', settings.rib_beneficiaire || 'BOTH EQUIPMNT'],
+    ['Beneficiaire', settings.rib_beneficiaire || 'Brian Otto Schacht'],
     ['IBAN', settings.rib_iban || 'FR76 1451 8292 6705 3640 9504 091'],
     ['BIC', settings.rib_bic || 'FTNOFRP1XXX'],
     ['Reference', order.ref]
   ];
   ribData.forEach(function(row) {
     doc.setFont('helvetica','normal'); doc.setTextColor(gris[0],gris[1],gris[2]); doc.text(row[0], MG + 6, y);
-    doc.setFont('helvetica','bold'); doc.setTextColor(noir[0],noir[1],noir[2]); doc.text(row[1], MG + 42, y); y += 5;
+    doc.setFont('helvetica','bold'); doc.setTextColor(noir[0],noir[1],noir[2]); doc.text(row[1], MG + 42, y); y += 5.5;
   });
 
-  // PIED DE PAGE
-  doc.setDrawColor(230,230,230); doc.setLineWidth(0.2); doc.line(MG, 281, W - MG, 281);
+  // ========== PIED DE PAGE ==========
+  doc.setDrawColor(or[0],or[1],or[2]); doc.setLineWidth(0.4); doc.line(MG, 278, W - MG, 278);
   doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(gris[0],gris[1],gris[2]);
-  doc.text('BOTH EQUIPMNT \u2014 contact@bothequipmnt.com \u2014 bothequipmnt.com', W / 2, 285, { align: 'center' });
+  doc.text('Both Equipmnt \u2014 Brian Otto Schacht EI \u2014 SIRET 852 445 428 00026', W / 2, 283, { align: 'center' });
+  doc.text('1, Rue de la Grange, 91230 Montgeron \u2014 bothequipmnt@gmail.com \u2014 bothequipmnt.com', W / 2, 287, { align: 'center' });
 
   doc.save('Facture_' + order.ref + '.pdf');
 }
@@ -1592,6 +1638,8 @@ function openClubModal(id) {
     '<div class="form-row"><label>Email principal</label><input id="fc-email" type="email" value="' + (c ? c.email : '') + '"></div>' +
     '<div class="form-row"><label>Emails secondaires (séparés par virgule)</label><input id="fc-emails" value="' + (c ? c.emails || '' : '') + '"></div>' +
     '<div class="form-row"><label>Logo URL</label><input id="fc-logo" value="' + (c ? c.logo_url : '') + '"></div>' +
+    '<div class="form-row"><label>Adresse</label><input id="fc-adresse" value="' + (c ? c.adresse || '' : '') + '"></div>' +
+    '<div class="form-row"><label>SIRET / SIREN</label><input id="fc-siret" value="' + (c ? c.siret || '' : '') + '"></div>' +
     '<div class="form-grid">' +
     '<div class="form-row"><label>Frais livraison</label><input id="fc-frais" type="number" step="0.01" value="' + (c ? c.frais_livraison : 0) + '"></div>' +
     '<div class="form-row"><label>Minimum commande</label><input id="fc-min" type="number" step="0.01" value="' + (c ? c.minimum_commande : 0) + '"></div>' +
@@ -1613,6 +1661,8 @@ function saveClub(id) {
     email: document.getElementById('fc-email').value,
     emails: document.getElementById('fc-emails').value,
     logoUrl: document.getElementById('fc-logo').value,
+    adresse: document.getElementById('fc-adresse').value,
+    siret: document.getElementById('fc-siret').value,
     fraisLivraison: document.getElementById('fc-frais').value,
     minimumCommande: document.getElementById('fc-min').value,
     activeMinimum: document.getElementById('fc-activemin').checked,
