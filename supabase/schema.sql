@@ -11,6 +11,8 @@ CREATE TABLE clubs (
   email       text,                                  -- email principal
   emails      text,                                  -- emails secondaires (séparés par virgule)
   logo_url    text DEFAULT '',
+  adresse     text DEFAULT '',                   -- adresse postale du club
+  siret       text DEFAULT '',                   -- SIRET ou SIREN du club
   minimum_commande  numeric(10,2) DEFAULT 0,
   active_minimum    boolean DEFAULT false,
   frais_livraison   numeric(10,2) DEFAULT 0,

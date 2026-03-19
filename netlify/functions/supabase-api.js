@@ -268,7 +268,7 @@ async function getOrderDetail(orderId) {
     // Récupérer club et lignes en parallèle
     const [clubArr, lignes] = await Promise.all([
       commande.club_id
-        ? sbGet('clubs', `select=nom,email&id=eq.${commande.club_id}`)
+        ? sbGet('clubs', `select=nom,email,adresse,siret&id=eq.${commande.club_id}`)
         : Promise.resolve([]),
       sbGet('lignes', `select=*&commande_id=eq.${orderId}`)
     ]);
@@ -309,7 +309,9 @@ async function getOrderDetail(orderId) {
         statut: commande.statut || '',
         fraisLivraison: parseFloat(commande.frais_livraison) || 0,
         clubNom: clubInfo.nom,
-        clubEmail: clubInfo.email
+        clubEmail: clubInfo.email,
+        clubAdresse: clubInfo.adresse || '',
+        clubSiret: clubInfo.siret || ''
       },
       lignes: lignesDetail
     };
@@ -486,6 +488,8 @@ async function adminCreateClub(payload) {
       email: payload.email || '',
       emails: payload.emails || '',
       logo_url: payload.logoUrl || '',
+      adresse: payload.adresse || '',
+      siret: payload.siret || '',
       minimum_commande: parseFloat(payload.minimumCommande) || 0,
       active_minimum: payload.activeMinimum || false,
       frais_livraison: parseFloat(payload.fraisLivraison) || 0,
@@ -504,6 +508,8 @@ async function adminUpdateClub(payload) {
     if (payload.email !== undefined) data.email = payload.email;
     if (payload.emails !== undefined) data.emails = payload.emails;
     if (payload.logoUrl !== undefined) data.logo_url = payload.logoUrl;
+    if (payload.adresse !== undefined) data.adresse = payload.adresse;
+    if (payload.siret !== undefined) data.siret = payload.siret;
     if (payload.minimumCommande !== undefined) data.minimum_commande = parseFloat(payload.minimumCommande) || 0;
     if (payload.activeMinimum !== undefined) data.active_minimum = payload.activeMinimum;
     if (payload.fraisLivraison !== undefined) data.frais_livraison = parseFloat(payload.fraisLivraison) || 0;

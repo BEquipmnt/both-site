@@ -918,7 +918,7 @@ function openModal(id){
   }else{modalImg.innerHTML='<div style="width:100%;height:100%;background:var(--off);"></div>';}
   document.getElementById('modal-name').textContent=p.nom;
   document.getElementById('modal-desc').textContent=p.description||'Équipement sportif — Studio Both.';
-  const tailles=Array.isArray(p.tailles)?p.tailles:(p.tailles?p.tailles.split(',').map(t=>t.trim()):['S','M','L','XL']);
+  const tailles=Array.isArray(p.tailles)&&p.tailles.length?p.tailles:(typeof p.tailles==='string'&&p.tailles?p.tailles.split(',').map(t=>t.trim()):['Taille Unique']);
   const minQty=p.minQuantite||0;
   const effMax = getEffectiveMax(p);
   const showPerso = hasPerso(p);
@@ -951,7 +951,7 @@ function openModal(id){
 function onQtyChange(){
   const p = S.currentProduct;
   if(!p) return;
-  const tailles = Array.isArray(p.tailles) ? p.tailles : (p.tailles ? p.tailles.split(',').map(t=>t.trim()) : ['S','M','L','XL']);
+  const tailles = Array.isArray(p.tailles)&&p.tailles.length ? p.tailles : (typeof p.tailles==='string'&&p.tailles ? p.tailles.split(',').map(t=>t.trim()) : ['Taille Unique']);
   const showPerso = hasPerso(p);
 
   // --- 1. Calculer le max commandable (recalculé à chaque changement) ---
@@ -1119,7 +1119,7 @@ function modalClickOut(e){if(e.target===document.getElementById('modal-backdrop'
 
 function addToCart(){
   const p=S.currentProduct;
-  const tailles=Array.isArray(p.tailles)?p.tailles:(p.tailles?p.tailles.split(',').map(t=>t.trim()):['S','M','L','XL']);
+  const tailles=Array.isArray(p.tailles)&&p.tailles.length?p.tailles:(typeof p.tailles==='string'&&p.tailles?p.tailles.split(',').map(t=>t.trim()):['Taille Unique']);
   tailles.forEach(t=>{const qty=parseInt(document.getElementById('qty-'+t).value)||0;if(!qty)return;
     if(hasPerso(p)&&S.persoData[t]){S.persoData[t].forEach(perso=>{S.cart.push({productId:p.id,nom:p.nom,image:p.image,prix:p.prix,taille:t,nomPerso:perso.nom,numPerso:perso.num,quantite:1});});}
     else{S.cart.push({productId:p.id,nom:p.nom,image:p.image,prix:p.prix,taille:t,nomPerso:'',numPerso:'',quantite:qty});}
