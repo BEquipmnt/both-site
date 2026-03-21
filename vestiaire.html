@@ -935,26 +935,47 @@ function persoLabel(p){
   return p.personnalisation;
 }
 
+function stockConditions(p){
+  const lines = [];
+  if(p.minQuantite > 1){
+    if(p.groupeStock){
+      lines.push(`Min. ${p.minQuantite} pcs (combinable entre variantes du groupe)`);
+    } else {
+      lines.push(`Min. ${p.minQuantite} pcs`);
+    }
+  }
+  if(p.maxQuantite > 0){
+    const restant = Math.max(0, p.maxQuantite - (p.dejaCommande || 0));
+    lines.push(`Max. ${p.maxQuantite} pcs (reste ${restant} commandable)`);
+  }
+  if(p.groupeStock && p.stockGroupe > 0){
+    const used = dejaCommandeForGroup(p.groupeStock);
+    const restant = Math.max(0, p.stockGroupe - used);
+    lines.push(`Stock groupe "${p.groupeStock}" : ${restant}/${p.stockGroupe} dispo`);
+  }
+  if(!lines.length) lines.push('Sans limite');
+  return lines;
+}
+
 function downloadListingCSV(){
   const inclPrix = document.getElementById('dl-include-prix').checked;
   const products = getListingProducts();
   if(!products.length){ toast('Aucun produit disponible.'); return; }
 
   const sep = ';';
-  const headers = ['Nom', 'Tailles', 'Personnalisation', 'Stock dispo', 'Image'];
+  const headers = ['Nom', 'Tailles', 'Personnalisation', 'Conditions de stock', 'Image'];
   if(inclPrix) headers.splice(1, 0, 'Prix');
   let csv = headers.join(sep) + '\n';
 
   products.forEach(p => {
     const tailles = (p.tailles || []).join(', ');
-    const stock = getEffectiveMax(p);
-    const stockStr = stock === Infinity ? 'Illimité' : String(stock);
+    const conditions = stockConditions(p).join(' / ');
     const img = getProductImgUrl(p);
     const row = [
       '"' + (p.nom || '').replace(/"/g,'""') + '"',
       '"' + tailles + '"',
       persoLabel(p),
-      stockStr,
+      '"' + conditions + '"',
       img
     ];
     if(inclPrix) row.splice(1, 0, fmt(p.prix));
@@ -1026,12 +1047,14 @@ async function downloadListingPDF(){
   }));
 
   // --- Product rows ---
-  const rowH = 28;
   const imgW = 22;
   const colX = margin + imgW + 4;
 
   for(let i = 0; i < products.length; i++){
     const p = products[i];
+    const conditions = stockConditions(p);
+    const rowH = 20 + conditions.length * 4;
+
     if(y + rowH > ph - 15){
       doc.addPage();
       y = margin;
@@ -1061,9 +1084,12 @@ async function downloadListingPDF(){
 
     doc.text(`Personnalisation : ${persoLabel(p)}`, colX, y + 15);
 
-    const stock = getEffectiveMax(p);
-    const stockStr = stock === Infinity ? 'Illimité' : `${stock} pcs`;
-    doc.text(`Stock dispo : ${stockStr}`, colX, y + 19.5);
+    // Conditions de stock (une ligne par condition)
+    let sy = y + 19.5;
+    conditions.forEach(line => {
+      doc.text(line, colX, sy);
+      sy += 3.5;
+    });
 
     if(inclPrix){
       doc.setTextColor(10, 10, 10);
